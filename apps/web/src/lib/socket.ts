@@ -4,9 +4,10 @@ let socket: Socket | null = null;
 
 export function getSocket(): Socket {
   if (!socket) {
-    socket = io("http://localhost:5000", {
+    socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000", {
       withCredentials: true,
       autoConnect: false,
+      transports: ["websocket", "polling"],
     });
   }
   return socket;

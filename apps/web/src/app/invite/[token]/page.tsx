@@ -1,0 +1,174 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/auth.store";
+import { api } from "@/lib/api";
+import { Button } from "@/components/ui/Button";
+import Link from "next/link";
+
+/* ——— Icons ——— */
+const Icons = {
+  check: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 6L9 17l-5-5" />
+    </svg>
+  ),
+  error: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="15" y1="9" x2="9" y2="15" />
+      <line x1="9" y1="9" x2="15" y2="15" />
+    </svg>
+  ),
+  building: (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+      <path d="M9 22v-4h6v4" />
+      <path d="M8 6h.01M16 6h.01M12 6h.01M12 10h.01M16 10h.01M8 10h.01M8 14h.01M12 14h.01M16 14h.01" />
+    </svg>
+  )
+};
+
+export default function InvitePage() {
+  const { token } = useParams() as { token: string };
+  const router = useRouter();
+  const { user } = useAuthStore();
+  
+  const [loading, setLoading] = useState(true);
+  const [invite, setInvite] = useState<any>(null);
+  const [error, setError] = useState("");
+  const [accepting, setAccepting] = useState(false);
+
+  useEffect(() => {
+    // Fetch invite details (public endpoint)
+    api.get(`/organizations/invite/${token}`)
+      .then((res) => {
+        setInvite(res.data.data);
+      })
+      .catch((err) => {
+        setError(err.response?.data?.message || "Invalid or expired invite link.");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [token]);
+
+  async function handleAccept() {
+    setAccepting(true);
+    setError("");
+    try {
+      await api.post(`/organizations/invite/${token}/accept`);
+      router.push("/dashboard");
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to accept invite.");
+      setAccepting(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="invite-layout">
+        <div className="spinner" style={{ width: "32px", height: "32px", border: "3px solid var(--border-default)", borderTopColor: "var(--accent)", borderRadius: "50%" }} />
+      </div>
+    );
+  }
+
+  if (error && !invite) {
+    return (
+      <div className="invite-layout">
+        <div className="invite-card">
+          <div style={{ color: "var(--error-text)", marginBottom: "16px" }}>
+            {Icons.error}
+          </div>
+          <h1 className="invite-title">Invite Error</h1>
+          <p className="invite-desc">{error}</p>
+          <Button onClick={() => router.push("/")} style={{ width: "100%", marginTop: "16px" }}>
+            Return Home
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="invite-layout">
+      <div className="invite-card">
+        <div style={{ color: "var(--accent)", marginBottom: "20px" }}>
+          {Icons.building}
+        </div>
+        <h1 className="invite-title">
+          You have been invited!
+        </h1>
+        <p className="invite-desc">
+          You have been invited to join <strong>{invite?.organization?.name}</strong> on InterviewAI as an <strong>{invite?.role}</strong>.
+        </p>
+
+        {error && (
+          <div style={{ background: "var(--error-bg)", color: "var(--error-text)", padding: "12px", borderRadius: "var(--radius-md)", fontSize: "13px", marginTop: "16px" }}>
+            {error}
+          </div>
+        )}
+
+        <div style={{ marginTop: "32px" }}>
+          {!user ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <p style={{ fontSize: "13px", color: "var(--text-secondary)", textAlign: "center", marginBottom: "8px" }}>
+                You must be logged in to accept this invite.
+              </p>
+              <Link href={`/login?redirect=/invite/${token}`} style={{ textDecoration: "none" }}>
+                <Button style={{ width: "100%" }}>Log In</Button>
+              </Link>
+              <Link href={`/register?redirect=/invite/${token}`} style={{ textDecoration: "none" }}>
+                <Button variant="secondary" style={{ width: "100%" }}>Create Account</Button>
+              </Link>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", alignItems: "center" }}>
+              <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+                Signed in as <strong>{user.email}</strong>
+              </div>
+              <Button onClick={handleAccept} loading={accepting} style={{ width: "100%" }}>
+                Accept Invitation
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <style>{`
+        .invite-layout {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--bg-base);
+          padding: 24px;
+        }
+        .invite-card {
+          background: #FFFFFF;
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-2xl);
+          padding: 40px 32px;
+          max-width: 420px;
+          width: 100%;
+          text-align: center;
+          box-shadow: var(--shadow-sm);
+        }
+        .invite-title {
+          font-size: 24px;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin: 0 0 12px;
+          letter-spacing: -0.02em;
+        }
+        .invite-desc {
+          font-size: 15px;
+          color: var(--text-secondary);
+          margin: 0;
+          line-height: 1.5;
+        }
+      `}</style>
+    </div>
+  );
+}

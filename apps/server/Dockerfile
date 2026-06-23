@@ -10,18 +10,22 @@ RUN npm install
 COPY . .
 
 RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
+RUN npm run build
 
 FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/src ./src
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/tsconfig.json ./
-COPY --from=builder /app/nodemon.json ./
+COPY package*.json ./
+COPY prisma ./prisma/
+
+RUN npm install --omit=dev && npm cache clean --force
+RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
+
+COPY --from=builder /app/dist ./dist
 
 EXPOSE 5000
 
-CMD ["npx", "ts-node", "--transpile-only", "src/server.ts"]
+ENV NODE_ENV=production
+
+CMD ["node", "dist/server.js"]

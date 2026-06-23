@@ -8,6 +8,7 @@ export class InterviewRepository {
     scheduledAt?: Date;
     organizationId: string;
     createdById: string;
+    candidateId?: string;
   }) {
     return prisma.interview.create({
       data,
@@ -26,7 +27,10 @@ export class InterviewRepository {
   findById(id: string) {
     return prisma.interview.findUnique({
       where: { id },
-      include: { createdBy: { select: { id: true, name: true, email: true } } },
+      include: { 
+        createdBy: { select: { id: true, name: true, email: true } },
+        candidate: { select: { id: true, name: true, email: true } }
+      },
     });
   }
 
@@ -37,6 +41,10 @@ export class InterviewRepository {
       description?: string;
       status?: InterviewStatus;
       scheduledAt?: Date;
+      candidateId?: string | null;
+      codeSubmitted?: string;
+      language?: string;
+      interviewNotes?: string;
     },
   ) {
     return prisma.interview.update({ where: { id }, data });

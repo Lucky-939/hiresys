@@ -43,3 +43,63 @@ export async function getOrgById(
     next(err);
   }
 }
+
+// --- Members ---
+
+export async function getMembers(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const members = await service.getMembers(req.params.orgId as string);
+    res.json({ success: true, data: members });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function inviteMember(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const { email, role } = req.body;
+    const invite = await service.inviteMember(req.params.orgId as string, email, role, req.userId!);
+    res.json({ success: true, data: invite });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateMemberRole(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const { role } = req.body;
+    const member = await service.updateMemberRole(req.params.orgId as string, req.params.userId as string, role, req.userId!);
+    res.json({ success: true, data: member });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function removeMember(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    await service.removeMember(req.params.orgId as string, req.params.userId as string, req.userId!);
+    res.json({ success: true, data: null });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// --- Invites ---
+
+export async function getInvite(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const invite = await service.getInviteByToken(req.params.token as string);
+    res.json({ success: true, data: invite });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function acceptInvite(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const result = await service.acceptInvite(req.params.token as string, req.userId!);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+}

@@ -6,7 +6,7 @@ export interface AuthRequest extends Request {
   userId?: string;
 }
 
-export function authenticate(
+export async function authenticate(
   req: AuthRequest,
   _res: Response,
   next: NextFunction,
@@ -19,10 +19,21 @@ export function authenticate(
     }
 
     const token = authHeader.split(" ")[1];
+    
+    // Check blocklist
+    const { redis } = require("../../config/redis");
+    const isBlocked = await redis.get(`bl_${token}`);
+    if (isBlocked) {
+      throw new AppError("Invalid or expired token", 401);
+    }
+
     const payload = jwt.verify(token, process.env.JWT_SECRET!) as {
       sub: string;
     };
     req.userId = payload.sub;
+    
+    // Also assign req.user for express compatibility where needed
+    (req as any).user = { id: payload.sub };
 
     next();
   } catch (err) {

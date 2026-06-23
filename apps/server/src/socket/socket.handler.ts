@@ -1,4 +1,8 @@
 import { Server, Socket } from "socket.io";
+import jwt from "jsonwebtoken";
+import { InterviewService } from "../modules/interviews/interview.service";
+
+const interviewService = new InterviewService();
 
 interface RoomUser {
   userId: string;
@@ -30,30 +34,78 @@ function getUniqueUsers(users: Map<string, RoomUser>): RoomUser[] {
 }
 
 export function registerSocketHandlers(io: Server) {
+  io.use((socket, next) => {
+    try {
+      const token = socket.handshake.auth.token;
+      if (!token) {
+        return next(new Error("Authentication error"));
+      }
+      
+      const payload = jwt.verify(token, process.env.JWT_SECRET!) as {
+        sub: string;
+      };
+      socket.data.userId = payload.sub;
+      next();
+    } catch (err) {
+      next(new Error("Authentication error"));
+    }
+  });
+
   io.on("connection", (socket: Socket) => {
     console.log(`Socket connected: ${socket.id}`);
 
-    socket.on("room:join", ({ roomId, userId, name }) => {
-      socket.join(roomId);
+    socket.on("room:join", async ({ roomId, name }) => {
+      try {
+        const userId = socket.data.userId;
+        
+        // Validate organization membership via InterviewService
+        await interviewService.getById(roomId, userId);
 
-      if (!roomUsers.has(roomId)) {
-        roomUsers.set(roomId, new Map());
+        socket.join(roomId);
+
+        if (!roomUsers.has(roomId)) {
+          roomUsers.set(roomId, new Map());
+        }
+
+        const users = roomUsers.get(roomId)!;
+        const color = COLORS[users.size % COLORS.length];
+        users.set(socket.id, { userId, name, color });
+
+        io.to(roomId).emit("room:users", getUniqueUsers(users));
+        console.log(`${name} joined room ${roomId}`);
+      } catch (err) {
+        console.error(`Socket join error for room ${roomId}:`, err);
+        socket.emit("error", { message: "Unauthorized or room not found" });
+        socket.disconnect();
       }
-
-      const users = roomUsers.get(roomId)!;
-      const color = COLORS[users.size % COLORS.length];
-      users.set(socket.id, { userId, name, color });
-
-      io.to(roomId).emit("room:users", getUniqueUsers(users));
-      console.log(`${name} joined room ${roomId}`);
     });
 
-    socket.on("code:change", ({ roomId, code }) => {
-      socket.to(roomId).emit("code:update", { code });
+    socket.on("code:change", async ({ roomId, code }) => {
+      try {
+        const userId = socket.data.userId;
+        const interview = await interviewService.getById(roomId, userId);
+        if (interview.status === "COMPLETED") {
+          return socket.emit("error", { message: "Interview is already completed" });
+        }
+        socket.to(roomId).emit("code:update", { code });
+      } catch (err) {
+        socket.emit("error", { message: "Unauthorized or room not found" });
+        socket.disconnect();
+      }
     });
 
-    socket.on("language:change", ({ roomId, language }) => {
-      socket.to(roomId).emit("language:update", { language });
+    socket.on("language:change", async ({ roomId, language }) => {
+      try {
+        const userId = socket.data.userId;
+        const interview = await interviewService.getById(roomId, userId);
+        if (interview.status === "COMPLETED") {
+          return socket.emit("error", { message: "Interview is already completed" });
+        }
+        socket.to(roomId).emit("language:update", { language });
+      } catch (err) {
+        socket.emit("error", { message: "Unauthorized or room not found" });
+        socket.disconnect();
+      }
     });
 
     socket.on("disconnecting", () => {

@@ -21,11 +21,29 @@ export const resumeQueue = new Queue("resume-analysis", {
 export const resumeWorker = new Worker(
   "resume-analysis",
   async (job: Job) => {
-    const { jobId, resumeText } = job.data;
-    console.log(`Processing resume job: ${jobId}`);
+    const { jobId, resumeText, candidateId } = job.data;
+    console.log(`Processing resume job: ${jobId} for candidate ${candidateId || 'none'}`);
 
     try {
       const feedback = await analyzeResumeText(resumeText);
+
+      if (candidateId && feedback.score) {
+        const { prisma } = require("../../config/database");
+        await prisma.candidate.update({
+          where: { id: candidateId },
+          data: {
+            resumeScore: feedback.score,
+          }
+        });
+        
+        await prisma.candidateActivity.create({
+          data: {
+            candidateId,
+            type: "REPORT",
+            description: `AI Resume Analysis completed (Score: ${feedback.score})`,
+          }
+        });
+      }
 
       await setCache(
         `resume-result:${jobId}`,
@@ -36,11 +54,7 @@ export const resumeWorker = new Worker(
       console.log(`Resume job completed: ${jobId}`);
       return feedback;
     } catch (err) {
-      await setCache(
-        `resume-result:${jobId}`,
-        { status: "failed", error: "Analysis failed. Please try again." },
-        60 * 60,
-      );
+      console.error(`Error processing resume job: ${jobId}`, err);
       throw err;
     }
   },
@@ -51,6 +65,17 @@ resumeWorker.on("completed", (job) => {
   console.log(`Job ${job.id} completed successfully`);
 });
 
-resumeWorker.on("failed", (job, err) => {
+resumeWorker.on("failed", async (job, err) => {
   console.error(`Job ${job?.id} failed:`, err.message);
+  
+  if (job && job.attemptsMade >= (job.opts.attempts || 1)) {
+    const { jobId } = job.data;
+    const errorMessage = err?.message || "Analysis failed. Please try again.";
+    await setCache(
+      `resume-result:${jobId}`,
+      { status: "failed", error: errorMessage },
+      60 * 60,
+    );
+    console.log(`Job ${job.id} permanently failed after ${job.attemptsMade} attempts.`);
+  }
 });

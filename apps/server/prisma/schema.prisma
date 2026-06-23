@@ -15,6 +15,9 @@ model User {
   role          Role                 @default(USER)
   organizations OrganizationMember[] 
   interviews    Interview[]          
+  candidates    Candidate[]          
+  candidateDecisions Candidate[]     @relation("CandidateDecisionBy")
+  createdInvites OrgInvite[]
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
 
@@ -33,6 +36,8 @@ model Organization {
   plan      Plan     @default(FREE)
   members   OrganizationMember[]
   interviews Interview[]
+  candidates Candidate[]
+  invites   OrgInvite[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -51,6 +56,25 @@ model OrganizationMember {
   @@unique([userId, organizationId])
 }
 
+model OrgInvite {
+  id             String       @id @default(cuid())
+  email          String
+  organizationId String
+  role           OrgRole      @default(MEMBER)
+  token          String       @unique @default(cuid())
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdById    String
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy      User         @relation(fields: [createdById], references: [id])
+
+  createdAt      DateTime     @default(now())
+
+  @@unique([email, organizationId])
+  @@index([token])
+}
+
 model Interview {
   id             String          @id @default(cuid())
   title          String
@@ -59,13 +83,20 @@ model Interview {
   scheduledAt    DateTime?
   organizationId String
   createdById    String
+  codeSubmitted  String?         @db.Text
+  language       String?
+  interviewNotes String?         @db.Text
   organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdBy      User            @relation(fields: [createdById], references: [id])
+  candidateId    String?
+  candidate      Candidate?      @relation(fields: [candidateId], references: [id], onDelete: SetNull)
+  report         InterviewReport?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
   @@index([organizationId])
   @@index([status])
+  @@index([createdAt])
 }
 
 enum Plan {
@@ -85,4 +116,93 @@ enum InterviewStatus {
   ACTIVE
   COMPLETED
   CANCELLED
+}
+
+enum Recommendation {
+  STRONG_HIRE
+  HIRE
+  MAYBE
+  NO_HIRE
+}
+
+model InterviewReport {
+  id                      String         @id @default(cuid())
+  interviewId             String         @unique
+  interview               Interview      @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  codingScore             Int
+  problemSolvingScore     Int
+  technicalKnowledgeScore Int
+  overallScore            Int
+  recommendation          Recommendation
+  aiSummary               String
+  strengths               String[]
+  improvements            String[]
+  generationTimeMs        Int?
+  version                 Int            @default(1)
+
+  // Immutable snapshots — capture exact interview state at report generation time
+  snapshotInterviewTitle  String?
+  snapshotCodeSubmitted   String?
+  snapshotLanguage        String?
+  snapshotQuestions       Json?
+  snapshotResumeScore     Int?
+  snapshotInterviewNotes  String?        @db.Text
+
+  createdAt               DateTime       @default(now())
+}
+
+enum CandidateStage {
+  APPLIED
+  SCREENING
+  INTERVIEWING
+  OFFER
+  HIRED
+  REJECTED
+}
+
+model Candidate {
+  id              String            @id @default(cuid())
+  
+  name            String
+  email           String
+  phone           String?
+  linkedinUrl     String?
+  
+  stage           CandidateStage    @default(APPLIED)
+  
+  resumeText      String?
+  resumeScore     Int?
+  atsScore        Int?
+  
+  organizationId  String
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  createdById     String
+  createdBy       User              @relation(fields: [createdById], references: [id])
+  
+  interviews      Interview[]
+  activities      CandidateActivity[]
+  
+  decisionNotes   String?           @db.Text
+  decisionById    String?
+  decisionAt      DateTime?
+  decisionBy      User?             @relation("CandidateDecisionBy", fields: [decisionById], references: [id])
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  @@unique([organizationId, email])
+  @@index([organizationId])
+  @@index([createdAt])
+}
+
+model CandidateActivity {
+  id          String   @id @default(cuid())
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  type        String
+  description String
+  createdAt   DateTime @default(now())
+
+  @@index([candidateId])
 }

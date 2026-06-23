@@ -1,26 +1,180 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* ——— Typography ——— */
+    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* ——— Core Colors (Light Mode) ——— */
+    --bg-base: #F8FAFC;
+    --bg-surface: #FFFFFF;
+    
+    /* ——— Borders ——— */
+    --border-default: #E2E8F0;
+    --border-strong: #CBD5E1;
+
+    /* ——— Text ——— */
+    --text-primary: #0F172A;
+    --text-muted: #64748B;
+    --text-subtle: #94A3B8;
+
+    /* ——— Accents ——— */
+    --accent: #6366F1;
+    --accent-hover: #4F46E5;
+    --accent-muted: #EEF2FF;
+    --accent-foreground: #FFFFFF;
+
+    /* ——— Semantics ——— */
+    --success: #10B981;
+    --success-bg: #D1FAE5;
+    --success-text: #065F46;
+
+    --warning: #F59E0B;
+    --warning-bg: #FEF3C7;
+    --warning-text: #92400E;
+
+    --danger: #EF4444;
+    --danger-bg: #FEE2E2;
+    --danger-text: #991B1B;
+
+    /* ——— Shadows ——— */
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -1px rgba(0,0,0,0.04);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -2px rgba(0,0,0,0.04);
+    --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.08), 0 10px 10px -5px rgba(0,0,0,0.03);
+
+    /* ——— Radius ——— */
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-2xl: 20px;
+    --radius-full: 9999px;
+
+    /* ——— Transitions ——— */
+    --ease-base: 150ms ease;
+  }
+
+  .dark {
+    /* ——— Core Colors (Dark Mode) ——— */
+    --bg-base: #0F172A;
+    --bg-surface: #1E293B;
+
+    /* ——— Borders ——— */
+    --border-default: #334155;
+    --border-strong: #475569;
+
+    /* ——— Text ——— */
+    --text-primary: #F1F5F9;
+    --text-muted: #94A3B8;
+    --text-subtle: #475569;
+
+    /* ——— Accents ——— */
+    --accent: #818CF8;
+    --accent-hover: #A5B4FC;
+    --accent-muted: rgba(99, 102, 241, 0.15);
+    --accent-foreground: #0F172A;
+
+    /* ——— Semantics (Dark Mode Adjustments) ——— */
+    --success-bg: rgba(16, 185, 129, 0.15);
+    --success-text: #34D399;
+
+    --warning-bg: rgba(245, 158, 11, 0.15);
+    --warning-text: #FBBF24;
+
+    --danger-bg: rgba(239, 68, 68, 0.15);
+    --danger-text: #F87171;
+  }
+
+  /* ——— Base resets ——— */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    background-color: var(--bg-base);
+    line-height: 1.6;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* ——— Selection ——— */
+  ::selection {
+    background: var(--accent-muted);
+    color: var(--accent);
+  }
+
+  /* ——— Scrollbar ——— */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: var(--radius-full);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ——— Utility classes ——— */
+@layer utilities {
+  /* Skeleton shimmer */
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background-color: var(--border-default);
+    border-radius: var(--radius-md);
+  }
+  
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    transform: translateX(-100%);
+    background-image: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0,
+      rgba(255, 255, 255, 0.2) 20%,
+      rgba(255, 255, 255, 0.5) 60%,
+      rgba(255, 255, 255, 0)
+    );
+    animation: shimmer 2s infinite;
+  }
+
+  .dark .skeleton::after {
+    background-image: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0,
+      rgba(255, 255, 255, 0.05) 20%,
+      rgba(255, 255, 255, 0.1) 60%,
+      rgba(255, 255, 255, 0)
+    );
+  }
 }

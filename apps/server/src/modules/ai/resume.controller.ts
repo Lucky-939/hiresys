@@ -20,6 +20,10 @@ export const upload = multer({
 
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {
+    // Magic number validation for PDF (%PDF-)
+    if (buffer.length < 5 || buffer.toString('utf8', 0, 5) !== '%PDF-') {
+      throw new AppError("Invalid file signature. Only actual PDF files are allowed.", 400);
+    }
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
     pdfjsLib.GlobalWorkerOptions.workerSrc = "";
@@ -72,9 +76,10 @@ export async function analyzeResume(
     }
 
     const jobId = randomUUID();
+    const candidateId = req.body.candidateId;
 
     await setCache(`resume-result:${jobId}`, { status: "processing" }, 3600);
-    await resumeQueue.add("analyze", { jobId, resumeText });
+    await resumeQueue.add("analyze", { jobId, resumeText, candidateId });
 
     res.json({
       success: true,

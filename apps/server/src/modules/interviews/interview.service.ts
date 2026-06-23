@@ -20,6 +20,7 @@ export class InterviewService {
     scheduledAt?: string;
     organizationId: string;
     userId: string;
+    candidateId?: string;
   }) {
     await this.assertMember(data.organizationId, data.userId);
     return repo.create({
@@ -28,6 +29,7 @@ export class InterviewService {
       scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : undefined,
       organizationId: data.organizationId,
       createdById: data.userId,
+      candidateId: data.candidateId,
     });
   }
 
@@ -51,11 +53,20 @@ export class InterviewService {
       description?: string;
       status?: InterviewStatus;
       scheduledAt?: string;
+      candidateId?: string | null;
+      codeSubmitted?: string;
+      language?: string;
+      interviewNotes?: string;
     },
   ) {
     const interview = await repo.findById(id);
     if (!interview) throw new AppError("Interview not found", 404);
     await this.assertMember(interview.organizationId, userId);
+
+    if (interview.status === "COMPLETED") {
+      throw new AppError("Completed interviews cannot be modified.", 409);
+    }
+
     return repo.update(id, {
       ...data,
       scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : undefined,

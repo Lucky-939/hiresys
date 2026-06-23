@@ -35,4 +35,46 @@ export class AuthService {
 
     return { token, user: { id: user.id, name: user.name, email: user.email } };
   }
+
+  async logout(token: string) {
+    // Add token to blocklist in Redis for 7 days
+    const decoded = jwt.decode(token) as any;
+    if (decoded && decoded.exp) {
+      const expiresIn = decoded.exp - Math.floor(Date.now() / 1000);
+      if (expiresIn > 0) {
+        const { redis } = require("../../config/redis");
+        await redis.setex(`bl_${token}`, expiresIn, "true");
+      }
+    }
+    return { message: "Logged out successfully" };
+  }
+
+  async requestPasswordReset(email: string) {
+    const user = await repo.findByEmail(email);
+    if (!user) return { message: "If an account exists, a reset link has been sent." };
+
+    const token = jwt.sign({ sub: user.id }, process.env.JWT_SECRET!, { expiresIn: "1h" });
+    const { redis } = require("../../config/redis");
+    await redis.setex(`reset_${token}`, 3600, user.id);
+
+    console.log(`[Email Mock] Password reset link: ${process.env.CLIENT_URL}/reset-password?token=${token}`);
+    return { message: "If an account exists, a reset link has been sent." };
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    const { redis } = require("../../config/redis");
+    const userId = await redis.get(`reset_${token}`);
+    if (!userId) throw new AppError("Invalid or expired reset token", 400);
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    // Update password
+    const { prisma } = require("../../config/database");
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword }
+    });
+
+    await redis.del(`reset_${token}`);
+    return { message: "Password has been reset successfully" };
+  }
 }

@@ -1,0 +1,1329 @@
+================================================================
+   LAST-MINUTE INTERVIEW CRACK SHEET
+   Lucky Bhoir | VPPCOE | HireSys Project
+   REVISE THIS IN 2-3 HOURS. NOTHING MORE NEEDED.
+================================================================
+
+
+================================================================
+SECTION 1 — 60 SECOND INTRODUCTION
+================================================================
+
+"Hi, I'm Lucky Bhoir, a Final Year Engineering student at
+VPPCOE. I'm a Full Stack Developer specializing in React,
+Next.js, Node.js, and TypeScript.
+
+My main project is HireSys — an AI-powered interview platform.
+It has real-time collaborative coding rooms using Socket.IO
+and Monaco Editor, AI-powered question generation and code
+review using Google Gemini, and a resume analyzer with ATS
+scoring that runs through background job queues with BullMQ
+and Redis.
+
+The backend follows the Repository Pattern with Express and
+Prisma ORM on PostgreSQL. It supports multi-tenant
+organizations with role-based access control, JWT
+authentication, and is containerized with Docker Compose.
+
+I enjoy building scalable, production-grade systems with
+clean architecture."
+
+TIPS:
+- Speak naturally, don't sound memorized
+- Pause after "HireSys" — let interviewer absorb
+- Every tech you mention WILL be asked about
+- This intro steers toward: architecture, Socket.IO,
+  BullMQ, Redis, AI, JWT — all your strong areas
+
+
+================================================================
+SECTION 2 — PROJECT MASTER REVISION (Top 25)
+================================================================
+
+Q1: What is HireSys?
+A: HireSys is a production-grade, AI-powered interview and hiring
+platform that I designed and built from the ground up as a full-stack
+application. It provides organizations with a comprehensive suite of
+interview management tools including real-time collaborative coding
+rooms powered by Socket.IO and Monaco Editor, AI-driven question
+generation and code review using Google Gemini, and an asynchronous
+resume analyzer that calculates ATS compatibility scores through
+background job processing with BullMQ and Redis. The platform
+supports multi-tenant organization management where multiple
+companies can operate independently with role-based access control
+(RBAC), ensuring complete data isolation between tenants. The entire
+system is containerized using Docker Compose for consistent
+development and deployment environments.
+KEYWORDS: AI-powered, real-time collaboration, multi-tenant
+architecture, ATS scoring, asynchronous processing, RBAC,
+containerized deployment, production-grade, full-stack application
+
+Q2: What's the tech stack?
+A: I chose a modern full-stack TypeScript monorepo architecture to
+ensure end-to-end type safety across the entire application.
+On the frontend, I use Next.js 16 with React 19 for server-side
+rendering and file-based routing, Zustand for lightweight global
+state management with persistence middleware, Axios with request
+and response interceptors for API communication, Socket.IO client
+for real-time WebSocket connections, and Monaco Editor (the same
+editor engine that powers VS Code) for the collaborative coding
+experience.
+On the backend, I use Express 5 which provides built-in async
+error handling, Prisma ORM for type-safe database queries and
+automatic migration management on PostgreSQL, Redis as both a
+caching layer for AI responses and as the message broker for
+BullMQ job queues, Google Gemini AI for intelligent question
+generation and resume analysis, JWT with bcrypt for stateless
+authentication, Multer for secure file upload handling, and
+Docker Compose for multi-service container orchestration.
+KEYWORDS: full-stack TypeScript, monorepo architecture, end-to-end
+type safety, server-side rendering, WebSocket, container
+orchestration, message broker, stateless authentication, ORM
+
+Q3: Explain the architecture.
+A: The application follows a monorepo structure with two distinct
+applications — a Next.js frontend and an Express backend — sharing
+a common TypeScript foundation. The backend is designed around the
+Repository Pattern, which enforces a strict separation of concerns
+through four distinct layers: Routes define the API endpoints and
+attach middleware, Controllers handle HTTP request/response parsing
+and validation, Services encapsulate all business logic and
+orchestration, and Repositories abstract away all database access
+using Prisma ORM. This layered architecture means that each layer
+only communicates with the layer directly below it, making the
+codebase highly modular, independently testable, and maintainable.
+The frontend uses Next.js App Router with route groups to logically
+separate authentication flows from dashboard pages without affecting
+URL structure. PostgreSQL serves as the primary relational data
+store, Redis provides both a high-performance caching layer and
+serves as the job queue broker for BullMQ, and Socket.IO enables
+bidirectional real-time communication. All services are containerized
+and orchestrated through Docker Compose with health checks and
+dependency ordering.
+KEYWORDS: Repository Pattern, separation of concerns, layered
+architecture, modular design, monorepo, App Router, route groups,
+bidirectional communication, dependency ordering, containerization
+
+Q4: Why this tech stack?
+A: Every technology choice was driven by a specific technical
+requirement rather than personal preference. I chose Next.js because
+it provides server-side rendering (SSR) for better SEO and initial
+load performance, along with file-based routing that keeps the
+project organized. TypeScript was essential because it gives me
+full-stack type safety — types generated by Prisma on the backend
+carry through to the frontend, catching entire categories of bugs
+at compile time rather than runtime. Prisma ORM was selected over
+raw SQL because it generates type-safe query builders, provides
+declarative schema definitions, and handles database migrations
+automatically. Redis was the right choice for two critical roles:
+as a caching layer to reduce expensive Gemini API calls and save
+costs, and as a message broker for BullMQ job queues that process
+resume analysis asynchronously. Socket.IO was chosen over raw
+WebSockets because it provides automatic reconnection with
+exponential backoff, room-based broadcasting, and graceful fallback
+to HTTP long-polling when WebSocket connections are blocked by
+firewalls. PostgreSQL was the natural fit because my data model
+(Users, Organizations, Members, Interviews) is inherently
+relational with foreign key constraints, joins, and ACID
+transaction requirements.
+KEYWORDS: type safety, SSR, compile-time error detection,
+declarative schema, automatic migrations, message broker,
+auto-reconnection, exponential backoff, long-polling fallback,
+relational data modeling, ACID compliance
+
+Q5: Explain the database schema.
+A: The database schema consists of four carefully normalized models
+designed to enforce data integrity at the database level. The User
+model stores authentication credentials with the email field indexed
+for fast lookup during login, and passwords are stored as bcrypt
+hashes — never as plaintext. The Organization model represents
+tenants in the system, with a unique slug field that is indexed for
+URL-based organization lookup. The OrganizationMember model serves
+as a junction table implementing the many-to-many relationship
+between Users and Organizations, with a composite unique constraint
+on [userId, organizationId] that prevents duplicate memberships at
+the database level, and an enum-based role field (OWNER, ADMIN,
+MEMBER) that powers the role-based access control system. The
+Interview model tracks interview sessions with a status enum
+(PENDING, IN_PROGRESS, COMPLETED), indexed on both organizationId
+and status for efficient filtered queries. All models use CUIDs
+(Collision-Resistant Unique Identifiers) as primary keys, which are
+URL-safe and can be generated client-side without database
+coordination. Cascading deletes are configured on all foreign key
+relationships to prevent orphaned records — for example, deleting
+an Organization automatically removes all associated members and
+interviews.
+KEYWORDS: data normalization, database integrity, indexed fields,
+bcrypt hash, junction table, many-to-many relationship, composite
+unique constraint, RBAC, enum types, CUID, cascading deletes,
+referential integrity, orphan prevention
+
+Q6: How does authentication work?
+A: The authentication system is built on a stateless JWT-based
+architecture with bcrypt password hashing, designed to support
+horizontal scaling without session storage dependencies.
+During registration, the system validates input fields, hashes the
+password using bcrypt with a cost factor of 12 rounds (meaning
+2^12 = 4,096 hashing iterations, making brute-force attacks
+computationally expensive), and persists the user record to
+PostgreSQL.
+During login, the system retrieves the user by email using an
+indexed query, performs a constant-time bcrypt comparison to prevent
+timing attacks, and upon successful verification, signs a JWT token
+with the userId embedded as the 'sub' (subject) claim and a 7-day
+expiration period.
+On the frontend, the JWT is stored in Zustand with localStorage
+persistence. An Axios request interceptor automatically attaches
+the token as a Bearer Authorization header on every outgoing API
+request. A response interceptor listens for 401 Unauthorized
+responses and triggers automatic logout with state cleanup.
+On the backend, a reusable authentication middleware extracts the
+Bearer token from the Authorization header, verifies it using
+jwt.verify() with the server's secret key, and attaches the decoded
+userId to the request object for downstream route handlers.
+KEYWORDS: stateless authentication, JWT, bcrypt hashing, cost
+factor, timing attack prevention, Bearer token, Axios interceptor,
+request/response interceptor, middleware pipeline, horizontal
+scaling, token verification, automatic logout
+
+Q7: How does the coding room work?
+A: The real-time collaborative coding room is built on Socket.IO's
+bidirectional event-driven architecture. When a user joins a room,
+the server calls socket.join(roomId) to subscribe that socket to a
+specific room channel, and tracks the user's presence in a nested
+Map data structure — Map<roomId, Map<socketId, RoomUser>> — which
+provides O(1) lookup for user presence and room membership queries.
+When a user types code in the Monaco Editor, the onChange event
+emits the updated code content to the server, which then broadcasts
+it to all OTHER participants in the same room using
+socket.to(roomId).emit(), which excludes the sender from receiving
+their own update.
+The critical engineering challenge was preventing echo loops: when
+User B receives a code update and Monaco's onChange handler fires,
+it would naively re-emit the same change back to the server,
+creating an infinite broadcast loop. I solved this using a useRef
+flag called isRemoteChange — the flag is set to true before
+applying a remote update, and the onChange handler checks this flag
+and skips emitting if it's true. I specifically chose useRef over
+useState because useRef mutates synchronously without triggering
+React re-renders, which is essential for real-time performance.
+On disconnect, the cleanup handler removes the user from the
+tracking Map and broadcasts an updated participant list to the
+remaining room members.
+KEYWORDS: Socket.IO rooms, bidirectional communication, event-driven
+architecture, broadcast pattern, echo loop prevention, useRef vs
+useState, real-time synchronization, O(1) lookup, Map data
+structure, disconnect cleanup, participant tracking
+
+Q8: How does AI question generation work?
+A: The AI question generation feature follows a cache-first strategy
+combined with structured prompt engineering to deliver fast,
+cost-efficient results. When a client requests questions, they send
+parameters including the target role and difficulty level. The
+service first checks Redis for a cached response using a composite
+cache key formatted as "questions:{role}:{difficulty}:{count}",
+which ensures granular cache segmentation. On a cache hit, the
+cached response is returned immediately without making any external
+API call, significantly reducing latency and API costs.
+On a cache miss, the service constructs a carefully engineered
+prompt that instructs the Gemini AI model to return a structured
+JSON response with specific fields for each question. The raw API
+response is then parsed as JSON and validated. The parsed questions
+are stored in Redis with a 24-hour TTL (Time To Live), balancing
+freshness with cost optimization. As a resilience measure, if the
+JSON parsing fails (which can happen with AI-generated output), the
+system falls back to splitting the raw text response by newline
+characters and extracting questions heuristically, ensuring the
+user always receives a usable response even when the AI output
+format is unexpected.
+KEYWORDS: cache-first strategy, prompt engineering, structured
+output, composite cache key, cache segmentation, TTL, cache hit/
+miss, API cost optimization, JSON parsing, graceful fallback,
+resilience, heuristic extraction
+
+Q9: How does resume analysis work?
+A: The resume analysis feature implements an asynchronous job
+processing pipeline to handle the computationally expensive AI
+analysis without blocking the HTTP request-response cycle.
+The flow begins when a user uploads a PDF file. Multer middleware
+validates the upload (5MB maximum file size, PDF MIME type only)
+to prevent abuse. The pdfjs-dist library then extracts raw text
+content from the PDF buffer. A unique jobId is generated using
+UUID v4 for tracking purposes, and the extracted text along with
+metadata is enqueued as a job in the BullMQ "resume-analysis"
+queue. The HTTP response returns the jobId immediately to the
+client, achieving a non-blocking user experience.
+On the worker side, a dedicated BullMQ consumer picks up the job,
+sends the resume text to Google Gemini AI with a structured prompt
+requesting analysis across multiple dimensions, and stores the
+completed result in Redis keyed by the jobId.
+The frontend implements a polling mechanism that queries the
+/status/:jobId endpoint every 2 seconds. This endpoint checks
+Redis for the job result — returning "processing" status if the
+job is still in the queue, or the full analysis result once
+complete. The result includes an overall score, an ATS
+compatibility score, identified strengths, areas of weakness, and
+actionable improvement suggestions.
+KEYWORDS: asynchronous job processing, non-blocking I/O, producer-
+consumer pattern, BullMQ queue, file validation, PDF text
+extraction, UUID tracking, polling mechanism, worker process,
+structured AI analysis, ATS compatibility scoring
+
+Q10: How does Redis caching work?
+A: I implemented a generic, type-safe caching module that follows
+the cache-aside pattern and is designed for graceful degradation.
+The module exposes three core functions: getCache<T>(key) which
+deserializes cached data into typed objects using TypeScript
+generics, setCache(key, value, ttl) which serializes and stores
+data with a configurable TTL (defaulting to 24 hours), and
+deleteCache(key) for manual cache invalidation.
+The use of TypeScript generics ensures that cached data maintains
+its type information throughout the application — when I retrieve
+cached questions, the return type is automatically inferred as the
+Question array type, eliminating the need for manual type casting
+and reducing runtime errors.
+All Redis operations are wrapped in try/catch blocks with error
+logging, implementing a fail-open strategy: if Redis is temporarily
+unavailable, the application continues functioning by falling back
+to direct data fetching rather than crashing. This graceful
+degradation ensures that a cache infrastructure failure never
+cascades into an application-wide outage.
+The caching layer serves two primary use cases: caching AI-generated
+questions to reduce expensive Gemini API calls (achieving
+approximately 70% cost reduction for repeated queries), and storing
+resume analysis job status and results for the polling mechanism.
+KEYWORDS: cache-aside pattern, TypeScript generics, type-safe
+caching, TTL-based expiration, graceful degradation, fail-open
+strategy, cache invalidation, serialization/deserialization, error
+isolation, cost optimization, API cost reduction
+
+Q11: How does BullMQ work in your project?
+A: BullMQ serves as the distributed job queue system in HireSys,
+implementing the producer-consumer pattern backed by Redis for
+persistence and reliability. The resume analysis controller acts
+as the producer, adding jobs to the "resume-analysis" queue with
+the extracted PDF text and metadata as the job payload. A
+dedicated worker process acts as the consumer, pulling jobs from
+the queue and processing them asynchronously by sending the resume
+text to Google Gemini AI for analysis.
+The queue is configured with robust failure handling: jobs retry up
+to 3 attempts with exponential backoff starting at a 5-second base
+delay (so retries occur at approximately 5s, 10s, and 20s
+intervals). This backoff strategy prevents overwhelming a
+temporarily failing downstream service like the Gemini API. The
+queue maintains 100 completed jobs and 50 failed jobs for
+observability and debugging purposes.
+A critical advantage of using Redis-backed BullMQ is job
+persistence — if the server restarts or crashes, all pending and
+in-progress jobs survive in Redis and are automatically picked up
+when the worker reconnects. The completed analysis results are
+stored in Redis cache, which the frontend polling mechanism queries
+using the jobId. This entire architecture decouples the
+long-running AI processing from the HTTP request lifecycle,
+ensuring responsive API endpoints even under heavy analysis load.
+KEYWORDS: producer-consumer pattern, distributed job queue,
+exponential backoff, job persistence, retry mechanism, failure
+handling, asynchronous processing, worker process, job observability,
+decoupled architecture, Redis-backed persistence
+
+Q12: How do you handle errors?
+A: I implemented a centralized error handling strategy that
+provides consistent, secure error responses throughout the entire
+application. At the core is a custom AppError class that extends
+the native JavaScript Error class, encapsulating both a
+human-readable message and an HTTP status code (such as 400 for
+bad requests, 404 for not found, or 409 for conflicts).
+In the controller layer, all async operations are wrapped in
+try/catch blocks. When an error occurs, it is passed to Express's
+next(err) function, which forwards it to the centralized error
+handling middleware registered at the end of the middleware chain.
+The error middleware uses instanceof checking to distinguish
+between known AppError instances (which return their specific
+status code and message) and unexpected errors (which are logged
+internally for debugging but return a generic 500 "Internal server
+error" message to the client). This approach ensures that internal
+implementation details, stack traces, and sensitive information are
+never leaked to end users — a critical security best practice.
+For AI-specific operations, I added an additional layer of
+resilience with fallback responses, so that even if the Gemini API
+returns an unexpected format or fails entirely, the user receives
+a meaningful response rather than a cryptic error.
+KEYWORDS: centralized error handling, custom error class, AppError,
+separation of error concerns, instanceof checking, next(err)
+middleware chain, stack trace prevention, information leakage
+prevention, fallback responses, defensive programming, HTTP status
+codes, error middleware pipeline
+
+Q13: How does multi-tenancy work?
+A: The multi-tenancy architecture ensures complete data isolation
+between organizations while sharing a single database instance —
+a model known as shared-database, separate-schema multi-tenancy.
+Each organization is created through a Prisma $transaction that
+atomically creates both the Organization record and the first
+OrganizationMember record with the OWNER role, ensuring there is
+never a state where an organization exists without an owner (which
+would be a data integrity violation).
+For authorization, every protected endpoint calls an
+assertMember(orgId, userId) utility function that queries the
+database to verify that the requesting user has an active
+membership in the target organization. This implements RBAC
+(Role-Based Access Control) at the service level. Data isolation
+is enforced through foreign key relationships — all Interview
+records are associated with an organizationId, and queries are
+always scoped to the current organization context, preventing any
+cross-tenant data leakage.
+The OrganizationMember junction table supports three roles (OWNER,
+ADMIN, MEMBER), allowing fine-grained permission control. The
+composite unique constraint on [userId, organizationId] prevents
+duplicate memberships at the database level, while cascading
+deletes ensure that removing an organization automatically cleans
+up all associated members and interviews.
+KEYWORDS: multi-tenancy, data isolation, shared database, RBAC,
+role-based access control, atomic transactions, $transaction,
+assertMember authorization, junction table, composite unique
+constraint, cascading deletes, cross-tenant prevention, data
+integrity, foreign key scoping
+
+Q14: How do you manage frontend state?
+A: I adopted a strategic approach to state management, using the
+right tool for each category of state to avoid unnecessary
+complexity. For global application state, I use Zustand with the
+persist middleware for authentication data (JWT token and user
+profile). Zustand was chosen over Redux because it offers the same
+unidirectional data flow with zero boilerplate — no action
+creators, reducers, or dispatch wrappers — resulting in a smaller
+bundle size and faster development velocity. The persist middleware
+automatically serializes the auth store to localStorage and
+rehydrates it on page reload, providing seamless session
+persistence.
+For local component state such as form inputs, modal visibility,
+loading indicators, and error messages, I use React's built-in
+useState hook, keeping state colocated with the components that
+own it and avoiding unnecessary global state pollution.
+For organization context (which org is currently selected), I use
+URL search parameters, which provides the added benefit of
+shareable, bookmarkable URLs and avoids state synchronization
+issues between the URL bar and application state.
+This layered state architecture — Zustand for global auth, useState
+for local UI, URL params for navigation context — keeps each
+concern isolated and makes the application predictable and easy to
+debug.
+KEYWORDS: Zustand, persist middleware, localStorage persistence,
+unidirectional data flow, zero boilerplate, bundle size
+optimization, state colocation, useState, URL search parameters,
+session rehydration, layered state architecture, state isolation
+
+Q15: What security measures did you implement?
+A: I implemented a defense-in-depth security strategy with multiple
+overlapping layers of protection. Password security uses bcrypt
+hashing with 12 salt rounds (2^12 = 4,096 iterations), which is a
+one-way hash — not encryption — meaning passwords cannot be
+reversed even if the database is compromised. Authentication uses
+stateless JWT tokens, eliminating server-side session storage.
+Helmet middleware automatically sets critical security headers
+including Content-Security-Policy (prevents XSS), X-Frame-Options
+(prevents clickjacking), Strict-Transport-Security (enforces
+HTTPS), and X-Content-Type-Options (prevents MIME sniffing). CORS
+is configured with an explicit origin whitelist, blocking
+unauthorized domains from making API requests. All database queries
+use Prisma's parameterized queries, which prevent SQL injection by
+separating query structure from user-supplied data. Multer file
+upload middleware enforces strict validation — 5MB size limit and
+PDF-only MIME type filtering. The centralized error handling
+middleware prevents stack trace leakage and internal implementation
+detail exposure in error responses.
+I am aware of a known security gap: storing JWT tokens in
+localStorage makes them vulnerable to XSS attacks. In a production
+hardening phase, I would migrate to HttpOnly cookies with
+SameSite=Strict and implement CSRF token protection to address this
+vulnerability.
+KEYWORDS: defense-in-depth, bcrypt hashing, salt rounds, one-way
+hash, stateless JWT, Helmet security headers, Content-Security-
+Policy, clickjacking prevention, HSTS, CORS origin whitelist,
+parameterized queries, SQL injection prevention, file upload
+validation, stack trace prevention, XSS awareness, HttpOnly
+cookies, CSRF protection, MIME sniffing prevention
+
+Q16: How would you scale for 100K users?
+A: I designed the architecture with scalability primitives in mind,
+even though the current deployment targets a single-server setup.
+First, stateless JWT authentication means any server instance can
+verify tokens independently, enabling horizontal scaling behind a
+load balancer (like NGINX or AWS ALB) without sticky sessions.
+Second, Socket.IO supports a Redis adapter (@socket.io/redis-
+adapter) that enables WebSocket event broadcasting across multiple
+server instances, so real-time features work seamlessly in a
+distributed environment. Third, PostgreSQL supports read replicas
+for distributing read-heavy query load across multiple database
+instances while keeping writes on the primary node. Fourth, I would
+implement rate limiting (using a token bucket or sliding window
+algorithm backed by Redis) on AI endpoints to prevent abuse and
+control costs. Fifth, static frontend assets would be served
+through a CDN (like CloudFront or Vercel Edge) for reduced latency
+and origin server offloading. Sixth, BullMQ workers can be scaled
+independently of the API server — I can spin up additional worker
+processes or containers to handle increased resume analysis
+throughput without affecting API response times.
+KEYWORDS: horizontal scaling, stateless architecture, load
+balancer, sticky sessions elimination, Redis adapter, distributed
+WebSocket, read replicas, rate limiting, token bucket algorithm,
+CDN, edge caching, independent worker scaling, auto-scaling,
+distributed systems
+
+Q17: What if the database crashes?
+A: My system is designed with multiple layers of resilience and
+recovery for database failure scenarios. For immediate detection,
+Docker Compose health checks use pg_isready to monitor PostgreSQL
+availability, and restart policies (restart: unless-stopped)
+automatically restart the container on failure.
+For prevention, I would implement automated pg_dump backup
+schedules (daily full backups with WAL archiving for point-in-time
+recovery) and configure streaming replication to a hot standby
+replica. In a cloud environment, managed services like AWS RDS
+handle this automatically with Multi-AZ deployments.
+For recovery, the process depends on the failure severity: a
+container restart handles transient crashes, restoring from the
+latest backup handles data corruption, and promoting the standby
+replica to primary handles hardware failures.
+During a database outage, the application degrades gracefully
+rather than failing completely: Redis continues serving cached AI
+responses, so users can still access previously generated questions.
+BullMQ jobs waiting in the queue are persisted in Redis and will
+automatically retry processing once the database recovers, ensuring
+no data loss in the job pipeline.
+KEYWORDS: health checks, pg_isready, restart policies, pg_dump
+backups, WAL archiving, point-in-time recovery, streaming
+replication, hot standby, failover promotion, graceful degradation,
+multi-AZ deployment, data persistence, automatic retry
+
+Q18: What if Gemini API goes down?
+A: I built multiple layers of fault tolerance to handle external AI
+service failures gracefully. The first line of defense is the Redis
+cache — on a cache hit, the response is served directly without
+making any API call, so cached responses remain available regardless
+of Gemini's availability. The second layer is try/catch error
+handling with meaningful fallback responses, ensuring users receive
+a usable response even when the AI service is unreachable. The
+third layer is BullMQ's automatic retry mechanism with exponential
+backoff — failed resume analysis jobs retry up to 3 times with
+increasing delays (5s, 10s, 20s), which handles transient network
+issues and temporary API rate limiting.
+For a more production-hardened implementation, I would add a circuit
+breaker pattern (using a library like opossum) that tracks failure
+rates and automatically stops calling the Gemini API after N
+consecutive failures, preventing cascading resource exhaustion. I
+would also implement request timeouts (e.g., 30-second deadline)
+to prevent hanging connections, and configure a fallback to an
+alternative AI model (such as OpenAI GPT or Anthropic Claude) to
+maintain service availability during extended outages.
+KEYWORDS: fault tolerance, cache-first defense, fallback responses,
+exponential backoff retry, circuit breaker pattern, cascading
+failure prevention, request timeout, alternative model fallback,
+graceful degradation, transient failure handling, resilience
+engineering
+
+Q19: Biggest challenge you faced?
+A: The most significant engineering challenge was debugging and
+solving a real-time echo loop in the collaborative coding room.
+The problem manifested when User A typed code and the change was
+broadcast to User B via Socket.IO. When User B's Monaco Editor
+received the update and applied it, Monaco's onChange event handler
+fired automatically, which sent the same code change back to the
+server, which broadcast it back to User A, creating an infinite
+feedback loop that caused the editor to freeze and the network
+to saturate with redundant messages.
+I solved this by implementing a synchronization flag using React's
+useRef hook. Before applying a remotely received code update, the
+isRemoteChange ref is set to true. The onChange handler checks this
+flag at the very start of its execution — if isRemoteChange is
+true, it skips the emit and resets the flag. The critical design
+decision was choosing useRef over useState: useRef updates are
+synchronous and do not trigger React re-renders, which is essential
+because the flag needs to be set and checked within the same
+synchronous execution frame. Using useState would introduce an
+asynchronous state update that could result in the flag being
+checked before it's actually set, reintroducing the echo loop.
+This experience taught me the importance of understanding React's
+rendering lifecycle and the distinction between synchronous and
+asynchronous state management in real-time applications.
+KEYWORDS: echo loop, infinite feedback loop, real-time debugging,
+useRef vs useState, synchronous flag, rendering lifecycle,
+synchronization mechanism, Socket.IO broadcast, Monaco Editor,
+event handler optimization, asynchronous state pitfall
+
+Q20: What trade-offs did you make?
+A: I made several deliberate, pragmatic engineering trade-offs that
+prioritize simplicity and development velocity for the current
+scale while acknowledging the path to more robust solutions.
+First, I chose last-write-wins concurrency over CRDT (Conflict-free
+Replicated Data Types like Yjs). For the current 1-2 user coding
+sessions, last-write-wins is simple and effective; CRDT adds
+significant complexity that would be warranted only at larger
+concurrent user counts.
+Second, I chose HTTP polling for resume analysis status over
+WebSocket push. Since resume analysis is an infrequent operation
+(once per user per session), the overhead of polling every 2 seconds
+is negligible, and it's significantly simpler to implement and debug
+than managing WebSocket channels for one-off status updates.
+Third, I stored JWT tokens in localStorage instead of HttpOnly
+cookies. This simplifies the frontend architecture (no CSRF token
+management needed) but introduces XSS vulnerability — a trade-off
+I acknowledge and would address in production hardening.
+Fourth, I track connected socket users in an in-memory Map rather
+than Redis Pub/Sub. This works correctly for a single-server
+deployment but would need migration to Redis adapter for
+multi-server horizontal scaling.
+Each trade-off represents a conscious decision where I understood
+both alternatives and chose the one appropriate for the current
+requirements.
+KEYWORDS: engineering trade-offs, pragmatic decision-making,
+last-write-wins vs CRDT, polling vs push, localStorage vs HttpOnly
+cookies, in-memory vs distributed state, simplicity vs correctness,
+technical debt awareness, horizontal scaling readiness
+
+Q21: What is the Repository Pattern?
+A: The Repository Pattern is a structural design pattern that
+abstracts the data access layer into its own dedicated class or
+module, creating a clean separation between business logic and
+database operations. In HireSys, I implement this as a four-layer
+architecture: Routes define API endpoints and attach middleware,
+Controllers parse HTTP requests and format responses (handling the
+transport layer), Services contain all business logic, validation,
+and orchestration (handling the domain layer), and Repositories
+encapsulate all database queries using Prisma ORM (handling the
+persistence layer).
+The primary benefits are threefold. First, testability: I can write
+unit tests for services by mocking the repository layer with test
+doubles, completely eliminating the need for a real database during
+testing. Second, maintainability: each layer follows the Single
+Responsibility Principle — if I need to change how data is queried,
+I only modify the repository; business logic in services remains
+untouched. Third, flexibility: if the team decides to migrate from
+Prisma to TypeORM or raw SQL, only the repository layer needs
+modification — services, controllers, and routes are completely
+unaffected because they depend on the repository abstraction, not
+the ORM implementation directly. This aligns with the Dependency
+Inversion Principle from SOLID: high-level modules (services)
+depend on abstractions (repository interface), not low-level
+details (Prisma client).
+KEYWORDS: Repository Pattern, data access abstraction, separation
+of concerns, layered architecture, Single Responsibility Principle,
+Dependency Inversion Principle, SOLID, testability, test doubles,
+mock repository, ORM-agnostic design, domain layer, persistence
+layer, transport layer
+
+Q22: How does Docker Compose work in your project?
+A: Docker Compose orchestrates the entire multi-service application
+stack through a declarative YAML configuration that defines four
+services with explicit dependency ordering and health verification.
+The PostgreSQL service (postgres:16-alpine) runs with a health
+check that executes pg_isready at regular intervals to verify the
+database is accepting connections. The Redis service similarly runs
+a health check using redis-cli ping. The backend server service is
+configured with depends_on conditions that require both postgres
+and redis to report service_healthy status before starting,
+preventing the application from attempting database connections
+before the database is ready. The frontend web service depends on
+the server being available.
+Services communicate through Docker's internal bridge network using
+service names as DNS hostnames — the backend connects to PostgreSQL
+using "postgres" as the hostname and Redis using "redis" rather
+than localhost or IP addresses. This service discovery mechanism
+makes the configuration portable across environments. Persistent
+named volumes are attached to both PostgreSQL and Redis containers
+to ensure data survives container restarts and recreations.
+Environment variables are managed through .env files and the
+environment key in the compose file, keeping secrets out of the
+codebase.
+KEYWORDS: Docker Compose, container orchestration, multi-service
+architecture, health checks, pg_isready, depends_on condition,
+service_healthy, dependency ordering, bridge network, service
+discovery, DNS hostname resolution, named volumes, data persistence,
+environment variable management, declarative configuration
+
+Q23: How would you add video calling?
+A: I would implement video calling using WebRTC (Web Real-Time
+Communication) for peer-to-peer media streaming, leveraging the
+existing Socket.IO infrastructure as the signaling channel.
+The flow would work as follows: when a user initiates a video call,
+the browser captures the local media stream using
+navigator.mediaDevices.getUserMedia(). Socket.IO handles the
+signaling phase — exchanging SDP (Session Description Protocol)
+offers and answers between peers to negotiate codec and media
+capabilities, and relaying ICE (Interactive Connectivity
+Establishment) candidates to discover the optimal network path
+between peers.
+For NAT traversal (allowing peers behind routers and firewalls to
+connect), I would configure STUN (Session Traversal Utilities for
+NAT) servers to discover public IP addresses, and TURN (Traversal
+Using Relays around NAT) servers as a relay fallback when direct
+peer-to-peer connection is not possible due to restrictive
+firewalls.
+For group calls with more than 2 participants, direct peer-to-peer
+mesh networking becomes bandwidth-intensive (each peer sends N-1
+streams). I would implement an SFU (Selective Forwarding Unit)
+architecture using a library like MediaSoup, where each participant
+sends one stream to the server, and the server selectively forwards
+appropriate streams to each participant. For faster time-to-market,
+managed services like Twilio Video or Daily.co provide SDKs that
+abstract this complexity.
+KEYWORDS: WebRTC, peer-to-peer, SDP signaling, ICE candidates,
+NAT traversal, STUN server, TURN relay, getUserMedia, media stream,
+SFU, Selective Forwarding Unit, MediaSoup, mesh networking, Twilio,
+codec negotiation, signaling channel
+
+Q24: How would you test this project?
+A: I would implement a comprehensive testing strategy organized
+into four tiers, following the testing pyramid principle of having
+more unit tests than integration tests, and more integration tests
+than end-to-end tests.
+Unit Tests with Jest: Test individual services and repositories
+in isolation by mocking dependencies. The Repository Pattern makes
+this natural — I can swap the real Prisma repository with a mock
+that returns predefined data, testing business logic without any
+database or network dependency.
+Integration Tests with Supertest: Test API endpoints end-to-end
+within the backend by making actual HTTP requests to Express routes,
+verifying request validation, middleware execution, correct status
+codes, and response body structure.
+Component Tests with React Testing Library (RTL): Test React
+components by rendering them in a simulated DOM environment and
+verifying user interactions, state changes, and rendered output.
+RTL encourages testing from the user's perspective (clicking
+buttons, filling forms) rather than testing implementation details.
+End-to-End Tests with Playwright: Test complete user flows across
+the entire application stack — logging in, creating organizations,
+joining coding rooms, and verifying real-time collaboration —
+running in real browser instances to catch integration issues that
+lower-level tests might miss.
+KEYWORDS: testing pyramid, unit testing, Jest, mock dependencies,
+test doubles, integration testing, Supertest, API endpoint testing,
+component testing, React Testing Library, end-to-end testing,
+Playwright, browser automation, test isolation, testing strategy
+
+Q25: What would you do differently?
+A: Looking back with the experience gained from building HireSys,
+there are five specific improvements I would prioritize if starting
+over, while keeping the core architectural decisions that proved
+effective.
+First, I would store JWT tokens in HttpOnly cookies instead of
+localStorage, adding SameSite=Strict attribute and CSRF token
+validation to eliminate the XSS vulnerability — this is the most
+critical security improvement.
+Second, I would implement Zod schema validation on both frontend
+and backend, creating shared validation schemas in the monorepo's
+packages directory. This provides runtime type safety at API
+boundaries with descriptive error messages, catching malformed
+data before it reaches the service layer.
+Third, I would leverage Next.js Server Components for data fetching
+pages, reducing client-side JavaScript bundle size and eliminating
+loading spinner states by streaming HTML with data already rendered.
+Fourth, I would implement WebSocket authentication on the initial
+connection handshake using the auth option in Socket.IO client,
+rather than relying solely on HTTP middleware. This prevents
+unauthorized users from establishing Socket.IO connections in the
+first place.
+Fifth, I would add rate limiting from day one using Redis-backed
+sliding window counters on all AI endpoints, preventing abuse and
+controlling API costs proactively rather than reactively.
+The core architectural decisions — Repository Pattern, BullMQ for
+async processing, Redis caching, Docker containerization — were
+validated through development and I would make the same choices
+again.
+KEYWORDS: self-awareness, continuous improvement, HttpOnly cookies,
+CSRF protection, Zod validation, shared schemas, Server Components,
+streaming SSR, WebSocket authentication, connection handshake,
+rate limiting, sliding window algorithm, validated architecture,
+iterative refinement
+
+
+================================================================
+SECTION 3 — FOLLOW-UP CHAIN (15 Deepest Path)
+================================================================
+
+INTRO → You mention "Repository Pattern, Socket.IO, BullMQ"
+
+Q1: "Tell me about HireSys."
+→ You mention multi-tenant organizations
+
+Q2: "How does multi-tenancy work?"
+→ You mention assertMember() and RBAC
+
+Q3: "Isn't fetching all members on every request slow?"
+→ You say: "Yes, for large orgs I'd query OrganizationMember
+   directly with WHERE userId AND orgId — O(1) with composite
+   index instead of loading all members."
+
+Q4: "You use JWT. Why not sessions?"
+→ You mention stateless, horizontal scaling
+
+Q5: "Can you revoke a JWT if account is compromised?"
+→ You say: "Add token blacklist in Redis. Store JWT ID (jti) on
+   logout/compromise. Auth middleware checks blacklist first."
+
+Q6: "JWT is in localStorage — security concern?"
+→ You say: "Vulnerable to XSS. Better: HttpOnly cookies with
+   SameSite=Strict and CSRF token. I chose localStorage for
+   simplicity — acknowledged trade-off."
+
+Q7: "Explain how your Socket.IO room system works."
+→ You describe join/broadcast/echo prevention
+
+Q8: "What if two users edit the same line?"
+→ You say: "Last-write-wins currently. For proper concurrent
+   editing, I'd implement CRDT using Yjs — mathematically
+   guarantees convergence without conflicts."
+
+Q9: "How does your AI integration handle failures?"
+→ You mention try/catch, fallback, BullMQ retry
+
+Q10: "What is exponential backoff and why use it?"
+→ You say: "Each retry waits longer — 5s, 10s, 20s. Prevents
+    overwhelming a failing service. Like automatic cool-down."
+
+Q11: "How does your caching reduce costs?"
+→ You describe composite cache key, TTL, 70% reduction
+
+Q12: "What's your cache invalidation strategy?"
+→ You say: "TTL-based (24h). AI responses don't need freshness
+    guarantees. For critical data, I'd use cache-aside with
+    shorter TTL and manual purge endpoint."
+
+Q13: "How does the resume analysis work asynchronously?"
+→ You describe BullMQ flow: produce → queue → consume → poll
+
+Q14: "Why polling instead of pushing result via WebSocket?"
+→ You say: "Pragmatic choice — resume analysis is infrequent
+    (once per user), polling is simpler to implement and debug.
+    For frequent updates, I'd use WebSocket push."
+
+Q15: "What would you do differently if starting over?"
+→ You give your 5 improvements (HttpOnly, Zod, Server
+    Components, Socket auth, rate limiting)
+
+
+================================================================
+SECTION 4 — RAPID FIRE REVISION
+================================================================
+
+────────────────────────────────────────────────
+REACT (Top 10)
+────────────────────────────────────────────────
+
+1. What is Virtual DOM?
+→ JS representation of real DOM. React diffs old vs new virtual
+  tree, updates only changed parts. Faster than direct DOM
+  manipulation.
+
+2. useState vs useRef?
+→ useState triggers re-render on change. useRef persists value
+  without re-render. Use useRef for DOM refs, flags, intervals.
+
+3. What is useEffect cleanup?
+→ Function returned from useEffect. Runs on unmount and before
+  re-run. Used to clear timers, remove listeners, disconnect
+  sockets.
+
+4. useCallback vs useMemo?
+→ useCallback memoizes a FUNCTION reference. useMemo memoizes
+  a computed VALUE. Both recalculate only when dependencies
+  change.
+
+5. What is lifting state up?
+→ Moving state to the nearest common parent so sibling
+  components can share it via props.
+
+6. Controlled vs Uncontrolled components?
+→ Controlled: value managed by React state (value + onChange).
+  Uncontrolled: value managed by DOM (ref to access value).
+
+7. What is React.memo?
+→ HOC that skips re-render if props haven't changed. Used for
+  performance optimization on expensive child components.
+
+8. What is the key prop in lists?
+→ Unique identifier that helps React track which items changed,
+  added, or removed. Never use array index as key if list can
+  reorder.
+
+9. What is Context API?
+→ Way to share data across components without prop drilling.
+  Create context → Provider wraps tree → useContext consumes.
+
+10. What are fragments?
+→ <></> groups multiple elements without adding extra DOM node.
+   Needed because components must return single root element.
+
+────────────────────────────────────────────────
+NEXT.JS (Top 10)
+────────────────────────────────────────────────
+
+1. App Router vs Pages Router?
+→ App Router: file-based with folders, layouts, route groups,
+  server components by default. Pages Router: _app.js,
+  getServerSideProps. App Router is the modern approach.
+
+2. Server vs Client Components?
+→ Server: render on server, no JS to client, can access DB.
+  Client: 'use client', can use hooks, events, browser APIs.
+
+3. What are route groups?
+→ (folderName) organizes routes without affecting URL. I use
+  (auth) for login/register and (dashboard) for protected pages.
+
+4. What is dynamic routing?
+→ [param] folders create URL parameters. /room/[id] matches
+  /room/abc123 and provides id via params.
+
+5. What is next/dynamic?
+→ Lazy loads components. Used with ssr: false for client-only
+  components like Monaco Editor that need browser APIs.
+
+6. What are layouts in Next.js?
+→ Shared UI that wraps child pages. layout.tsx persists across
+  navigations — sidebar, nav bar don't re-mount.
+
+7. What is metadata in Next.js?
+→ Export metadata object from page/layout for SEO: title,
+  description, Open Graph tags. Rendered as HTML head tags.
+
+8. How does Next.js handle code splitting?
+→ Automatic per-route code splitting. Each page loads only its
+  JS. Dynamic imports split further.
+
+9. What is the 'use client' directive?
+→ Marks a component as Client Component. Required when using
+  hooks, event handlers, or browser APIs.
+
+10. What fonts did you use?
+→ Inter (sans) and JetBrains Mono (code) via next/font/google.
+   CSS variables --font-sans and --font-mono.
+
+────────────────────────────────────────────────
+NODE.JS (Top 10)
+────────────────────────────────────────────────
+
+1. What is the event loop?
+→ Single-threaded loop that handles async I/O. Async ops go to
+  libuv thread pool. Callbacks queued and executed when ready.
+  This is how Node handles many concurrent requests.
+
+2. What is middleware in Express?
+→ Function with (req, res, next). Executes in order of
+  registration. Can modify request, send response, or call
+  next(). My app: Helmet → CORS → Morgan → JSON → Routes → Error.
+
+3. What is Express 5's advantage?
+→ Built-in async error handling in routes — unhandled promise
+  rejections are caught automatically. Better TypeScript support.
+
+4. What is CORS?
+→ Browser blocks cross-origin requests by default. I configure
+  Express CORS middleware to whitelist my frontend URL and allow
+  credentials.
+
+5. What is Helmet?
+→ Sets security HTTP headers: Content-Security-Policy,
+  X-Frame-Options, HSTS, X-Content-Type-Options. One-line
+  security improvement.
+
+6. Difference between require and import?
+→ require is CommonJS (synchronous, Node default). import is
+  ES Modules (async, tree-shakeable). My server uses CommonJS,
+  frontend uses ES Modules.
+
+7. What is process.env?
+→ Object containing environment variables. I use dotenv to load
+  .env files. Stores secrets like JWT_SECRET, GEMINI_API_KEY,
+  DATABASE_URL.
+
+8. How do you handle file uploads?
+→ Multer middleware. memoryStorage (no disk), 5MB limit,
+  fileFilter for PDF only. File available as req.file.buffer.
+
+9. What is Morgan?
+→ HTTP request logging middleware. Logs method, URL, status
+  code, response time. I use "dev" format in development.
+
+10. What is nodemon?
+→ Development tool that auto-restarts Node server when files
+   change. Configured in nodemon.json with watch paths.
+
+────────────────────────────────────────────────
+DBMS (Top 10)
+────────────────────────────────────────────────
+
+1. What is ACID?
+→ Atomicity (all or nothing), Consistency (valid state after
+  transaction), Isolation (concurrent txns don't interfere),
+  Durability (committed data persists even on crash).
+
+2. What is normalization?
+→ Reducing redundancy by splitting into related tables.
+  1NF: atomic values. 2NF: no partial dependencies.
+  3NF: no transitive dependencies.
+
+3. What is indexing?
+→ B-tree data structure for fast lookups. Trade-off: faster
+  reads, slower writes, more storage. I index email, slug,
+  orgId, status.
+
+4. What is a foreign key?
+→ Column that references primary key of another table.
+  Enforces referential integrity. onDelete: Cascade removes
+  children when parent is deleted.
+
+5. What is a transaction?
+→ Group of operations that all succeed or all fail. I use
+  Prisma $transaction to create org + owner member atomically.
+
+6. What is a primary key?
+→ Unique identifier for each row. Cannot be NULL. I use
+  CUID (collision-resistant unique ID) generated by Prisma.
+
+7. SQL vs NoSQL?
+→ SQL: structured schema, ACID, joins. Best for relational data.
+  NoSQL: flexible schema, horizontal scaling. Best for documents.
+  I chose SQL because User→Org→Interview is relational.
+
+8. What is a junction/join table?
+→ Table that implements many-to-many relationship. My
+  OrganizationMember links Users and Organizations with
+  additional role column.
+
+9. What is a composite key?
+→ Unique constraint on multiple columns. My OrganizationMember
+  has @@unique([userId, organizationId]) — prevents duplicate
+  memberships.
+
+10. What is an ORM?
+→ Object-Relational Mapping — maps code objects to database
+   tables. Prisma generates TypeScript types from schema,
+   provides type-safe queries and auto migrations.
+
+────────────────────────────────────────────────
+OOP (Top 10)
+────────────────────────────────────────────────
+
+1. Four pillars of OOP?
+→ Encapsulation (bundle data+methods), Abstraction (hide
+  complexity), Inheritance (extend classes), Polymorphism
+  (same interface, different behavior).
+
+2. What is encapsulation?
+→ Bundling data and methods, hiding internal details. My
+  AppError class encapsulates message and statusCode together.
+
+3. What is abstraction?
+→ Hiding implementation complexity. Repository Pattern abstracts
+  database queries — service doesn't know Prisma internals.
+
+4. What is inheritance?
+→ Child class inherits from parent. AppError extends Error,
+  gaining message property and adding statusCode.
+
+5. What is polymorphism?
+→ Same method behaves differently based on type. My error
+  middleware handles AppError (specific status) and generic
+  Error (500) differently using instanceof check.
+
+6. What is SOLID?
+→ S: Single Responsibility (each module = one feature).
+  O: Open/Closed (extend, don't modify). L: Liskov Substitution.
+  I: Interface Segregation. D: Dependency Inversion (depend on
+  abstractions like Repository, not Prisma directly).
+
+7. What is a class vs object?
+→ Class is a blueprint/template. Object is an instance.
+  AuthService is the class, new AuthService() creates an object.
+
+8. What is a constructor?
+→ Method called when creating an object. My AppError constructor
+  takes message and statusCode, calls super(message).
+
+9. What is method overriding?
+→ Child class redefines parent's method. Not explicitly in my
+  code but AppError's constructor overrides Error's behavior.
+
+10. Difference between interface and abstract class?
+→ Interface: only method signatures, no implementation, multiple
+   inheritance. Abstract class: can have implementations, single
+   inheritance. TypeScript uses interfaces heavily.
+
+────────────────────────────────────────────────
+SQL (Top 10)
+────────────────────────────────────────────────
+
+1. What is SELECT?
+→ Retrieves data. SELECT * FROM users WHERE email = 'x@y.com';
+
+2. What are JOINs?
+→ Combine rows from multiple tables. INNER JOIN: only matches.
+  LEFT JOIN: all left + matching right. RIGHT JOIN: opposite.
+
+3. What is GROUP BY?
+→ Groups rows for aggregation. SELECT status, COUNT(*) FROM
+  interviews GROUP BY status;
+
+4. What is WHERE vs HAVING?
+→ WHERE filters rows before grouping. HAVING filters groups
+  after GROUP BY.
+
+5. What is ORDER BY?
+→ Sorts results. ORDER BY createdAt DESC returns newest first.
+  ASC for ascending (default).
+
+6. INSERT, UPDATE, DELETE?
+→ INSERT INTO users (name, email) VALUES ('Lucky', 'x@y.com');
+  UPDATE users SET name = 'New' WHERE id = '1';
+  DELETE FROM users WHERE id = '1';
+
+7. What is DISTINCT?
+→ Returns unique values only. SELECT DISTINCT status FROM
+  interviews;
+
+8. What are aggregate functions?
+→ COUNT, SUM, AVG, MIN, MAX. Operate on groups of rows.
+  SELECT COUNT(*) FROM users;
+
+9. What is a subquery?
+→ Query inside another query. SELECT * FROM users WHERE id IN
+  (SELECT userId FROM org_members WHERE orgId = 'x');
+
+10. What is LIKE?
+→ Pattern matching. WHERE name LIKE '%Lucky%' matches any
+   string containing "Lucky". % = wildcard.
+
+
+================================================================
+SECTION 5 — INTERVIEWER TRAPS (Top 20)
+================================================================
+
+1. "Is your app secure?"
+❌ "Yes, I use JWT and bcrypt."
+✅ "I have bcrypt, JWT, Helmet, CORS, parameterized queries.
+   But localStorage JWT is XSS-vulnerable — I'd switch to
+   HttpOnly cookies. Security is layered, and I know the gaps."
+
+2. "Can it handle 1 million users?"
+❌ "Yes, it's scalable."
+✅ "Not yet. But: stateless JWT allows horizontal scaling,
+   Redis adapter for Socket.IO, DB read replicas, rate
+   limiting. I designed for scalability, not at scale yet."
+
+3. "Why not MongoDB/GraphQL/Redux?"
+❌ "I don't know that."
+✅ "I evaluated it. Chose PostgreSQL because data is relational.
+   MongoDB suits flexible schemas. My Users→Orgs→Interviews
+   relationships need joins and constraints."
+
+4. "What if two users edit same line?"
+❌ "Socket.IO handles it."
+✅ "Currently last-write-wins. For proper handling, I'd
+   implement CRDT using Yjs for conflict-free merging."
+
+5. "Tell me about a failure."
+❌ "I don't usually fail."
+✅ "I initially processed resume analysis synchronously — 30s
+   response times. Refactored to BullMQ background jobs.
+   Lesson: separate long tasks from request cycle."
+
+6. "Authentication vs Authorization?"
+❌ Confusing them.
+✅ "Authentication = WHO you are (JWT verification).
+   Authorization = WHAT you can do (assertMember RBAC check)."
+
+7. "What's the difference between SQL and NoSQL?"
+❌ "SQL is better."
+✅ "Neither is better — depends on use case. SQL for relational
+   data with ACID. NoSQL for flexible schemas and horizontal
+   scaling. I chose SQL because my data is relational."
+
+8. "How do you test?"
+❌ "I don't have tests."
+✅ "Currently manual + Postman. For automation: Jest for unit
+   tests, Supertest for APIs, RTL for components, Playwright
+   for E2E. Repository Pattern makes mocking easy."
+
+9. "What makes you different?"
+❌ "I'm hardworking."
+✅ "I implement production patterns — BullMQ for async
+   processing, Redis caching, real-time WebSockets, AI
+   integration with proper error handling, Docker deployment."
+
+10. "Why should we hire you?"
+❌ Generic enthusiasm.
+✅ "I built a system with 4 integrated technologies (WebSocket,
+    AI, job queues, caching) working together. I understand
+    trade-offs and design for production, not just demos."
+
+11. "Explain your project in one line."
+❌ Long rambling answer.
+✅ "AI-powered interview platform with real-time coding rooms,
+    AI-generated questions, and async resume analysis."
+
+12. "What is the Repository Pattern?"
+❌ "A design pattern."
+✅ "Separates data access into its own layer. Controller handles
+    HTTP, Service handles logic, Repository handles DB queries.
+    Makes code testable and ORM-swappable."
+
+13. "Why Prisma over raw SQL?"
+❌ "It's easier."
+✅ "Type-safe queries with auto-generated TypeScript types.
+    Declarative schema. Automatic migrations. Catches DB
+    errors at compile time, not runtime."
+
+14. "How does bcrypt work?"
+❌ "It encrypts passwords."
+✅ "It HASHES passwords (one-way, not reversible). Adds random
+    salt to prevent rainbow table attacks. 12 rounds means 2^12
+    iterations — computationally expensive for brute force."
+
+15. "Why WebSocket instead of HTTP polling?"
+❌ "It's faster."
+✅ "Full-duplex persistent connection. No overhead of repeated
+    HTTP headers. Both sides can send anytime. For real-time
+    code editing, latency must be minimal."
+
+16. "What is a race condition?"
+❌ Blank stare.
+✅ "When outcome depends on timing of events. Example: two
+    users creating org with same name simultaneously. I prevent
+    this with unique constraints in PostgreSQL."
+
+17. "What is the N+1 query problem?"
+❌ Not knowing what it is.
+✅ "Fetching N records, then making N additional queries for
+    related data. I prevent it using Prisma 'include' which
+    generates a single JOIN query."
+
+18. "What happens when you type a URL in browser?"
+❌ "The page loads."
+✅ "DNS resolves domain → TCP handshake → HTTP request → server
+    processes → response with HTML → browser parses DOM → loads
+    CSS/JS → renders page."
+
+19. "Difference between process and thread?"
+❌ Confusing them.
+✅ "Process: independent memory space, heavier. Thread: shares
+    memory within a process, lighter. Node.js is single-threaded
+    but uses worker threads via libuv for I/O."
+
+20. "Do you have any questions for us?"
+❌ "No, I'm good."
+✅ "What does a typical day look like for a developer on your
+    team?" or "What tech stack does the team primarily use?"
+
+
+================================================================
+SECTION 6 — NIGHT BEFORE REVISION (Cheat Sheet)
+================================================================
+
+─── ARCHITECTURE ───
+Repository Pattern: Controller → Service → Repository → DB
+Monorepo: apps/web (Next.js) + apps/server (Express)
+Modules: auth, organizations, interviews, ai
+Each module: routes → controller → service → repository
+
+─── JWT AUTH ───
+Register: bcrypt.hash(password, 12) → save user
+Login: bcrypt.compare → jwt.sign({sub: userId}, secret, {expiresIn: '7d'})
+Middleware: extract Bearer token → jwt.verify → req.userId
+Frontend: localStorage → Axios interceptor → 401 auto-logout
+
+─── REDIS ───
+Purpose: caching AI responses + BullMQ job broker + job status
+Connection: ioredis, lazyConnect, 3 retries, exponential delay
+Cache: getCache<T>(key), setCache(key, value, ttl), deleteCache(key)
+TTL: 24h default. Cache-aside pattern. Graceful failure (try/catch)
+
+─── BULLMQ ───
+Queue: resume-analysis (Redis-backed)
+Producer: controller adds job → returns jobId immediately
+Worker: processes job → stores result in Redis
+Config: 3 attempts, exponential backoff (5s base)
+Keeps: 100 completed, 50 failed jobs
+
+─── SOCKET.IO ───
+Server: HTTP server wrapped with Socket.IO + CORS
+Events: room:join, code:change, code:update, language:change
+Rooms: socket.join(roomId) → socket.to(roomId).emit (excludes sender)
+Tracking: Map<roomId, Map<socketId, RoomUser>>
+Echo fix: useRef isRemoteChange flag
+
+─── PRISMA ───
+Schema: 4 models (User, Organization, OrgMember, Interview)
+Types: CUIDs, enums (Role, Plan, OrgRole, InterviewStatus)
+Features: $transaction, include (JOINs), @@unique, @@index
+Relations: cascade deletes, composite unique constraints
+Config: conditional logging (dev: query+error, prod: error only)
+
+─── POSTGRESQL ───
+Why: relational data (User→Org→Interview), ACID, joins, constraints
+Indexes: email, slug, orgId, status (B-tree for fast lookups)
+Docker: postgres:16-alpine, health check with pg_isready
+
+─── NEXT.JS ───
+App Router: folder-based routing, layout.tsx, page.tsx
+Route Groups: (auth), (dashboard) — no URL impact
+Dynamic: [id] folder → params.id
+Client: 'use client' for hooks/events
+Fonts: Inter + JetBrains Mono via next/font/google
+Dynamic Import: next/dynamic with ssr: false for Monaco
+
+─── REACT HOOKS ───
+useState: triggers re-render. For forms, modals, loading
+useEffect: side effects. Data fetch, socket setup, timers
+useRef: no re-render. Editor refs, flags, interval refs
+useCallback: memoize function reference. Event handlers
+useMemo: memoize computed value. Filtered lists
+
+─── OOP PILLARS ───
+Encapsulation: bundle data + methods (AppError class)
+Abstraction: hide complexity (Repository hides Prisma)
+Inheritance: extend classes (AppError extends Error)
+Polymorphism: same interface, different behavior (error middleware)
+
+─── DBMS / NORMALIZATION ───
+1NF: atomic values, no repeating groups
+2NF: 1NF + no partial dependencies on composite key
+3NF: 2NF + no transitive dependencies
+ACID: Atomicity, Consistency, Isolation, Durability
+
+─── SQL JOINS ───
+INNER JOIN: only matching rows from BOTH tables
+LEFT JOIN: ALL left rows + matching right (NULL if no match)
+RIGHT JOIN: ALL right rows + matching left
+FULL JOIN: ALL rows from both (NULL where no match)
+CROSS JOIN: every combination (cartesian product)
+
+─── HTTP STATUS CODES ───
+200 OK | 201 Created | 400 Bad Request | 401 Unauthorized
+403 Forbidden | 404 Not Found | 409 Conflict | 429 Rate Limit
+500 Internal Error
+
+─── SECURITY KEYWORDS ───
+bcrypt: hashing (not encryption), salt, 12 rounds
+JWT: stateless, header.payload.signature, sub claim
+Helmet: CSP, X-Frame-Options, HSTS
+CORS: same-origin policy, origin whitelist
+XSS: inject script, steal tokens. Prevent: CSP, escape output
+CSRF: forged requests. Prevent: SameSite cookies, CSRF tokens
+SQL Injection: Prevent with parameterized queries (Prisma default)
+
+─── KEY DEFINITIONS ───
+REST: HTTP methods + resource URLs + status codes + stateless
+WebSocket: full-duplex, persistent connection, low latency
+Cache-aside: check cache → miss → fetch DB → store cache
+Exponential backoff: retry delays double: 5s → 10s → 20s
+CRDT: Conflict-free Replicated Data Type (concurrent editing)
+CUID: Collision-resistant Unique ID
+ORM: Object-Relational Mapping (code objects ↔ DB tables)
+CDN: Content Delivery Network (static files from edge)
+Load Balancer: distributes requests across servers
+Circuit Breaker: stops calling failing service after N failures
+
+================================================================
+   YOU'RE READY. TRUST YOUR PROJECT. SPEAK NATURALLY. 🚀
+================================================================

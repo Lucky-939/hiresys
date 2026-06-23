@@ -14,6 +14,13 @@ export function errorMiddleware(
     });
   }
 
+  if (err.name === "PrismaClientValidationError") {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid data provided. Please check the fields and try again.",
+    });
+  }
+
   console.error("Unexpected error:", err);
   res.status(500).json({
     success: false,

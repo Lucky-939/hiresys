@@ -4,7 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import Link from "next/link";
-import axios from "axios";
+import { getErrorMessage } from "@/lib/error";
+import { Icons } from "@/components/ui/Icons";
+import { Logo } from "@/components/ui/Logo";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -25,90 +27,170 @@ export default function RegisterPage() {
 
     try {
       await api.post("/auth/register", form);
-
       router.push("/login");
     } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.message || "Registration failed");
-      } else {
-        setError("Registration failed");
-      }
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md bg-white rounded-xl border border-gray-200 p-8">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-6">
-          Create account
-        </h1>
+    <div className="min-h-screen flex bg-white text-[var(--text-primary)]">
+      {/* Left panel — Brand */}
+      <div className="hidden lg:flex flex-1 flex-col justify-between p-12 bg-gradient-to-b from-[#2B5797] to-[#1E3F6F] relative overflow-hidden">
+        {/* Logo */}
+        <Logo size="lg" className="text-white [&>span]:text-white z-10" />
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-            {error}
+        {/* Main content */}
+        <div className="max-w-md z-10">
+          <p className="text-xs font-bold tracking-[0.15em] uppercase text-white/60 mb-6">
+            Join 2,400+ recruiters
+          </p>
+
+          <h1 className="text-4xl font-bold text-white leading-tight tracking-tight mb-4">
+            Start hiring smarter today
+          </h1>
+          <p className="text-base text-white/80 leading-relaxed mb-12">
+            Set up your workspace in seconds and start conducting AI-powered
+            technical interviews with your team.
+          </p>
+
+          {/* Features */}
+          <div className="flex flex-col gap-6">
+            {[
+              { icon: Icons.users, title: "Team Collaboration", desc: "Multi-user coding sessions with live presence" },
+              { icon: Icons.code, title: "Live Coding Rooms", desc: "Real-time code editor with AI assistance" },
+              { icon: Icons.activity, title: "AI-Powered Insights", desc: "Smart scoring, analysis, and recommendations" },
+            ].map((f, i) => (
+              <div key={i} className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-white/10 text-white/90 flex items-center justify-center shrink-0 border border-white/10 shadow-sm">
+                  {f.icon}
+                </div>
+                <div>
+                  <p className="text-base font-bold text-white mb-1">{f.title}</p>
+                  <p className="text-sm text-white/70 m-0">{f.desc}</p>
+                </div>
+              </div>
+            ))}
           </div>
-        )}
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Name
-            </label>
+        {/* Bottom trust badges */}
+        <div className="flex gap-8 text-xs font-semibold text-white/50 z-10">
+          <span>SOC 2 Type II</span>
+          <span>256-bit SSL</span>
+          <span>GDPR Ready</span>
+        </div>
+        
+        {/* Decorative background element */}
+        <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 -left-16 w-64 h-64 bg-[#4A7ACC]/20 rounded-full blur-3xl" />
+      </div>
 
-            <input
-              type="text"
-              required
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+      {/* Right panel — Form */}
+      <div className="w-full lg:w-[500px] xl:w-[600px] shrink-0 flex items-center justify-center p-8 sm:p-12 bg-white">
+        <div className="w-full max-w-[380px]">
+          <h2 className="text-3xl font-bold text-[var(--text-primary)] tracking-tight mb-2">
+            Create account
+          </h2>
+          <p className="text-base text-[var(--text-tertiary)] mb-8">
+            Set up your workspace and start hiring.
+          </p>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-
-            <input
-              type="email"
-              required
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-
-            <input
-              type="password"
-              required
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
+          {/* Google auth button */}
           <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+            type="button"
+            className="w-full py-2.5 px-4 text-sm font-medium text-[var(--text-primary)] bg-white border border-[var(--border-default)] rounded-lg flex items-center justify-center gap-3 transition-colors hover:bg-[var(--bg-elevated)] focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-1 outline-none"
           >
-            {loading ? "Creating account..." : "Create account"}
+            <svg width="18" height="18" viewBox="0 0 18 18" className="shrink-0">
+              <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+              <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
+              <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+              <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+            </svg>
+            Continue with Google
           </button>
-        </form>
 
-        <p className="mt-4 text-center text-sm text-gray-600">
-          Already have an account?{" "}
-          <Link href="/login" className="text-blue-600 hover:underline">
-            Sign in
-          </Link>
-        </p>
+          <div className="flex items-center gap-4 my-8">
+            <div className="flex-1 h-px bg-[var(--border-default)]" />
+            <span className="text-xs font-semibold text-[var(--text-disabled)] uppercase tracking-wider">or</span>
+            <div className="flex-1 h-px bg-[var(--border-default)]" />
+          </div>
+
+          {error && (
+            <div className="p-3 mb-6 rounded-lg bg-[var(--danger-bg)]/10 border border-[var(--danger-border)]/50 text-[var(--danger-text)] text-sm flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--danger-text)] shrink-0" />
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <div>
+              <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
+                Full name
+              </label>
+              <input
+                type="text"
+                required
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Jane Smith"
+                autoComplete="name"
+                className="w-full px-4 py-2.5 text-sm bg-white border border-[var(--border-default)] rounded-lg outline-none transition-all placeholder:text-[var(--text-disabled)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
+                Work email
+              </label>
+              <input
+                type="email"
+                required
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="you@company.com"
+                autoComplete="email"
+                className="w-full px-4 py-2.5 text-sm bg-white border border-[var(--border-default)] rounded-lg outline-none transition-all placeholder:text-[var(--text-disabled)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
+                Password
+              </label>
+              <input
+                type="password"
+                required
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder="••••••••"
+                autoComplete="new-password"
+                className="w-full px-4 py-2.5 text-sm bg-white border border-[var(--border-default)] rounded-lg outline-none transition-all placeholder:text-[var(--text-disabled)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2.5 px-4 mt-2 text-sm font-bold text-white bg-[var(--accent)] rounded-lg outline-none transition-all hover:bg-[var(--accent-hover)] focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 disabled:opacity-70 flex items-center justify-center h-11"
+            >
+              {loading ? (
+                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                "Create account →"
+              )}
+            </button>
+          </form>
+
+          <p className="text-center text-sm font-medium text-[var(--text-tertiary)] mt-8">
+            Already have an account?{" "}
+            <Link href="/login" className="text-[var(--accent)] hover:underline underline-offset-2">
+              Sign in →
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

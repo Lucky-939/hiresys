@@ -6,6 +6,9 @@ import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea
 import { api } from "@/lib/api";
 import { useOrganizations, OrganizationSelector } from "@/components/ui/OrganizationSelector";
 import { Badge } from "@/components/ui/Badge";
+import { Avatar } from "@/components/ui/Avatar";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { Icons } from "@/components/ui/Icons";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -117,7 +120,7 @@ export default function PipelinePage() {
     return (
       <div className="flex h-full w-full gap-6 p-6 overflow-hidden">
         {STAGES.map((s, i) => (
-          <div key={i} className="min-w-[320px] h-[80vh] skeleton rounded-xl" />
+          <div key={i} className="min-w-[320px] h-[80vh] skeleton rounded-[var(--radius-card)]" />
         ))}
       </div>
     );
@@ -127,12 +130,12 @@ export default function PipelinePage() {
     <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
       
       {/* Header */}
-      <div className="flex items-end justify-between px-6 py-6 shrink-0">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Hiring Pipeline</h2>
-          <p className="text-sm text-[var(--text-muted)] mt-1">Drag and drop candidates to update their stage.</p>
-        </div>
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between px-8 pt-6 pb-4 shrink-0 border-b border-[var(--border-default)] bg-[var(--bg-base)]">
+        <PageHeader
+          title="Hiring Pipeline"
+          description="Drag candidates between stages to update their status."
+        />
+        <div className="flex items-center gap-2 shrink-0">
           {orgs.length > 1 && <OrganizationSelector orgs={orgs} />}
         </div>
       </div>
@@ -141,18 +144,19 @@ export default function PipelinePage() {
       <div className="flex-1 overflow-x-auto overflow-y-hidden px-6 pb-6 scrollbar-hide cursor-grab active:cursor-grabbing">
         <DragDropContext onDragEnd={onDragEnd}>
           <div className="flex h-full gap-6 items-start">
-            {STAGES.map((stage) => {
+            {STAGES.map((stage, i) => {
               const columnCandidates = candidates[stage] || [];
+              const avgReviewTime = Math.max(1, Math.floor(5 - i + Math.random() * 2));
               
               return (
-                <div key={stage} className={cn("flex flex-col shrink-0 w-[340px] max-h-full rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] shadow-sm overflow-hidden", STAGE_COLORS[stage])}>
+                <div key={stage} className={cn("flex flex-col shrink-0 w-[340px] max-h-full rounded-[var(--radius-card)] bg-[var(--bg-elevated)] border border-[var(--border-default)] shadow-[var(--shadow-sm)] overflow-hidden", STAGE_COLORS[stage])}>
                   
                   {/* Column Header */}
-                  <div className="flex items-center justify-between p-4 border-b border-[var(--border-default)] bg-[var(--bg-surface)]">
-                    <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-wider">
+                  <div className="flex items-center justify-between p-3.5 border-b border-[var(--border-default)] bg-[var(--bg-surface)]">
+                    <h3 className="text-[var(--text-xs)] font-bold text-[var(--text-primary)] uppercase tracking-wider">
                       {STAGE_LABELS[stage]}
                     </h3>
-                    <Badge variant="neutral" className="bg-[var(--bg-base)] border-[var(--border-default)]">{columnCandidates.length}</Badge>
+                    <Badge variant="neutral" size="sm">{columnCandidates.length}</Badge>
                   </div>
 
                   {/* Drop Zone */}
@@ -175,30 +179,33 @@ export default function PipelinePage() {
                                 }}
                                 onClick={() => router.push(`/dashboard/candidates/${candidate.id}`)}
                                 className={cn(
-                                  "flex flex-col bg-[var(--bg-surface)] p-4 rounded-lg border border-[var(--border-subtle)] shadow-sm cursor-pointer select-none transition-all",
-                                  snapshot.isDragging ? "shadow-xl rotate-2 ring-2 ring-[var(--accent)] ring-offset-1 border-transparent z-50" : "hover:border-[var(--accent-muted)] hover:shadow-md"
+                                  "flex flex-col bg-[var(--bg-surface)] p-3.5 rounded-[var(--radius-md)] border border-[var(--border-default)] cursor-pointer select-none transition-all",
+                                  snapshot.isDragging
+                                    ? "shadow-[var(--shadow-xl)] rotate-1 ring-2 ring-[var(--accent)] border-transparent z-50"
+                                    : "hover:border-[var(--accent)] hover:shadow-[var(--shadow-sm)]"
                                 )}
                               >
-                                <div className="flex justify-between items-start mb-2">
-                                  <h4 className="font-semibold text-[var(--text-primary)] leading-tight">{candidate.name}</h4>
+                                <div className="flex items-center gap-2.5 mb-2">
+                                  <Avatar name={candidate.name} size="sm" />
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)] truncate leading-tight">{candidate.name}</h4>
+                                    <p className="text-[10px] text-[var(--text-muted)] truncate">{candidate.role}</p>
+                                  </div>
                                   {candidate.hasAI && (
-                                    <span className="text-[var(--accent)] ml-2 text-xs">AI</span>
+                                    <span className="text-[10px] font-bold text-[var(--accent)] bg-[var(--accent-muted)] px-1.5 py-0.5 rounded shrink-0">AI</span>
                                   )}
                                 </div>
-                                <p className="text-xs text-[var(--text-muted)] mb-4">{candidate.role}</p>
-                                
-                                <div className="flex items-center justify-between mt-auto">
-                                  {candidate.latestScore !== null ? (
-                                    <span className={cn("text-xs font-bold px-1.5 py-0.5 rounded-sm", candidate.latestScore >= 80 ? "bg-[var(--success-bg)] text-[var(--success-text)]" : candidate.latestScore >= 60 ? "bg-[var(--warning-bg)] text-[var(--warning-text)]" : "bg-[var(--danger-bg)] text-[var(--danger-text)]")}>
-                                      {candidate.latestScore}%
-                                    </span>
-                                  ) : (
-                                    <span className="text-xs text-[var(--text-disabled)]">—</span>
-                                  )}
-                                  <span className="text-[10px] text-[var(--text-subtle)] font-mono uppercase tracking-widest">
-                                    {Math.floor((Date.now() - new Date(candidate.createdAt).getTime()) / (1000 * 3600 * 24))}d in stage
-                                  </span>
-                                </div>
+                                {candidate.latestScore !== null ? (
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] text-[var(--text-muted)]">Match</span>
+                                    <span className={cn(
+                                      "text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded",
+                                      candidate.latestScore >= 80 ? "bg-[var(--success-bg)] text-[var(--success-text)]" :
+                                      candidate.latestScore >= 60 ? "bg-[var(--warning-bg)] text-[var(--warning-text)]" :
+                                                                    "bg-[var(--danger-bg)] text-[var(--danger-text)]"
+                                    )}>{candidate.latestScore}%</span>
+                                  </div>
+                                ) : null}
                               </div>
                             )}
                           </Draggable>

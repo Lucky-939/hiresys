@@ -1,34 +1,41 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { useRouter } from "next/navigation";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { WorkspaceTemplate } from "@/components/layout/templates";
 
 export default function AIFeedbackPage() {
   const router = useRouter();
   return (
-    <>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px" }}>
-        <div>
-          <h2 style={{ fontSize: "22px", fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em", marginBottom: "4px" }}>
-            AI Feedback
-          </h2>
-          <p style={{ fontSize: "14px", color: "var(--text-tertiary)" }}>
-            Review AI-generated feedback and insights from completed interviews
-          </p>
-        </div>
-        <Button size="sm" onClick={() => router.push("/dashboard/interviews")}>View all feedback</Button>
-      </div>
-
-      <EmptyState
-        icon={
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 3a3 3 0 00-3 3v12a3 3 0 003 3 3 3 0 003-3 3 3 0 00-3-3H6a3 3 0 00-3 3 3 3 0 003 3 3 3 0 003-3V6a3 3 0 00-3-3 3 3 0 00-3 3 3 3 0 003 3h12a3 3 0 003-3 3 3 0 00-3-3z" />
-          </svg>
-        }
-        title="No AI feedback yet"
-        description="Complete interviews to receive AI-powered feedback including performance analysis, scoring breakdown, and hiring recommendations."
-        action={<Button size="sm" onClick={() => router.push("/dashboard/interviews")}>Go to interviews</Button>}
-      />
-    </>
+    <WorkspaceTemplate
+      header={
+        <PageHeader
+          title="AI Feedback"
+          description="Review AI-generated insights and hiring recommendations from completed interviews."
+          actions={
+            <Button size="sm" variant="outline" onClick={() => router.push("/dashboard/interviews")}>
+              View Interviews
+            </Button>
+          }
+        />
+      }
+      content={
+        <EmptyState
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          }
+          title="No AI feedback yet"
+          description="Complete a coding interview to receive AI-powered performance analysis, scoring breakdowns, and hiring recommendations."
+          action={
+            <Button size="sm" onClick={() => router.push("/dashboard/interviews")}>
+              Go to Interviews
+            </Button>
+          }
+        />
+      }
+    />
   );
 }

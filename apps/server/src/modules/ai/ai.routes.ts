@@ -4,6 +4,7 @@ import { validateRequest } from "../../middleware/validate.middleware";
 import { getQuestions } from "./question.controller";
 import { getCodeFeedback } from "./feedback.controller";
 import { analyzeResume, getResumeStatus, upload } from "./resume.controller";
+import { aiLimiter } from "../../middleware/rate-limit.middleware";
 
 export const aiRoutes = Router();
 
@@ -11,6 +12,7 @@ aiRoutes.use(authenticate);
 
 aiRoutes.post(
   "/questions",
+  aiLimiter,
   validateRequest([
     { field: "role", required: true, type: "string", minLength: 2 },
     { field: "difficulty", required: true, type: "string", minLength: 3 },
@@ -20,6 +22,7 @@ aiRoutes.post(
 
 aiRoutes.post(
   "/feedback",
+  aiLimiter,
   validateRequest([
     { field: "code", required: true, type: "string", minLength: 10 },
     { field: "language", required: true, type: "string", minLength: 1 },
@@ -27,5 +30,5 @@ aiRoutes.post(
   getCodeFeedback
 );
 
-aiRoutes.post("/resume", upload.single("resume"), analyzeResume);
+aiRoutes.post("/resume", aiLimiter, upload.single("resume"), analyzeResume);
 aiRoutes.get("/resume/status/:jobId", getResumeStatus);

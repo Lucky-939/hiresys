@@ -1,106 +1,165 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { Icons } from "@/components/ui/Icons";
-import { Badge } from "@/components/ui/Badge";
-import { cn } from "@/lib/utils";
-
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Avatar } from "@/components/ui/Avatar";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { WorkspaceTemplate } from "@/components/layout/templates";
+import { useOrganizations, OrganizationSelector } from "@/components/ui/OrganizationSelector";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/error";
 
-// Mock data
-const RECENT_ROOMS = [
-  { id: "rm_1", candidate: "Alex Johnson", role: "Frontend Engineer", status: "COMPLETED", date: "2 hours ago", score: 85 },
-  { id: "rm_2", candidate: "Sarah Williams", role: "Backend Developer", status: "COMPLETED", date: "Yesterday", score: 92 },
-  { id: "rm_3", candidate: "David Chen", role: "Fullstack Engineer", status: "SCHEDULED", date: "Tomorrow, 10:00 AM" },
-];
+const STATUS_MAP: Record<string, { label: string; variant: any }> = {
+  SCHEDULED:  { label: "Scheduled",  variant: "info"    },
+  ACTIVE:     { label: "Live",        variant: "danger"  },
+  COMPLETED:  { label: "Completed",  variant: "neutral" },
+  CANCELLED:  { label: "Cancelled",  variant: "neutral" },
+};
+
+type Interview = {
+  id: string; title: string; status: string; createdAt: string;
+  createdBy: { name: string };
+  candidate?: { name: string; email?: string } | null;
+};
 
 export default function CodingRoomsPage() {
   const router = useRouter();
-  const [rooms] = useState(RECENT_ROOMS);
+  const { orgs, selectedOrgId, isReady } = useOrganizations();
+  const [interviews, setInterviews] = useState<Interview[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  return (
-    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto w-full pb-12">
-      
-      {/* Header */}
-      <div className="flex items-end justify-between flex-wrap gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Coding Rooms</h2>
-          <p className="text-sm text-[var(--text-muted)] mt-1">
-            Create and manage live collaborative coding sessions with candidates.
-          </p>
-        </div>
-        <Button size="md" className="gap-2" onClick={() => router.push("/dashboard/interviews")}>
-          <span className="text-[16px] leading-none">+</span> New Room
-        </Button>
-      </div>
+  useEffect(() => {
+    if (!isReady || !selectedOrgId) { if (isReady && !selectedOrgId) setLoading(false); return; }
+    setLoading(true);
+    api.get(`/interviews/org/${selectedOrgId}`)
+      .then(res => setInterviews(
+        res.data.data
+          .filter((iv: any) => iv.status !== "CANCELLED")
+          .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      ))
+      .catch(err => { toast.error(getErrorMessage(err)); setInterviews([]); })
+      .finally(() => setLoading(false));
+  }, [selectedOrgId, isReady]);
 
-      {/* Stats/Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="p-6 bg-[var(--bg-surface)] hover:border-[var(--accent-muted)] transition-colors group cursor-pointer" onClick={() => router.push("/dashboard/interviews")}>
-          <div className="h-10 w-10 rounded-lg bg-[var(--accent-muted)]/20 text-[var(--accent)] flex items-center justify-center mb-4 group-hover:bg-[var(--accent)] group-hover:text-white transition-colors">
-            {Icons.code}
+  const tableHeader = (
+    <div className="flex items-center gap-4 px-5 py-2.5 bg-[var(--bg-elevated)] border-b border-[var(--border-default)] rounded-t-[var(--radius-lg)]">
+      <span className="w-20 shrink-0 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Status</span>
+      <span className="flex-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Session</span>
+      <span className="hidden md:block w-32 shrink-0 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Created</span>
+      <span className="shrink-0 w-[100px] text-right text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Action</span>
+    </div>
+  );
+
+  const toolbar = (
+    <div className="flex items-center gap-2 ml-auto">
+      {orgs.length > 1 && <OrganizationSelector orgs={orgs} />}
+      <Button size="sm" onClick={() => router.push("/dashboard/interviews")}>
+        New Interview
+      </Button>
+    </div>
+  );
+
+  const content = (
+    <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] overflow-hidden bg-[var(--bg-surface)]">
+      {tableHeader}
+
+      {loading ? (
+        Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4 px-5 py-3.5 border-b border-[var(--border-subtle)]">
+            <Skeleton width={64} height={20} rounded="full" />
+            <div className="flex-1 flex flex-col gap-1.5">
+              <Skeleton width="45%" height={13} />
+              <Skeleton width="30%" height={11} />
+            </div>
+            <Skeleton width={80} height={30} rounded="md" />
           </div>
-          <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">Start Session</h3>
-          <p className="text-sm text-[var(--text-secondary)]">Instantly spin up a collaborative editor.</p>
-        </Card>
-
-        <Card className="p-6 bg-[var(--bg-surface)] hover:border-[var(--info-border)] transition-colors group cursor-pointer" onClick={() => router.push("/dashboard/interviews")}>
-          <div className="h-10 w-10 rounded-lg bg-[var(--info-bg)]/20 text-[var(--info-text)] flex items-center justify-center mb-4 group-hover:bg-[var(--info-text)] group-hover:text-white transition-colors">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-          </div>
-          <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">Schedule Room</h3>
-          <p className="text-sm text-[var(--text-secondary)]">Create a link for an upcoming interview.</p>
-        </Card>
-
-        <Card className="p-6 bg-[var(--bg-surface)] hover:border-[var(--warning-border)] transition-colors group cursor-pointer" onClick={() => router.push("/dashboard/reports")}>
-          <div className="h-10 w-10 rounded-lg bg-[var(--warning-bg)]/20 text-[var(--warning-text)] flex items-center justify-center mb-4 group-hover:bg-[var(--warning-text)] group-hover:text-white transition-colors">
-            {Icons.fileText}
-          </div>
-          <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">View Reports</h3>
-          <p className="text-sm text-[var(--text-secondary)]">Analyze AI reports from past sessions.</p>
-        </Card>
-      </div>
-
-      {/* Recent Rooms List */}
-      <Card className="flex flex-col bg-[var(--bg-surface)] overflow-hidden">
-        <div className="p-6 border-b border-[var(--border-default)] flex items-center justify-between">
-          <h3 className="text-sm font-bold text-[var(--text-primary)]">Recent Sessions</h3>
-          <Button variant="ghost" size="sm" className="text-xs" onClick={() => router.push("/dashboard/interviews")}>View All</Button>
-        </div>
-        
-        <div className="divide-y divide-[var(--border-subtle)]">
-          {rooms.map((room) => (
-            <div key={room.id} className="flex items-center justify-between p-4 hover:bg-[var(--bg-elevated)] transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-full bg-[var(--bg-base)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] font-medium text-sm">
-                  {room.candidate.charAt(0)}
-                </div>
-                <div>
-                  <h4 className="text-sm font-semibold text-[var(--text-primary)]">{room.candidate}</h4>
-                  <p className="text-xs text-[var(--text-muted)]">{room.role}</p>
-                </div>
+        ))
+      ) : interviews.length === 0 ? (
+        <EmptyState
+          compact
+          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>}
+          title="No coding rooms yet"
+          description="Create an interview to start a live coding session with a candidate."
+          action={<Button size="sm" onClick={() => router.push("/dashboard/interviews")}>Create Interview</Button>}
+        />
+      ) : (
+        interviews.map(iv => {
+          const status = STATUS_MAP[iv.status] ?? STATUS_MAP.SCHEDULED;
+          const isLive = iv.status === "ACTIVE";
+          const isCompleted = iv.status === "COMPLETED";
+          return (
+            <div
+              key={iv.id}
+              className="flex items-center gap-4 px-5 py-3.5 border-b border-[var(--border-subtle)] hover:bg-[var(--bg-elevated)] transition-colors last:border-b-0 group"
+            >
+              {/* Status */}
+              <div className="w-20 shrink-0">
+                <Badge variant={status.variant} dot size="sm">{status.label}</Badge>
               </div>
-              
-              <div className="flex items-center gap-6">
-                <div className="text-right hidden sm:block">
-                  <p className="text-xs font-medium text-[var(--text-secondary)]">{room.date}</p>
-                </div>
-                <Badge variant={room.status === "COMPLETED" ? "success" : "warning"} className="w-24 justify-center">
-                  {room.status}
-                </Badge>
-                {room.status === "COMPLETED" ? (
-                  <Button variant="secondary" size="sm" className="h-8" onClick={() => router.push(`/dashboard/interviews`)}>Report</Button>
+
+              {/* Session info */}
+              <div className="flex-1 min-w-0">
+                <button
+                  onClick={() => router.push(`/room/${iv.id}`)}
+                  className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] hover:text-[var(--accent)] transition-colors text-left truncate block"
+                >
+                  {iv.title}
+                </button>
+                {iv.candidate && (
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <Avatar name={iv.candidate.name} size="xs" />
+                    <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] truncate">{iv.candidate.name}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Date */}
+              <div className="hidden md:block w-32 shrink-0">
+                <span className="text-[var(--text-xs)] text-[var(--text-muted)]">
+                  {new Date(iv.createdAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
+                </span>
+              </div>
+
+              {/* Action */}
+              <div className="shrink-0">
+                {isCompleted ? (
+                  <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/interviews/${iv.id}/report`)}>
+                    View Report
+                  </Button>
+                ) : isLive ? (
+                  <Button size="sm" onClick={() => router.push(`/room/${iv.id}`)} className="bg-[var(--danger)] hover:bg-[var(--danger-hover,#DC2626)] text-white border-none">
+                    Join Live
+                  </Button>
                 ) : (
-                  <Button size="sm" className="h-8 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white border-none" onClick={() => router.push(`/room/${room.id}`)}>Join Room</Button>
+                  <Button variant="outline" size="sm" onClick={() => router.push(`/room/${iv.id}`)}>
+                    Enter Room
+                  </Button>
                 )}
               </div>
             </div>
-          ))}
-        </div>
-      </Card>
-
+          );
+        })
+      )}
     </div>
+  );
+
+  return (
+    <WorkspaceTemplate
+      header={
+        <PageHeader
+          title="Coding Rooms"
+          description="Live collaborative coding sessions. Enter a room to start a technical interview."
+          actions={<Button size="sm" onClick={() => router.push("/dashboard/interviews")}>New Interview</Button>}
+        />
+      }
+      toolbar={toolbar}
+      content={content}
+    />
   );
 }

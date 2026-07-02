@@ -1,59 +1,67 @@
-import * as React from "react"
-import { cn } from "@/lib/utils"
+"use client";
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "primary" | "outline" | "ghost" | "destructive" | "secondary";
+/**
+ * HireSys Button v2.0
+ * Heights: sm=34px  md=40px  lg=44px  icon=36px
+ * Radius: --radius-btn (12px) on all sizes
+ * Font: 14px / 600 per spec
+ * Variants: default(accent) | secondary | ghost | outline | destructive
+ */
+
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "default" | "primary" | "secondary" | "outline" | "ghost" | "destructive";
   size?: "sm" | "default" | "md" | "lg" | "icon";
   loading?: boolean;
   icon?: React.ReactNode;
 }
 
+const variantClasses: Record<NonNullable<ButtonProps["variant"]>, string> = {
+  default:     "bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] active:bg-[var(--accent-active)] shadow-[var(--shadow-sm)]",
+  primary:     "bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] active:bg-[var(--accent-active)] shadow-[var(--shadow-sm)]",
+  secondary:   "bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-default)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-secondary)]",
+  outline:     "bg-transparent text-[var(--text-primary)] border border-[var(--border-default)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-secondary)]",
+  ghost:       "bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]",
+  destructive: "bg-[var(--danger)] text-white hover:bg-[var(--danger-hover)] active:bg-[var(--danger-active)] shadow-[var(--shadow-sm)]",
+};
+
+const sizeClasses: Record<NonNullable<ButtonProps["size"]>, string> = {
+  sm:      "h-[34px] px-3 text-[var(--text-btn)] rounded-[var(--radius-btn)]",
+  default: "h-[40px] px-4 text-[var(--text-btn)] rounded-[var(--radius-btn)]",
+  md:      "h-[40px] px-4 text-[var(--text-btn)] rounded-[var(--radius-btn)]",
+  lg:      "h-[44px] px-5 text-[var(--text-btn)] rounded-[var(--radius-btn)]",
+  icon:    "h-[36px] w-[36px] rounded-[var(--radius-btn)]",
+};
+
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "default", size = "default", loading, icon, children, disabled, ...props }, ref) => {
-    
-    // Tailwind classes for variants
-    const variantClasses = {
-      default: "bg-[var(--accent)] text-white shadow-sm hover:bg-[var(--accent-hover)] dark:text-[var(--accent-foreground)]",
-      primary: "bg-[var(--accent)] text-white shadow-sm hover:bg-[var(--accent-hover)] dark:text-[var(--accent-foreground)]",
-      secondary: "bg-[var(--bg-elevated)] text-[var(--text-primary)] shadow-sm hover:bg-[var(--border-default)]",
-      outline: "border border-[var(--border-strong)] bg-transparent hover:bg-[var(--bg-elevated)] text-[var(--text-primary)]",
-      ghost: "bg-transparent hover:bg-[var(--bg-elevated)] text-[var(--text-primary)]",
-      destructive: "bg-[var(--danger)] text-white hover:opacity-90 shadow-sm dark:text-[var(--accent-foreground)]",
-    };
+  ({ className, variant = "default", size = "default", loading, icon, children, disabled, ...props }, ref) => (
+    <button
+      ref={ref}
+      disabled={disabled || loading}
+      className={cn(
+        "inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold",
+        "transition-colors duration-[var(--ease-base)]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-surface)]",
+        "disabled:pointer-events-none disabled:opacity-40",
+        variantClasses[variant],
+        sizeClasses[size],
+        className
+      )}
+      {...props}
+    >
+      {loading ? (
+        <svg className="h-4 w-4 animate-spin shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+      ) : icon ? (
+        <span className="shrink-0 flex items-center">{icon}</span>
+      ) : null}
+      {children}
+    </button>
+  )
+);
+Button.displayName = "Button";
 
-    const sizeClasses = {
-      default: "h-9 px-4 py-2",
-      md: "h-9 px-4 py-2",
-      sm: "h-8 rounded-md px-3 text-xs",
-      lg: "h-10 rounded-md px-8",
-      icon: "h-9 w-9",
-    };
-
-    return (
-      <button
-        ref={ref}
-        disabled={disabled || loading}
-        className={cn(
-          "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent)] disabled:pointer-events-none disabled:opacity-50",
-          variantClasses[variant],
-          sizeClasses[size],
-          className
-        )}
-        {...props}
-      >
-        {loading && (
-          <svg className="mr-2 h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-        )}
-        {!loading && icon && <span className="mr-2">{icon}</span>}
-        {children}
-      </button>
-    )
-  }
-)
-Button.displayName = "Button"
-
-export { Button }
+export { Button };

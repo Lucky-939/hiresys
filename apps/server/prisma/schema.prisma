@@ -11,6 +11,7 @@ model User {
   id            String               @id @default(cuid())
   email         String               @unique
   password      String?
+  emailVerified DateTime?
   name          String
   role          Role                 @default(USER)
   organizations OrganizationMember[] 
@@ -18,10 +19,25 @@ model User {
   candidates    Candidate[]          
   candidateDecisions Candidate[]     @relation("CandidateDecisionBy")
   createdInvites OrgInvite[]
+  notifications Notification[]
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
 
   @@index([email])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  desc      String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 enum Role {

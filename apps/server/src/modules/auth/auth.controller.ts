@@ -17,6 +17,16 @@ export async function register(
   }
 }
 
+export async function verifyEmail(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { userId, code } = req.body;
+    const result = await service.verifyEmail(userId, code);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function login(req: Request, res: Response, next: NextFunction) {
   try {
     const { email, password } = req.body;

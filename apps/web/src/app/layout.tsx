@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
-import { ThemeProvider } from "@/components/ui/ThemeProvider";
 import { Toaster } from "sonner";
 import "./globals.css";
 
@@ -17,8 +16,11 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HireSys Interview Platform",
-  description: "Next-gen AI powered technical interviewing",
+  title: "HireSys",
+  description: "HireSys - The AI-Powered Hiring Operating System",
+  icons: {
+    icon: "/branding/logo-icon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -32,10 +34,8 @@ export default function RootLayout({
         <meta name="theme-color" content="#2B5797" />
       </head>
       <body className="antialiased font-sans bg-[var(--bg-base)] text-[var(--text-primary)]">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
-          <Toaster position="top-center" richColors />
-        </ThemeProvider>
+        {children}
+        <Toaster position="top-center" richColors />
       </body>
     </html>
   );

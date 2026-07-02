@@ -4,9 +4,25 @@ import React, { useState, useEffect } from "react";
 import { Command } from "cmdk";
 import { useRouter } from "next/navigation";
 import { Icons } from "@/components/ui/Icons";
+import { api } from "@/lib/api";
+import { useOrganizations } from "@/components/ui/OrganizationSelector";
 
 export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (open: boolean) => void }) {
   const router = useRouter();
+  const { selectedOrgId } = useOrganizations();
+  const [candidates, setCandidates] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (open && selectedOrgId) {
+      api.get(`/candidates/org/${selectedOrgId}`)
+        .then((res) => {
+          if (res.data?.data) {
+            setCandidates(res.data.data);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [open, selectedOrgId]);
 
   // Toggle the menu when ⌘K is pressed
   useEffect(() => {
@@ -18,7 +34,7 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (ope
     };
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
-  }, [setOpen]);
+  }, [setOpen, open]);
 
   if (!open) return null;
 
@@ -50,49 +66,20 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (ope
 
           <Command.List className="max-h-[400px] overflow-y-auto overflow-x-hidden p-2">
             <Command.Empty className="py-6 text-center text-sm text-[var(--text-muted)]">
-              No results found.
+              No candidates found.
             </Command.Empty>
 
-            <Command.Group heading="Navigation" className="text-xs font-medium text-[var(--text-muted)] px-2 py-1.5">
-              <Command.Item 
-                onSelect={() => { router.push("/dashboard"); setOpen(false); }}
-                className="flex cursor-pointer items-center rounded-md px-2 py-2.5 text-sm hover:bg-[var(--accent-muted)] hover:text-[var(--accent)] text-[var(--text-primary)] transition-colors data-[selected=true]:bg-[var(--accent-muted)] data-[selected=true]:text-[var(--accent)]"
+            {candidates.map((c) => (
+              <Command.Item
+                key={c.id}
+                value={`${c.name} ${c.email} ${c.role || ""}`}
+                onSelect={() => { router.push(`/dashboard/candidates/${c.id}`); setOpen(false); }}
+                className="flex cursor-pointer flex-col rounded-md px-2 py-2 text-sm hover:bg-[var(--accent-muted)] hover:text-[var(--accent)] text-[var(--text-primary)] transition-colors data-[selected=true]:bg-[var(--accent-muted)] data-[selected=true]:text-[var(--accent)]"
               >
-                <span className="mr-2.5">{Icons.dashboard}</span>
-                Dashboard
+                <span className="font-semibold">{c.name}</span>
+                <span className="text-xs text-[var(--text-muted)] truncate">{c.email} • {c.role || "General"}</span>
               </Command.Item>
-              <Command.Item 
-                onSelect={() => { router.push("/dashboard/candidates"); setOpen(false); }}
-                className="flex cursor-pointer items-center rounded-md px-2 py-2.5 text-sm hover:bg-[var(--accent-muted)] hover:text-[var(--accent)] text-[var(--text-primary)] transition-colors data-[selected=true]:bg-[var(--accent-muted)] data-[selected=true]:text-[var(--accent)]"
-              >
-                <span className="mr-2.5">{Icons.candidates}</span>
-                Candidates
-              </Command.Item>
-              <Command.Item 
-                onSelect={() => { router.push("/dashboard/pipeline"); setOpen(false); }}
-                className="flex cursor-pointer items-center rounded-md px-2 py-2.5 text-sm hover:bg-[var(--accent-muted)] hover:text-[var(--accent)] text-[var(--text-primary)] transition-colors data-[selected=true]:bg-[var(--accent-muted)] data-[selected=true]:text-[var(--accent)]"
-              >
-                <span className="mr-2.5">{Icons.pipeline}</span>
-                Pipeline
-              </Command.Item>
-            </Command.Group>
-
-            <Command.Group heading="AI Tools" className="text-xs font-medium text-[var(--text-muted)] px-2 py-1.5 mt-2">
-              <Command.Item 
-                onSelect={() => { router.push("/dashboard/resume"); setOpen(false); }}
-                className="flex cursor-pointer items-center rounded-md px-2 py-2.5 text-sm hover:bg-[var(--accent-muted)] hover:text-[var(--accent)] text-[var(--text-primary)] transition-colors data-[selected=true]:bg-[var(--accent-muted)] data-[selected=true]:text-[var(--accent)]"
-              >
-                <span className="mr-2.5 text-[var(--accent)]">AI</span>
-                Resume Analysis
-              </Command.Item>
-              <Command.Item 
-                onSelect={() => { router.push("/dashboard/question-gen"); setOpen(false); }}
-                className="flex cursor-pointer items-center rounded-md px-2 py-2.5 text-sm hover:bg-[var(--accent-muted)] hover:text-[var(--accent)] text-[var(--text-primary)] transition-colors data-[selected=true]:bg-[var(--accent-muted)] data-[selected=true]:text-[var(--accent)]"
-              >
-                <span className="mr-2.5 text-[var(--accent)]">AI</span>
-                Question Generator
-              </Command.Item>
-            </Command.Group>
+            ))}
           </Command.List>
         </Command>
       </div>

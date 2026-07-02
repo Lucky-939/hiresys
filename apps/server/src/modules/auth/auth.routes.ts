@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { register, login, logout, requestPasswordReset, resetPassword } from "./auth.controller";
+import { register, login, logout, requestPasswordReset, resetPassword, verifyEmail } from "./auth.controller";
 import { validateRequest } from "../../middleware/validate.middleware";
 
 export const authRoutes = Router();
@@ -12,6 +12,15 @@ authRoutes.post(
     { field: "password", required: true, type: "string", minLength: 8 },
   ]),
   register
+);
+
+authRoutes.post(
+  "/verify-email",
+  validateRequest([
+    { field: "userId", required: true, type: "string" },
+    { field: "code", required: true, type: "string", minLength: 6 },
+  ]),
+  verifyEmail
 );
 
 authRoutes.post(

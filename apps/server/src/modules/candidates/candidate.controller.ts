@@ -19,12 +19,24 @@ export const exportCandidatesCSV = async (req: AuthRequest, res: Response, next:
   }
 };
 
+import { NotificationService } from "../notifications/notification.service";
+
+const notificationService = new NotificationService();
+
 export const createCandidate = async (req: AuthRequest, res: Response) => {
   const data = req.body;
   const candidate = await candidateService.createCandidate({
     ...data,
     userId: req.userId!,
   });
+  
+  // Emit a real-time notification to the user who created it
+  await notificationService.createNotification(
+    req.userId!,
+    "New Candidate Added",
+    `You successfully added ${candidate.name} to the pipeline.`
+  );
+
   res.status(201).json({ success: true, data: candidate });
 };
 

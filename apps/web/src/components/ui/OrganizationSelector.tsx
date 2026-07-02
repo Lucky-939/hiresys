@@ -1,17 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useOrgStore } from "@/store/org.store";
-import { api } from "@/lib/api";
-
-export type Org = {
-  id: string;
-  name: string;
-};
+import { useOrgStore, Org } from "@/store/org.store";
 
 export function useOrganizations() {
-  const { selectedOrgId, setSelectedOrgId } = useOrgStore();
-  const [orgs, setOrgs] = useState<Org[]>([]);
+  const { selectedOrgId, orgs, fetchOrgs } = useOrgStore();
   const [loading, setLoading] = useState(true);
   const [hydrated, setHydrated] = useState(false);
 
@@ -22,21 +15,9 @@ export function useOrganizations() {
   useEffect(() => {
     if (!hydrated) return;
 
-    api.get("/organizations/mine")
-      .then((res) => {
-        const fetchedOrgs = res.data.data;
-        setOrgs(fetchedOrgs);
-        if (fetchedOrgs.length > 0) {
-          const exists = fetchedOrgs.some((o: Org) => o.id === selectedOrgId);
-          if (!exists) {
-            setSelectedOrgId(fetchedOrgs[0].id);
-          }
-        }
-      })
-      .catch(console.error)
-      .finally(() => {
-        setLoading(false);
-      });
+    fetchOrgs().finally(() => {
+      setLoading(false);
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]); // Run once after hydration
 
@@ -44,7 +25,8 @@ export function useOrganizations() {
     orgs, 
     loading: loading || !hydrated, 
     isReady: hydrated && !loading,
-    selectedOrgId 
+    selectedOrgId,
+    refreshOrgs: fetchOrgs
   };
 }
 

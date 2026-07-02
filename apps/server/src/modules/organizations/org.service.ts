@@ -33,6 +33,20 @@ export class OrgService {
     return org;
   }
 
+  async updateOrgName(id: string, newName: string, userId: string) {
+    const org = await repo.findById(id);
+    if (!org) throw new AppError("Organization not found", 404);
+
+    const member = org.members.find((m) => m.userId === userId);
+    if (!member) throw new AppError("Access denied", 403);
+
+    if (member.role !== "OWNER" && member.role !== "ADMIN") {
+      throw new AppError("Only owners and admins can rename the organization", 403);
+    }
+
+    return repo.updateOrg(id, newName);
+  }
+
   // --- Members ---
 
   async getMembers(orgId: string) {

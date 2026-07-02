@@ -34,7 +34,7 @@ app.use(express.json());
 // Apply global rate limiter
 app.use(globalLimiter);
 
-app.use("/api/ai", aiLimiter, aiRoutes);
+app.use("/api/ai", aiRoutes);
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
@@ -62,6 +62,7 @@ app.get("/health", (_req, res) => res.status(200).json({ status: "OK", timestamp
 app.post("/test", (_req, res) => res.json({ works: true }));
 
 import { dashboardRoutes } from "./modules/dashboard/dashboard.routes";
+import { notificationRoutes } from "./modules/notifications/notification.routes";
 
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/organizations", orgRoutes);
@@ -69,6 +70,7 @@ app.use("/api/interviews", interviewRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/candidates", candidateRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 app.use(errorMiddleware);
 

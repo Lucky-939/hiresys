@@ -5,92 +5,53 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Card, CardContent } from "@/components/ui/Card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { ScoreBar } from "@/components/ui/PageHeader";
+import { BackLink, DetailTemplate } from "@/components/layout/templates";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { Icons } from "@/components/ui/Icons";
-import { cn } from "@/lib/utils";
 
 interface Report {
-  id: string;
-  interviewId: string;
-  codingScore: number;
-  problemSolvingScore: number;
-  technicalKnowledgeScore: number;
-  overallScore: number;
+  id: string; interviewId: string;
+  codingScore: number; problemSolvingScore: number; technicalKnowledgeScore: number; overallScore: number;
   recommendation: "STRONG_HIRE" | "HIRE" | "MAYBE" | "NO_HIRE";
-  aiSummary: string;
-  strengths: string[];
-  improvements: string[];
-  generationTimeMs: number | null;
-  version: number;
-  createdAt: string;
-  snapshotInterviewTitle: string | null;
-  snapshotCodeSubmitted: string | null;
-  snapshotLanguage: string | null;
-  snapshotQuestions: string[] | null;
-  interview: {
-    id: string;
-    title: string;
-    status: string;
-  };
+  aiSummary: string; strengths: string[]; improvements: string[];
+  generationTimeMs: number | null; version: number; createdAt: string;
+  snapshotInterviewTitle: string | null; snapshotCodeSubmitted: string | null;
+  snapshotLanguage: string | null; snapshotQuestions: string[] | null;
+  interview: { id: string; title: string; status: string; };
 }
 
-const RECOMMENDATION_CONFIG: Record<
-  string,
-  { label: string; variant: "success" | "info" | "warning" | "destructive" }
-> = {
-  STRONG_HIRE: { label: "Strong Hire", variant: "success" },
-  HIRE: { label: "Hire", variant: "info" },
-  MAYBE: { label: "Maybe", variant: "warning" },
-  NO_HIRE: { label: "No Hire", variant: "destructive" },
+const RECOMMENDATION_CONFIG: Record<string, { label: string; variant: any }> = {
+  STRONG_HIRE: { label: "Strong Hire", variant: "success"     },
+  HIRE:        { label: "Hire",        variant: "info"        },
+  MAYBE:       { label: "Maybe",       variant: "warning"     },
+  NO_HIRE:     { label: "No Hire",     variant: "danger"      },
 };
 
-function ScoreRing({ score, label, colorClass, size = 110, strokeWidth = 8 }: { score: number; label: string; colorClass: string; size?: number; strokeWidth?: number; }) {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (score / 100) * circumference;
-
-  return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-        <svg width={size} height={size} className="transform -rotate-90">
-          <circle cx={size / 2} cy={size / 2} r={radius} fill="none" className="stroke-[var(--border-subtle)]" strokeWidth={strokeWidth} />
-          <circle 
-            cx={size / 2} cy={size / 2} r={radius} fill="none" 
-            className={cn("transition-all duration-1000 ease-out", colorClass)} 
-            strokeWidth={strokeWidth} strokeLinecap="round" 
-            strokeDasharray={circumference} strokeDashoffset={offset} 
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-bold text-[var(--text-primary)] leading-none">{score}</span>
-          <span className="text-[10px] font-medium text-[var(--text-disabled)]">/ 100</span>
-        </div>
-      </div>
-      <span className="text-xs font-semibold text-[var(--text-secondary)] text-center tracking-wide">{label}</span>
-    </div>
-  );
-}
-
-export default function ReportPage({ params }: { params: Promise<{ id: string }>; }) {
+export default function ReportPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: interviewId } = use(params);
   const router = useRouter();
-
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     api.get(`/reports/${interviewId}`)
-      .then((r) => setReport(r.data.data))
-      .catch((err) => {
-        console.error(err);
+      .then(r => setReport(r.data.data))
+      .catch(() => {
         // Fallback for demo
         setReport({
           id: "1", interviewId, codingScore: 92, problemSolvingScore: 85, technicalKnowledgeScore: 88, overallScore: 88,
-          recommendation: "STRONG_HIRE", aiSummary: "Candidate demonstrated excellent understanding of algorithmic principles and system design. Code was clean, optimal, and well-structured.",
+          recommendation: "STRONG_HIRE",
+          aiSummary: "Candidate demonstrated excellent understanding of algorithmic principles and system design. Code was clean, optimal, and well-structured.",
           strengths: ["Strong problem-solving skills", "Clean, maintainable code", "Good communication of thought process"],
           improvements: ["Could improve on considering edge cases earlier"],
           generationTimeMs: 2500, version: 1, createdAt: new Date().toISOString(),
-          snapshotInterviewTitle: "Senior Engineer Interview", snapshotCodeSubmitted: "function solution() {\n  return 'Optimized Code';\n}", snapshotLanguage: "javascript", snapshotQuestions: ["Design a rate limiter.", "Explain React Context API."],
+          snapshotInterviewTitle: "Senior Engineer Interview",
+          snapshotCodeSubmitted: "function solution() {\n  return 'Optimized Code';\n}",
+          snapshotLanguage: "javascript",
+          snapshotQuestions: ["Design a rate limiter.", "Explain React Context API."],
           interview: { id: interviewId, title: "Senior Engineer Interview", status: "COMPLETED" }
         });
       })
@@ -99,10 +60,11 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
 
   if (loading) {
     return (
-      <div className="flex flex-col gap-6 p-6 animate-in fade-in duration-500 max-w-5xl mx-auto w-full">
-        <div className="w-32 h-6 skeleton" />
-        <div className="h-40 w-full skeleton rounded-xl" />
-        <div className="h-40 w-full skeleton rounded-xl" />
+      <div className="max-w-[960px] mx-auto flex flex-col gap-5 p-6">
+        <Skeleton height={24} width={120} />
+        <Skeleton height={160} rounded="lg" />
+        <Skeleton height={120} rounded="lg" />
+        <Skeleton height={200} rounded="lg" />
       </div>
     );
   }
@@ -110,122 +72,187 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
   if (!report) return null;
 
   const rec = RECOMMENDATION_CONFIG[report.recommendation] || RECOMMENDATION_CONFIG.MAYBE;
-  const generatedDate = new Date(report.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  const generatedDate = new Date(report.createdAt).toLocaleDateString("en-US", {
+    year: "numeric", month: "long", day: "numeric"
+  });
+  const generatedTime = new Date(report.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-  return (
-    <div className="flex flex-col gap-6 p-6 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto w-full pb-12">
-      
-      {/* Back Link */}
-      <div>
-        <button onClick={() => router.back()} className="text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-2">
-          ← Back to Interviews
-        </button>
-      </div>
-
-      {/* Hero Section */}
-      <Card className="overflow-hidden border-t-4 border-t-[var(--accent)] shadow-md bg-[var(--bg-surface)]">
-        <div className="flex flex-col md:flex-row items-center gap-8 p-8 md:p-10">
-          <ScoreRing score={report.overallScore} label="Overall Score" colorClass="stroke-[var(--success-text)]" size={160} strokeWidth={12} />
-          <div className="flex-1 flex flex-col justify-center text-center md:text-left">
-            <h1 className="text-3xl font-bold tracking-tight text-[var(--text-primary)] mb-2">
-              {report.snapshotInterviewTitle || report.interview?.title || "Interview Report"}
-            </h1>
-            <p className="text-sm text-[var(--text-tertiary)] mb-6 flex items-center justify-center md:justify-start gap-2">
-              Generated on {generatedDate}
-              {report.generationTimeMs != null && (
-                <span className="flex items-center gap-1 ml-2 bg-[var(--bg-base)] px-2 py-0.5 rounded-md border border-[var(--border-default)]">
-                  {Icons.clock} {(report.generationTimeMs / 1000).toFixed(1)}s
-                </span>
-              )}
-            </p>
-              <Badge variant={rec.variant} className="text-sm px-4 py-1.5 uppercase tracking-wider font-bold shadow-sm">
-                {rec.label}
-              </Badge>
-          </div>
+  /* ——— Sidebar: Score + Decision ——— */
+  const sidebar = (
+    <div className="flex flex-col gap-4">
+      {/* Overall Score Card */}
+      <Card padding="default">
+        <div className="flex flex-col items-center text-center gap-3">
+          <span className="text-[var(--text-xs)] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Overall Score</span>
+          <span className="text-[64px] font-black leading-none tracking-tight text-[var(--text-primary)]">
+            {report.overallScore}
+          </span>
+          <span className="text-[var(--text-sm)] text-[var(--text-muted)]">/ 100</span>
+          <Badge variant={rec.variant} className="uppercase tracking-wide text-[11px] font-bold px-3">
+            {rec.label}
+          </Badge>
         </div>
       </Card>
 
-      {/* Categories Breakdown */}
-      <Card className="p-8">
-        <h3 className="text-xs font-bold text-[var(--text-disabled)] uppercase tracking-widest mb-6">Score Breakdown</h3>
-        <div className="flex flex-wrap items-center justify-around gap-8">
-          <ScoreRing score={report.codingScore} label="Coding" colorClass="stroke-[var(--accent)]" />
-          <ScoreRing score={report.problemSolvingScore} label="Problem Solving" colorClass="stroke-[var(--info-text)]" />
-          <ScoreRing score={report.technicalKnowledgeScore} label="Technical Knowledge" colorClass="stroke-[var(--warning-text)]" />
-        </div>
+      {/* Meta */}
+      <Card padding="compact">
+        <dl className="flex flex-col gap-2.5">
+          {[
+            { label: "Generated", value: `${generatedDate}, ${generatedTime}` },
+            { label: "Version",   value: `v${report.version}` },
+            ...(report.generationTimeMs != null ? [{ label: "AI Time", value: `${(report.generationTimeMs / 1000).toFixed(1)}s` }] : []),
+            { label: "Language",  value: report.snapshotLanguage || "—" },
+          ].map(row => (
+            <div key={row.label} className="flex flex-col gap-0.5">
+              <dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{row.label}</dt>
+              <dd className="text-[var(--text-xs)] font-medium text-[var(--text-secondary)]">{row.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </Card>
+    </div>
+  );
+
+  /* ——— Main Content ——— */
+  const content = (
+    <>
+      {/* Score Breakdown — horizontal bars (circular gauges BANNED per spec vol 7.18) */}
+      <Card padding="default">
+        <CardHeader>
+          <CardTitle>Score Breakdown</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4">
+            <ScoreBar label="Coding"              score={report.codingScore}               />
+            <ScoreBar label="Problem Solving"     score={report.problemSolvingScore}        />
+            <ScoreBar label="Technical Knowledge" score={report.technicalKnowledgeScore}    />
+          </div>
+        </CardContent>
       </Card>
 
-      {/* Strengths & Improvements */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="p-6 border-[var(--success-border)]/30 bg-[var(--success-bg)]/5">
-          <h3 className="text-xs font-bold text-[var(--success-text)] uppercase tracking-widest mb-4 flex items-center gap-2">
-            <span className="bg-[var(--success-text)] text-white rounded-full p-0.5">{Icons.check}</span> Strengths
-          </h3>
-          <div className="space-y-3">
-            {report.strengths.length > 0 ? report.strengths.map((s, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-[var(--success-bg)]/20 border border-[var(--success-border)]/20">
-                <span className="text-[var(--success-text)] mt-0.5 shrink-0">{Icons.check}</span>
-                <p className="text-sm text-[var(--text-primary)] leading-relaxed">{s}</p>
-              </div>
-            )) : <p className="text-sm text-[var(--text-tertiary)] italic">No strengths identified.</p>}
-          </div>
+      {/* Strengths + Improvements */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <Card padding="default">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <span className="text-[var(--success)]">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              <CardTitle>Strengths</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {report.strengths.length > 0 ? (
+              <ul className="flex flex-col gap-2">
+                {report.strengths.map((s, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
+                    <span className="text-[var(--success)] shrink-0 mt-0.5">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    </span>
+                    {s}
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="text-[var(--text-sm)] text-[var(--text-muted)] italic">No strengths identified.</p>}
+          </CardContent>
         </Card>
 
-        <Card className="p-6 border-[var(--warning-border)]/30 bg-[var(--warning-bg)]/5">
-          <h3 className="text-xs font-bold text-[var(--warning-text)] uppercase tracking-widest mb-4 flex items-center gap-2">
-            <span className="bg-[var(--warning-text)] text-white rounded-full p-0.5" style={{ transform: "rotate(90deg)" }}>{Icons.arrow}</span> Areas for Improvement
-          </h3>
-          <div className="space-y-3">
-            {report.improvements.length > 0 ? report.improvements.map((s, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-[var(--warning-bg)]/20 border border-[var(--warning-border)]/20">
-                <span className="text-[var(--warning-text)] mt-0.5 shrink-0" style={{ transform: "rotate(90deg)" }}>{Icons.arrow}</span>
-                <p className="text-sm text-[var(--text-primary)] leading-relaxed">{s}</p>
-              </div>
-            )) : <p className="text-sm text-[var(--text-tertiary)] italic">No areas for improvement identified.</p>}
-          </div>
+        <Card padding="default">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <span className="text-[var(--warning)]">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+              </span>
+              <CardTitle>Areas for Improvement</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {report.improvements.length > 0 ? (
+              <ul className="flex flex-col gap-2">
+                {report.improvements.map((s, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
+                    <span className="text-[var(--warning)] shrink-0 mt-0.5">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+                    </span>
+                    {s}
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="text-[var(--text-sm)] text-[var(--text-muted)] italic">No improvement areas identified.</p>}
+          </CardContent>
         </Card>
       </div>
 
       {/* AI Summary */}
-      <Card className="p-6 bg-gradient-to-br from-[var(--bg-surface)] to-[var(--bg-elevated)]">
-        <h3 className="text-xs font-bold text-[var(--accent)] uppercase tracking-widest mb-3 flex items-center gap-2">
-          AI Summary
-        </h3>
-        <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{report.aiSummary}</p>
+      <Card padding="default">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <span className="text-[var(--accent)]">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </span>
+            <CardTitle>AI Summary</CardTitle>
+          </div>
+          <Badge variant="accent" size="sm">AI</Badge>
+        </CardHeader>
+        <CardContent>
+          <p className="text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">{report.aiSummary}</p>
+        </CardContent>
       </Card>
 
-      {/* Accordions */}
-      <div className="space-y-4">
-        {report.snapshotCodeSubmitted && (
-          <details className="group border border-[var(--border-subtle)] bg-[var(--bg-surface)] rounded-xl overflow-hidden shadow-sm">
-            <summary className="p-4 text-sm font-semibold text-[var(--text-primary)] cursor-pointer list-none flex items-center gap-3 select-none hover:bg-[var(--bg-elevated)] transition-colors">
-              <span className="text-[var(--text-disabled)] transition-transform group-open:rotate-90">▶</span>
-              Submitted Code
-              {report.snapshotLanguage && <Badge variant="neutral" className="ml-2 font-mono text-[10px]">{report.snapshotLanguage}</Badge>}
+      {/* Code Snapshot */}
+      {report.snapshotCodeSubmitted && (
+        <Card padding="none">
+          <details className="group">
+            <summary className="px-5 py-4 flex items-center gap-3 cursor-pointer list-none hover:bg-[var(--bg-elevated)] transition-colors rounded-[var(--radius-lg)] select-none">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="transition-transform group-open:rotate-90 text-[var(--text-muted)]"><polyline points="9 18 15 12 9 6"/></svg>
+              <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">Submitted Code</span>
+              {report.snapshotLanguage && <Badge variant="neutral" size="sm" className="font-mono">{report.snapshotLanguage}</Badge>}
             </summary>
-            <div className="p-4 border-t border-[var(--border-subtle)] bg-[var(--bg-base)]">
-              <pre className="p-4 bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-lg overflow-x-auto text-xs font-mono text-[var(--text-primary)] leading-relaxed">
+            <div className="px-5 pb-5 pt-0 border-t border-[var(--border-subtle)]">
+              <pre className="mt-4 p-4 bg-[var(--bg-sunken)] border border-[var(--border-default)] rounded-[var(--radius-md)] overflow-x-auto text-[var(--text-xs)] font-mono text-[var(--text-primary)] leading-relaxed">
                 <code>{report.snapshotCodeSubmitted}</code>
               </pre>
             </div>
           </details>
-        )}
+        </Card>
+      )}
 
-        {report.snapshotQuestions && report.snapshotQuestions.length > 0 && (
-          <details className="group border border-[var(--border-subtle)] bg-[var(--bg-surface)] rounded-xl overflow-hidden shadow-sm">
-            <summary className="p-4 text-sm font-semibold text-[var(--text-primary)] cursor-pointer list-none flex items-center gap-3 select-none hover:bg-[var(--bg-elevated)] transition-colors">
-              <span className="text-[var(--text-disabled)] transition-transform group-open:rotate-90">▶</span>
-              Interview Questions Asked
+      {/* Questions */}
+      {report.snapshotQuestions && report.snapshotQuestions.length > 0 && (
+        <Card padding="none">
+          <details className="group">
+            <summary className="px-5 py-4 flex items-center gap-3 cursor-pointer list-none hover:bg-[var(--bg-elevated)] transition-colors rounded-[var(--radius-lg)] select-none">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="transition-transform group-open:rotate-90 text-[var(--text-muted)]"><polyline points="9 18 15 12 9 6"/></svg>
+              <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">Interview Questions Asked</span>
+              <Badge variant="neutral" size="sm">{report.snapshotQuestions.length}</Badge>
             </summary>
-            <div className="p-4 border-t border-[var(--border-subtle)] bg-[var(--bg-base)]">
-              <ul className="space-y-2 list-disc list-inside text-sm text-[var(--text-secondary)] leading-relaxed">
-                {report.snapshotQuestions.map((q, i) => <li key={i}>{q}</li>)}
+            <div className="px-5 pb-5 pt-0 border-t border-[var(--border-subtle)]">
+              <ul className="mt-4 flex flex-col gap-2">
+                {report.snapshotQuestions.map((q, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-[var(--text-sm)] text-[var(--text-secondary)]">
+                    <span className="text-[var(--text-muted)] font-mono tabular-nums shrink-0 text-[var(--text-xs)] mt-0.5">{i + 1}.</span>
+                    {q}
+                  </li>
+                ))}
               </ul>
             </div>
           </details>
-        )}
-      </div>
+        </Card>
+      )}
+    </>
+  );
 
-    </div>
+  return (
+    <DetailTemplate
+      backLink={<BackLink onClick={() => router.back()} label="Back to Interviews" />}
+      header={
+        <PageHeader
+          title={report.snapshotInterviewTitle || report.interview?.title || "Interview Report"}
+          description={`Generated on ${generatedDate} · ${generatedTime}`}
+        />
+      }
+      sidebar={sidebar}
+      content={content}
+    />
   );
 }

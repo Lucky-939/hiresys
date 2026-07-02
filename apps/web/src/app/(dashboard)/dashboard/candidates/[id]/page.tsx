@@ -65,9 +65,9 @@ export default function CandidateProfilePage({ params }: { params: Promise<{ id:
   if (loading) {
     return (
       <div className="flex gap-6 mt-8">
-        <div className="w-1/3 h-96 skeleton rounded-xl" />
-        <div className="w-1/3 h-96 skeleton rounded-xl" />
-        <div className="w-1/3 h-96 skeleton rounded-xl" />
+        <div className="w-1/3 h-96 skeleton rounded-[var(--radius-card)]" />
+        <div className="w-1/3 h-96 skeleton rounded-[var(--radius-card)]" />
+        <div className="w-1/3 h-96 skeleton rounded-[var(--radius-card)]" />
       </div>
     );
   }
@@ -194,8 +194,8 @@ export default function CandidateProfilePage({ params }: { params: Promise<{ id:
             <CardContent className="p-6">
               {c.resumeScore ? (
                 <div className="flex flex-col gap-6">
-                  <div className="flex flex-col items-center justify-center bg-white dark:bg-[var(--bg-surface)] p-6 rounded-xl shadow-sm">
-                    <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-subtle)] mb-2">Match Score</span>
+                  <div className="flex flex-col items-center justify-center bg-[var(--bg-surface)] p-6 rounded-[var(--radius-card)] border border-[var(--border-default)] shadow-[var(--shadow-sm)]">
+                    <span className="text-[var(--text-xs)] font-bold uppercase tracking-wider text-[var(--text-subtle)] mb-2">Match Score</span>
                     <span className="text-5xl font-bold text-[var(--success-text)]">{c.resumeScore}<span className="text-2xl text-[var(--text-muted)]">/100</span></span>
                   </div>
 

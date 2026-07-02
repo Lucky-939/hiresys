@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { Button } from "@/components/ui/Button";
+import Image from "next/image";
 
 export default function ErrorBoundary({
   error,
@@ -17,8 +18,13 @@ export default function ErrorBoundary({
   return (
     <div className="flex h-full min-h-[400px] w-full items-center justify-center">
       <div className="flex max-w-md flex-col items-center text-center space-y-6 p-8 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] shadow-sm">
-        <div className="h-16 w-16 bg-[var(--error-bg)] rounded-full flex items-center justify-center text-[var(--error-text)] text-3xl font-bold">
-          !
+        <div className="relative h-16 w-16">
+          <Image
+            src="/branding/logo-icon.svg"
+            alt="HireSys Logo"
+            fill
+            className="object-contain"
+          />
         </div>
         <div>
           <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)] mb-2">Unexpected Error</h2>

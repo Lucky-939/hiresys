@@ -1,6 +1,6 @@
 import React from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { Icons } from "./Icons";
 
 interface LogoProps {
   className?: string;
@@ -8,35 +8,40 @@ interface LogoProps {
   withText?: boolean;
 }
 
+/**
+ * Logo component rendering official HireSys brand assets.
+ *
+ * The SVGs (both logo-full.svg and logo-icon.svg) have a native viewBox
+ * of 810 × 1012.5 (portrait orientation, ~0.8:1 aspect ratio).
+ * Sizes here are tuned so the logo is clearly visible at each tier.
+ */
 export function Logo({ className, size = "md", withText = true }: LogoProps) {
-  const iconSize = {
-    sm: "w-6 h-6",
-    md: "w-8 h-8",
-    lg: "w-10 h-10",
+  // Aspect ratio from the SVG viewBox: 810 / 1012.5 ≈ 0.8
+  const dimensions = {
+    sm: withText
+      ? { width: 120, height: 48 }
+      : { width: 32, height: 40 },
+    md: withText
+      ? { width: 150, height: 60 }
+      : { width: 40, height: 50 },
+    lg: withText
+      ? { width: 180, height: 72 }
+      : { width: 48, height: 60 },
   }[size];
 
-  const textSize = {
-    sm: "text-lg",
-    md: "text-xl",
-    lg: "text-2xl",
-  }[size];
+  const src = withText ? "/branding/logo-full.svg" : "/branding/logo-icon.svg";
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
-      <div
-        className={cn(
-          "rounded-lg bg-[var(--accent)] flex items-center justify-center text-white shadow-sm",
-          iconSize,
-          size === "sm" ? "[&>svg]:w-3 [&>svg]:h-3" : size === "md" ? "[&>svg]:w-4 [&>svg]:h-4" : "[&>svg]:w-5 [&>svg]:h-5"
-        )}
-      >
-        {Icons.activity}
-      </div>
-      {withText && (
-        <span className={cn("font-bold tracking-tight text-[var(--text-primary)]", textSize)}>
-          HireSys
-        </span>
-      )}
+    <div className={cn("flex items-center shrink-0", className)}>
+      <Image
+        src={src}
+        alt="HireSys Logo"
+        width={dimensions.width}
+        height={dimensions.height}
+        priority
+        className="object-contain"
+      />
     </div>
   );
 }
+

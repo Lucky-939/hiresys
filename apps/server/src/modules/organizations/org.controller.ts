@@ -44,6 +44,20 @@ export async function getOrgById(
   }
 }
 
+export async function updateOrg(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const { name } = req.body;
+    const org = await service.updateOrgName(req.params.id as string, name, req.userId!);
+    res.json({ success: true, data: org });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // --- Members ---
 
 export async function getMembers(req: AuthRequest, res: Response, next: NextFunction) {

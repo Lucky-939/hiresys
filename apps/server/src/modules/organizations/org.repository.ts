@@ -24,6 +24,13 @@ export class OrgRepository {
     });
   }
 
+  updateOrg(id: string, name: string) {
+    return prisma.organization.update({
+      where: { id },
+      data: { name },
+    });
+  }
+
   findBySlug(slug: string) {
     return prisma.organization.findUnique({ where: { slug } });
   }

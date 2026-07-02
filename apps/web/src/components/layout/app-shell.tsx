@@ -5,6 +5,11 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
 import { CommandPalette } from "@/components/ui/command-palette";
 
+/**
+ * HireSys AppShell v2.0
+ * Layout: Sidebar (fixed) + TopBar (60px) + Page Content (scrollable)
+ * Page padding: 32px horizontal, 28px top, 48px bottom
+ */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
@@ -12,10 +17,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-    // Auto-collapse on smaller screens
-    if (window.innerWidth < 1280) {
-      setCollapsed(true);
-    }
+    if (window.innerWidth < 1280) setCollapsed(true);
   }, []);
 
   if (!mounted) return null;
@@ -25,20 +27,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
 
-      {/* Main Content Area */}
+      {/* Main area */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Top Header */}
+        {/* Top bar */}
         <TopBar setCommandOpen={setCommandOpen} />
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-8">
-          <div className="mx-auto max-w-7xl h-full">
-            {children}
+        {/* Page content */}
+        <main className="flex-1 overflow-hidden">
+          <div className="h-full overflow-y-auto">
+            <div className="px-8 pt-7 pb-12 h-full flex flex-col">
+              {children}
+            </div>
           </div>
         </main>
       </div>
 
-      {/* Global Command Palette Overlay */}
+      {/* Command palette */}
       <CommandPalette open={commandOpen} setOpen={setCommandOpen} />
     </div>
   );

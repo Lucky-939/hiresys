@@ -5,6 +5,7 @@ import {
   createOrg, 
   getMyOrgs, 
   getOrgById,
+  updateOrg,
   getMembers,
   inviteMember,
   updateMemberRole,
@@ -31,6 +32,13 @@ orgRoutes.post(
 );
 orgRoutes.get("/mine", getMyOrgs);
 orgRoutes.get("/:id", getOrgById);
+orgRoutes.patch(
+  "/:id",
+  validateRequest([
+    { field: "name", required: true, type: "string", minLength: 2 },
+  ]),
+  updateOrg
+);
 
 // --- Members & RBAC ---
 orgRoutes.get("/:orgId/members", requireOrgRole("OWNER", "ADMIN", "MEMBER"), getMembers);

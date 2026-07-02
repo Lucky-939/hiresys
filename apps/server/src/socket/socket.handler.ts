@@ -52,12 +52,16 @@ export function registerSocketHandlers(io: Server) {
   });
 
   io.on("connection", (socket: Socket) => {
-    console.log(`Socket connected: ${socket.id}`);
+    const userId = socket.data.userId;
+    console.log(`Socket connected: ${socket.id} (User: ${userId})`);
+
+    // Join a global room for this specific user to receive directed events (e.g. notifications)
+    if (userId) {
+      socket.join(`user:${userId}`);
+    }
 
     socket.on("room:join", async ({ roomId, name }) => {
       try {
-        const userId = socket.data.userId;
-        
         // Validate organization membership via InterviewService
         await interviewService.getById(roomId, userId);
 

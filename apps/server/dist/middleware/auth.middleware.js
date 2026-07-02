@@ -14,7 +14,7 @@ async function authenticate(req, _res, next) {
         }
         const token = authHeader.split(" ")[1];
         // Check blocklist
-        const { redis } = require("../../config/redis");
+        const { redis } = require("../config/redis");
         const isBlocked = await redis.get(`bl_${token}`);
         if (isBlocked) {
             throw new errors_1.AppError("Invalid or expired token", 401);
@@ -26,6 +26,7 @@ async function authenticate(req, _res, next) {
         next();
     }
     catch (err) {
+        console.error("Auth Middleware Error:", err);
         if (err instanceof errors_1.AppError)
             return next(err);
         next(new errors_1.AppError("Invalid or expired token", 401));

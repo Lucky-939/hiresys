@@ -1,42 +1,58 @@
-import * as React from "react"
-import { cn } from "@/lib/utils"
+"use client";
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: "default" | "success" | "warning" | "destructive" | "outline" | "info" | "accent" | "neutral" | "error" | "live";
+/**
+ * HireSys Badge v2.0
+ * Subtle backgrounds only — no bright pills, no solid fills.
+ * Height: 22px. Pill shape. Tight padding.
+ */
+
+export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
+  variant?: "neutral" | "accent" | "success" | "warning" | "danger" | "info" | "outline" | "destructive" | "live" | "error";
+  size?: "sm" | "default";
   dot?: boolean;
 }
 
-function Badge({ className, variant = "default", dot, children, ...props }: BadgeProps) {
-  const variantClasses = {
-    default: "border-transparent bg-[var(--accent-muted)] text-[var(--accent)]",
-    success: "border-transparent bg-[var(--success-bg)] text-[var(--success-text)]",
-    warning: "border-transparent bg-[var(--warning-bg)] text-[var(--warning-text)]",
-    destructive: "border-transparent bg-[var(--danger-bg)] text-[var(--danger-text)]",
-    outline: "text-[var(--text-primary)] border-[var(--border-default)]",
-    info: "border-transparent bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-    accent: "border-transparent bg-[var(--accent)] text-white",
-    neutral: "border-transparent bg-[var(--bg-elevated)] text-[var(--text-primary)]",
-    error: "border-transparent bg-[var(--danger-bg)] text-[var(--danger-text)]",
-    live: "border-transparent bg-rose-100 text-rose-700 animate-pulse",
-  };
+const variantClasses: Record<NonNullable<BadgeProps["variant"]>, string> = {
+  neutral:     "bg-[var(--neutral-bg)]     text-[var(--neutral-text)]  border border-[var(--neutral-border)]",
+  accent:      "bg-[var(--accent-muted)]   text-[var(--accent)]        border border-[var(--accent-border)]",
+  success:     "bg-[var(--success-bg)]     text-[var(--success-text)]  border border-[var(--success-border)]",
+  warning:     "bg-[var(--warning-bg)]     text-[var(--warning-text)]  border border-[var(--warning-border)]",
+  danger:      "bg-[var(--danger-bg)]      text-[var(--danger-text)]   border border-[var(--danger-border)]",
+  destructive: "bg-[var(--danger-bg)]      text-[var(--danger-text)]   border border-[var(--danger-border)]",
+  live:        "bg-[var(--danger-bg)]      text-[var(--danger-text)]   border border-[var(--danger-border)]",
+  error:       "bg-[var(--danger-bg)]      text-[var(--danger-text)]   border border-[var(--danger-border)]",
+  info:        "bg-[var(--info-bg)]        text-[var(--info-text)]     border border-[var(--info-border)]",
+  outline:     "bg-transparent             text-[var(--text-secondary)] border border-[var(--border-default)]",
+};
 
-  const dotColors = {
-    default: "bg-[var(--accent)]",
-    success: "bg-[var(--success)]",
-    warning: "bg-[var(--warning)]",
-    destructive: "bg-[var(--danger)]",
-    outline: "bg-[var(--text-muted)]",
-    info: "bg-blue-500",
-    accent: "bg-white",
-    neutral: "bg-[var(--text-tertiary)]",
-    error: "bg-[var(--danger)]",
-    live: "bg-rose-500",
-  };
+const dotColors: Record<NonNullable<BadgeProps["variant"]>, string> = {
+  neutral:     "bg-[var(--neutral-text)]",
+  accent:      "bg-[var(--accent)]",
+  success:     "bg-[var(--success)]",
+  warning:     "bg-[var(--warning)]",
+  danger:      "bg-[var(--danger)]",
+  destructive: "bg-[var(--danger)]",
+  live:        "bg-[var(--danger)] live-pulse",
+  error:       "bg-[var(--danger)]",
+  info:        "bg-[var(--info)]",
+  outline:     "bg-[var(--text-muted)]",
+};
 
+export function Badge({
+  className,
+  variant = "neutral",
+  size = "default",
+  dot,
+  children,
+  ...props
+}: BadgeProps) {
   return (
-    <div
+    <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2",
+        "inline-flex items-center gap-1.5 rounded-full font-medium leading-none whitespace-nowrap",
+        size === "sm" ? "h-5 px-2 text-[10px]" : "h-[22px] px-2.5 text-[11px]",
         variantClasses[variant],
         className
       )}
@@ -44,12 +60,13 @@ function Badge({ className, variant = "default", dot, children, ...props }: Badg
     >
       {dot && (
         <span
-          className={cn("mr-1.5 h-1.5 w-1.5 rounded-full", dotColors[variant])}
+          className={cn(
+            "h-1.5 w-1.5 rounded-full shrink-0",
+            dotColors[variant]
+          )}
         />
       )}
       {children}
-    </div>
-  )
+    </span>
+  );
 }
-
-export { Badge }

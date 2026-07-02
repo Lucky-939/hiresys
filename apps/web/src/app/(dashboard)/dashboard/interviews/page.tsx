@@ -6,36 +6,103 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import { Avatar } from "@/components/ui/Avatar";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { WorkspaceTemplate } from "@/components/layout/templates";
 import { useOrganizations, OrganizationSelector } from "@/components/ui/OrganizationSelector";
 import { Icons } from "@/components/ui/Icons";
 import { getErrorMessage } from "@/lib/error";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
-const STATUS_MAP: Record<
-  string,
-  { label: string; variant: "info" | "success" | "neutral" | "error" | "live" }
-> = {
-  SCHEDULED: { label: "Scheduled", variant: "info" },
-  ACTIVE: { label: "Live", variant: "live" },
-  COMPLETED: { label: "Completed", variant: "neutral" },
-  CANCELLED: { label: "Cancelled", variant: "error" },
+/* ——— Status config ——— */
+const STATUS_MAP: Record<string, { label: string; variant: any }> = {
+  SCHEDULED:  { label: "Scheduled",  variant: "info"    },
+  ACTIVE:     { label: "Live",        variant: "danger"  },
+  COMPLETED:  { label: "Completed",  variant: "neutral" },
+  CANCELLED:  { label: "Cancelled",  variant: "neutral" },
 };
 
 type Interview = {
-  id: string;
-  title: string;
-  status: string;
-  createdAt: string;
+  id: string; title: string; status: string; createdAt: string;
   createdBy: { name: string };
-  candidate?: { name: string } | null;
+  candidate?: { name: string; email?: string } | null;
 };
+type Candidate = { id: string; name: string; email: string };
 
-type Candidate = {
-  id: string;
-  name: string;
-  email: string;
-};
+/* ——— Interview row item ——— */
+function InterviewRow({ iv, onAssign, onReport, onJoin, onEnter }: {
+  iv: Interview;
+  onAssign: () => void;
+  onReport: () => void;
+  onJoin: () => void;
+  onEnter: () => void;
+}) {
+  const status = STATUS_MAP[iv.status] ?? STATUS_MAP.SCHEDULED;
+  const isLive = iv.status === "ACTIVE";
+  const isCompleted = iv.status === "COMPLETED";
+
+  return (
+    <div className="flex items-center gap-4 px-4 py-3 border-b border-[var(--border-subtle)] hover:bg-[var(--bg-elevated)] transition-colors group">
+      {/* Date column */}
+      <div className="w-16 shrink-0 text-right">
+        <span className="text-[var(--text-xs)] text-[var(--text-muted)] tabular-nums">
+          {new Date(iv.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })}
+        </span>
+      </div>
+
+      {/* Status */}
+      <div className="w-24 shrink-0">
+        <Badge variant={status.variant} dot size="sm">{status.label}</Badge>
+      </div>
+
+      {/* Title + Candidate */}
+      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+        <button
+          onClick={isCompleted ? onReport : isLive ? onJoin : onEnter}
+          className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] hover:text-[var(--accent)] transition-colors text-left truncate"
+        >
+          {iv.title}
+        </button>
+        {iv.candidate ? (
+          <div className="flex items-center gap-1.5">
+            <Avatar name={iv.candidate.name} size="xs" />
+            <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] truncate">{iv.candidate.name}</span>
+          </div>
+        ) : (
+          <button
+            onClick={onAssign}
+            className="text-[var(--text-xs)] font-medium text-[var(--accent)] hover:text-[var(--accent-hover)] text-left"
+          >
+            + Assign candidate
+          </button>
+        )}
+      </div>
+
+      {/* Creator */}
+      <div className="hidden md:block w-28 shrink-0">
+        <span className="text-[var(--text-xs)] text-[var(--text-muted)] truncate">
+          {iv.createdBy.name.split(" ")[0]}
+        </span>
+      </div>
+
+      {/* Action */}
+      <div className="shrink-0">
+        {isCompleted ? (
+          <Button variant="outline" size="sm" onClick={onReport}>View Report</Button>
+        ) : isLive ? (
+          <Button size="sm" onClick={onJoin} className="bg-[var(--danger)] hover:bg-[var(--danger-hover,#DC2626)] text-white border-none">
+            Join Live
+          </Button>
+        ) : (
+          <Button variant="outline" size="sm" onClick={onEnter}>Enter Room</Button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function InterviewsPage() {
   const router = useRouter();
@@ -43,6 +110,9 @@ export default function InterviewsPage() {
 
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+
+  /* Create modal */
   const [modalOpen, setModalOpen] = useState(false);
   const [interviewTitle, setInterviewTitle] = useState("");
   const [selectedCandidate, setSelectedCandidate] = useState("");
@@ -50,417 +120,255 @@ export default function InterviewsPage() {
   const [createError, setCreateError] = useState("");
   const [candidates, setCandidates] = useState<Candidate[]>([]);
 
-  // Assign modal state
+  /* Assign modal */
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [assigningInterview, setAssigningInterview] = useState<Interview | null>(null);
   const [assignCandidateId, setAssignCandidateId] = useState("");
   const [assigning, setAssigning] = useState(false);
   const [assignError, setAssignError] = useState("");
 
-  // Filters
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-
   useEffect(() => {
     if (!isReady) return;
-    if (!selectedOrgId) {
-      setLoading(false);
-      return;
-    }
+    if (!selectedOrgId) { setLoading(false); return; }
     setLoading(true);
-
     Promise.all([
       api.get(`/interviews/org/${selectedOrgId}`),
       api.get(`/candidates/org/${selectedOrgId}`)
     ])
       .then(([ivRes, candRes]) => {
-        setInterviews(ivRes.data.data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+        setInterviews(ivRes.data.data.sort((a: any, b: any) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        ));
         setCandidates(candRes.data.data);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [selectedOrgId, isReady]);
 
-  const filtered = useMemo(() => {
-    return interviews.filter((iv) => {
-      const matchesSearch = iv.title.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter === "all" || iv.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
-  }, [interviews, search, statusFilter]);
+  const filtered = useMemo(() =>
+    interviews.filter(iv => iv.title.toLowerCase().includes(search.toLowerCase())),
+    [interviews, search]
+  );
+
+  const upcomingInterviews = filtered.filter(iv => iv.status === "ACTIVE" || iv.status === "SCHEDULED");
+  const completedInterviews = filtered.filter(iv => iv.status === "COMPLETED" || iv.status === "CANCELLED");
 
   async function createInterview() {
     if (!interviewTitle.trim()) { setCreateError("Interview title is required."); return; }
-    setCreating(true);
-    setCreateError("");
+    if (!selectedOrgId) { setCreateError("No organization selected."); return; }
+    setCreating(true); setCreateError("");
     try {
-      if (!selectedOrgId) throw new Error("No organization selected");
-      
       const { data } = await api.post("/interviews", {
         title: interviewTitle.trim(),
         organizationId: selectedOrgId,
         candidateId: selectedCandidate || undefined
       });
-      setInterviews((prev) => [data.data, ...prev]);
-      setModalOpen(false);
-      setInterviewTitle("");
-      setSelectedCandidate("");
-    } catch (err: unknown) {
-      setCreateError(getErrorMessage(err));
-    } finally {
-      setCreating(false);
-    }
+      setInterviews(prev => [data.data, ...prev]);
+      closeModal();
+      toast.success("Interview created");
+    } catch (err: unknown) { setCreateError(getErrorMessage(err)); }
+    finally { setCreating(false); }
   }
 
   function closeModal() { setModalOpen(false); setInterviewTitle(""); setSelectedCandidate(""); setCreateError(""); }
 
   async function assignCandidate() {
     if (!assigningInterview) return;
-    setAssigning(true);
-    setAssignError("");
+    setAssigning(true); setAssignError("");
     try {
-      await api.patch(`/interviews/${assigningInterview.id}/candidate`, { candidateId: assignCandidateId || null });
-      setInterviews((prev) => prev.map((iv) => iv.id === assigningInterview.id ? { ...iv, candidate: assignCandidateId ? candidates.find(c => c.id === assignCandidateId) : null } : iv));
+      await api.patch(`/interviews/${assigningInterview.id}/candidate`, {
+        candidateId: assignCandidateId || null
+      });
+      setInterviews(prev => prev.map(iv =>
+        iv.id === assigningInterview.id
+          ? { ...iv, candidate: assignCandidateId ? candidates.find(c => c.id === assignCandidateId) : null }
+          : iv
+      ));
       closeAssignModal();
-    } catch (err: unknown) {
-      setAssignError(getErrorMessage(err));
-    } finally {
-      setAssigning(false);
-    }
+      toast.success("Candidate assigned");
+    } catch (err: unknown) { setAssignError(getErrorMessage(err)); }
+    finally { setAssigning(false); }
   }
 
   function closeAssignModal() { setAssignModalOpen(false); setAssigningInterview(null); setAssignCandidateId(""); setAssignError(""); }
 
-  return (
+  /* ——— Toolbar ——— */
+  const toolbar = (
     <>
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "32px", flexWrap: "wrap", gap: "16px" }}>
-        <div>
-          <h2 style={{ fontSize: "24px", fontWeight: 600, color: "var(--text-primary)", letterSpacing: "-0.02em", margin: "0 0 4px" }}>
-            Interviews
-          </h2>
-          <p style={{ fontSize: "14px", color: "var(--text-tertiary)", margin: 0 }}>
-            All interview sessions across your organization.
-          </p>
-        </div>
+      <div className="relative flex-1 max-w-[320px]">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </span>
+        <input
+          type="text" value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Search interviews..."
+          className="h-9 w-full pl-8 pr-3 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--text-sm)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] transition-all"
+        />
+      </div>
+      <div className="ml-auto flex items-center gap-2">
+        {orgs.length > 1 && <OrganizationSelector orgs={orgs} />}
+        <Button size="sm" onClick={() => setModalOpen(true)}>
+          New Interview
+        </Button>
+      </div>
+    </>
+  );
 
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          {orgs.length > 1 && (
-            <OrganizationSelector orgs={orgs} />
+  /* ——— Table header row ——— */
+  const tableHeader = (
+    <div className="flex items-center gap-4 px-4 py-2 bg-[var(--bg-elevated)] border-b border-[var(--border-default)] rounded-t-[var(--radius-lg)]">
+      <span className="w-16 shrink-0 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right">Date</span>
+      <span className="w-24 shrink-0 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Status</span>
+      <span className="flex-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Interview</span>
+      <span className="hidden md:block w-28 shrink-0 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Created by</span>
+      <span className="shrink-0 w-[110px] text-right text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Action</span>
+    </div>
+  );
+
+  /* ——— Content ——— */
+  const content = (
+    <div className="flex flex-col gap-6">
+      {/* Upcoming / Live */}
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-2 mb-2">
+          <h2 className="text-[var(--text-base)] font-semibold text-[var(--text-primary)]">Active & Upcoming</h2>
+          <Badge variant="neutral" size="sm">{upcomingInterviews.length}</Badge>
+        </div>
+        <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] overflow-hidden bg-[var(--bg-surface)]">
+          {tableHeader}
+          {loading ? (
+            <div className="flex flex-col">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4 px-4 py-3 border-b border-[var(--border-subtle)]">
+                  <div className="w-16 h-3 skeleton rounded" />
+                  <div className="w-20 h-5 skeleton rounded-full" />
+                  <div className="flex-1 h-4 skeleton rounded" />
+                  <div className="w-24 h-8 skeleton rounded-[var(--radius-sm)]" />
+                </div>
+              ))}
+            </div>
+          ) : upcomingInterviews.length === 0 ? (
+            <EmptyState
+              compact
+              icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>}
+              title="No upcoming interviews"
+              description="Schedule your first interview to begin technical evaluation."
+              action={<Button size="sm" onClick={() => setModalOpen(true)}>Create Interview</Button>}
+            />
+          ) : (
+            upcomingInterviews.map(iv => (
+              <InterviewRow
+                key={iv.id} iv={iv}
+                onAssign={() => { setAssigningInterview(iv); setAssignCandidateId(""); setAssignModalOpen(true); }}
+                onReport={() => router.push(`/dashboard/interviews/${iv.id}/report`)}
+                onJoin={() => router.push(`/room/${iv.id}`)}
+                onEnter={() => router.push(`/room/${iv.id}`)}
+              />
+            ))
           )}
-
-          <Button size="md" onClick={() => setModalOpen(true)} icon={Icons.plus}>
-            New Interview
-          </Button>
         </div>
       </div>
 
-      {/* ——— Filters ——— */}
-      <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "24px", flexWrap: "wrap" }}>
-        <div style={{ position: "relative", flex: "1", maxWidth: "400px", minWidth: "240px" }}>
-          <div style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--text-disabled)", display: "flex", pointerEvents: "none" }}>
-            {Icons.search}
+      {/* Completed */}
+      {completedInterviews.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 mb-2">
+            <h2 className="text-[var(--text-base)] font-semibold text-[var(--text-primary)]">Completed</h2>
+            <Badge variant="neutral" size="sm">{completedInterviews.length}</Badge>
           </div>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search interviews..."
-            className="search-input"
-          />
-        </div>
-
-        <div style={{ position: "relative" }}>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="filter-select"
-          >
-            <option value="all">All statuses</option>
-            <option value="SCHEDULED">Scheduled</option>
-            <option value="ACTIVE">Live</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="CANCELLED">Cancelled</option>
-          </select>
-        </div>
-      </div>
-
-      <div style={{ background: "#FFFFFF", border: "1px solid var(--border-subtle)", borderRadius: "12px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", overflow: "hidden" }}>
-        
-        {/* Table header */}
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 1fr 1fr 150px", padding: "16px 24px", background: "#FAFAFA", borderBottom: "1px solid var(--border-subtle)" }}>
-          {["Title", "Candidate", "Status", "Date", ""].map((h, idx) => (
-            <span key={idx} style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.04em", textAlign: idx === 4 ? "right" : "left" }}>
-              {h}
-            </span>
-          ))}
-        </div>
-
-        {/* ——— Interview List ——— */}
-        {loading ? (
-          <div style={{ padding: "16px" }}>
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 1fr 1fr 150px", padding: "16px 8px", alignItems: "center" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <Skeleton width="32px" height="32px" borderRadius="8px" />
-                  <Skeleton height="14px" width="160px" />
-                </div>
-                <Skeleton height="14px" width="120px" />
-                <Skeleton height="24px" width="80px" borderRadius="12px" />
-                <Skeleton height="14px" width="100px" />
-                <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <Skeleton height="32px" width="80px" borderRadius="8px" />
-                </div>
-              </div>
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] overflow-hidden bg-[var(--bg-surface)]">
+            {tableHeader}
+            {completedInterviews.map(iv => (
+              <InterviewRow
+                key={iv.id} iv={iv}
+                onAssign={() => { setAssigningInterview(iv); setAssignCandidateId(""); setAssignModalOpen(true); }}
+                onReport={() => router.push(`/dashboard/interviews/${iv.id}/report`)}
+                onJoin={() => router.push(`/room/${iv.id}`)}
+                onEnter={() => router.push(`/room/${iv.id}`)}
+              />
             ))}
           </div>
-        ) : !selectedOrgId && isReady ? (
-          <EmptyState
-            icon={Icons.fileText}
-            title="No organizations"
-            description="You need to create or join an organization first."
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <>
+      <WorkspaceTemplate
+        header={
+          <PageHeader
+            title="Interviews"
+            description="Manage technical screening sessions and review reports."
+            actions={<Button size="sm" onClick={() => setModalOpen(true)}>New Interview</Button>}
           />
-        ) : interviews.length === 0 ? (
-          <EmptyState
-            icon={Icons.fileText}
-            title="No Interviews"
-            description="Create an interview to start evaluating candidates."
-            action={
-              <Button size="md" onClick={() => setModalOpen(true)}>
-                Create interview
-              </Button>
-            }
-          />
-        ) : filtered.length === 0 ? (
-          <EmptyState
-            title="No matching interviews"
-            description="Try adjusting your search or filter."
-          />
-        ) : (
-          <div className="animate-stagger">
-            {filtered.map((iv, idx) => {
-              const status = STATUS_MAP[iv.status] ?? STATUS_MAP.SCHEDULED;
-              const isLive = iv.status === "ACTIVE";
-              return (
-                <div
-                  key={iv.id}
-                  className="table-row"
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "2fr 1.5fr 1fr 1fr 150px",
-                    alignItems: "center",
-                    padding: "16px 24px",
-                    borderBottom: idx < filtered.length - 1 ? "1px solid var(--border-subtle)" : "none",
-                    cursor: "pointer",
-                    transition: "background 0.2s ease",
-                  }}
-                  onClick={() => router.push(`/room/${iv.id}`)}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "#F3F4F6", color: "var(--text-secondary)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      {Icons.code}
-                    </div>
-                    <div>
-                      <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-primary)", margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "200px" }}>
-                        {iv.title}
-                      </p>
-                      <p style={{ fontSize: "12px", color: "var(--text-tertiary)", margin: 0 }}>
-                        by {iv.createdBy.name}
-                      </p>
-                    </div>
-                  </div>
+        }
+        toolbar={toolbar}
+        content={content}
+      />
 
-                  <div>
-                    {iv.candidate ? (
-                      <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--text-secondary)" }}>{iv.candidate.name}</span>
-                    ) : (
-                      <button
-                        className="assign-link"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setAssigningInterview(iv);
-                          setAssignCandidateId("");
-                          setAssignModalOpen(true);
-                        }}
-                      >
-                        Assign Candidate
-                      </button>
-                    )}
-                  </div>
-
-                  <div>
-                    <Badge variant={status.variant}>{status.label}</Badge>
-                  </div>
-
-                  <div>
-                    <span style={{ fontSize: "13px", color: "var(--text-tertiary)" }}>
-                      {new Date(iv.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-
-                  <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
-                    {iv.status === "COMPLETED" ? (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/dashboard/interviews/${iv.id}/report`);
-                        }}
-                      >
-                        Report
-                      </Button>
-                    ) : isLive ? (
-                      <Button variant="primary" size="sm" onClick={(e) => { e.stopPropagation(); router.push(`/room/${iv.id}`); }}>Join</Button>
-                    ) : (
-                      <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); router.push(`/room/${iv.id}`); }}>Open</Button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* ——— Create modal ——— */}
+      {/* Create Modal */}
       <Modal
-        open={modalOpen}
-        onClose={closeModal}
-        title="New interview"
+        open={modalOpen} onClose={closeModal}
+        title="New Interview"
         description="Schedule a coding interview session."
         footer={
           <>
-            <Button variant="secondary" size="md" onClick={closeModal}>
-              Cancel
-            </Button>
-            <Button size="md" onClick={createInterview} loading={creating}>
-              Create interview
-            </Button>
+            <Button variant="secondary" size="md" onClick={closeModal}>Cancel</Button>
+            <Button size="md" onClick={createInterview} loading={creating}>Create Interview</Button>
           </>
         }
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+        <div className="flex flex-col gap-4">
           <Input
-            autoFocus
-            label="Interview title *"
+            autoFocus label="Interview title *"
             value={interviewTitle}
-            onChange={(e) => { setInterviewTitle(e.target.value); setCreateError(""); }}
-            onKeyDown={(e) => { if (e.key === "Enter") createInterview(); }}
+            onChange={e => { setInterviewTitle(e.target.value); setCreateError(""); }}
+            onKeyDown={e => { if (e.key === "Enter") createInterview(); }}
             placeholder="e.g. Frontend Engineer — Round 1"
             error={createError}
           />
-
-          <div>
-            <label style={{ display: "block", fontSize: "13px", fontWeight: 500, color: "var(--text-secondary)", marginBottom: "8px" }}>Link Candidate (Optional)</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[var(--text-sm)] font-medium text-[var(--text-secondary)]">Link Candidate (Optional)</label>
             <select
               value={selectedCandidate}
-              onChange={(e) => setSelectedCandidate(e.target.value)}
-              className="filter-select"
-              style={{ width: "100%", paddingLeft: "12px", height: "40px" }}
+              onChange={e => setSelectedCandidate(e.target.value)}
+              className="h-10 w-full px-3 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--text-sm)] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] transition-all"
             >
-              <option value="">-- No Candidate --</option>
-              {candidates.map((c) => (
-                <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
-              ))}
+              <option value="">— No candidate —</option>
+              {candidates.map(c => <option key={c.id} value={c.id}>{c.name} ({c.email})</option>)}
             </select>
           </div>
         </div>
       </Modal>
 
-      {/* ——— Assign Candidate Modal ——— */}
+      {/* Assign Modal */}
       <Modal
-        open={assignModalOpen}
-        onClose={closeAssignModal}
+        open={assignModalOpen} onClose={closeAssignModal}
         title="Assign Candidate"
         description={`Link a candidate to "${assigningInterview?.title}".`}
         footer={
           <>
-            <Button variant="secondary" size="md" onClick={closeAssignModal}>
-              Cancel
-            </Button>
-            <Button size="md" onClick={assignCandidate} loading={assigning}>
-              Save
-            </Button>
+            <Button variant="secondary" size="md" onClick={closeAssignModal}>Cancel</Button>
+            <Button size="md" onClick={assignCandidate} loading={assigning}>Save</Button>
           </>
         }
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <div>
-            <label style={{ display: "block", fontSize: "13px", fontWeight: 500, color: "var(--text-secondary)", marginBottom: "8px" }}>Select Candidate</label>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[var(--text-sm)] font-medium text-[var(--text-secondary)]">Select Candidate</label>
             <select
               value={assignCandidateId}
-              onChange={(e) => setAssignCandidateId(e.target.value)}
-              className="filter-select"
-              style={{ width: "100%", paddingLeft: "12px", height: "40px" }}
+              onChange={e => setAssignCandidateId(e.target.value)}
+              className="h-10 w-full px-3 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--text-sm)] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] transition-all"
             >
-              <option value="">-- No Candidate --</option>
-              {candidates.map((c) => (
-                <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
-              ))}
+              <option value="">— No candidate —</option>
+              {candidates.map(c => <option key={c.id} value={c.id}>{c.name} ({c.email})</option>)}
             </select>
           </div>
-          {assignError && <p style={{ fontSize: "13px", color: "var(--error-text)", margin: 0 }}>{assignError}</p>}
+          {assignError && <p className="text-[var(--text-xs)] text-[var(--danger-text)]">{assignError}</p>}
         </div>
       </Modal>
-
-      <style>{`
-        .table-row:hover {
-          background: #F9FAFB;
-        }
-        .assign-link {
-          background: transparent;
-          border: none;
-          color: var(--accent);
-          font-size: 13px;
-          font-weight: 500;
-          cursor: pointer;
-          padding: 0;
-        }
-        .assign-link:hover {
-          text-decoration: underline;
-        }
-        .search-input {
-          width: 100%;
-          padding: 8px 12px 8px 36px;
-          font-size: 14px;
-          color: var(--text-primary);
-          background: #FFFFFF;
-          border: 1px solid var(--border-default);
-          border-radius: 8px;
-          outline: none;
-          transition: all 0.2s ease;
-          font-family: inherit;
-          height: 40px;
-        }
-        .search-input::placeholder {
-          color: var(--text-disabled);
-        }
-        .search-input:focus {
-          border-color: var(--border-strong);
-          box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.05);
-        }
-        .filter-select {
-          padding: 8px 32px 8px 12px;
-          font-size: 14px;
-          color: var(--text-primary);
-          background: #FFFFFF;
-          border: 1px solid var(--border-default);
-          border-radius: 8px;
-          outline: none;
-          cursor: pointer;
-          font-family: inherit;
-          height: 40px;
-          appearance: none;
-          background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%236C757D' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5'/%3E%3C/svg%3E");
-          background-repeat: no-repeat;
-          background-position: right 12px center;
-          transition: all 0.2s ease;
-        }
-        .filter-select:focus {
-          border-color: var(--border-strong);
-          box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.05);
-        }
-      `}</style>
     </>
   );
 }

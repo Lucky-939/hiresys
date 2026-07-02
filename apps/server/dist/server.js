@@ -12,6 +12,12 @@ for (const envVar of requiredEnvVars) {
         process.exit(1);
     }
 }
+process.on("uncaughtException", (err) => {
+    console.error("Uncaught Exception:", err);
+});
+process.on("unhandledRejection", (reason, promise) => {
+    console.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
 const http_1 = __importDefault(require("http"));
 const socket_io_1 = require("socket.io");
 const database_1 = require("./config/database");

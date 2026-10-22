@@ -5,26 +5,12 @@ import { OrgRepository } from "../organizations/org.repository";
 import { generateReport, getReportByInterviewId } from "./report.service";
 import { AppError } from "../../utils/errors";
 
-const interviewRepo = new InterviewRepository();
-const orgRepo = new OrgRepository();
+import { InterviewService } from "../interviews/interview.service";
 
-/**
- * Validates that:
- * 1. The interview exists
- * 2. The interview belongs to an org the user is a member of
- * 3. The interview status is COMPLETED
- */
+const interviewService = new InterviewService();
+
 async function validateInterviewAccess(interviewId: string, userId: string) {
-  const interview = await interviewRepo.findById(interviewId);
-  if (!interview) throw new AppError("Interview not found", 404);
-
-  const org = await orgRepo.findById(interview.organizationId);
-  if (!org) throw new AppError("Organization not found", 404);
-
-  const isMember = org.members.some((m) => m.userId === userId);
-  if (!isMember) throw new AppError("Access denied", 403);
-
-  return interview;
+  return interviewService.assertInterviewer(interviewId, userId);
 }
 
 export async function createReport(

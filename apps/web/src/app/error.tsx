@@ -17,7 +17,7 @@ export default function ErrorBoundary({
 
   return (
     <div className="flex h-full min-h-[400px] w-full items-center justify-center">
-      <div className="flex max-w-md flex-col items-center text-center space-y-6 p-8 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] shadow-sm">
+      <div className="flex max-w-md flex-col items-center text-center space-y-6 p-8 bg-[var(--bg-surface)] rounded-[var(--radius-default)] border border-[var(--border-default)] shadow-none">
         <div className="relative h-16 w-16">
           <Image
             src="/branding/logo-icon.svg"

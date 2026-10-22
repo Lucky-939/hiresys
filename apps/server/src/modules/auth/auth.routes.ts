@@ -10,6 +10,7 @@ authRoutes.post(
     { field: "name", required: true, type: "string", minLength: 2 },
     { field: "email", required: true, type: "string", minLength: 5 },
     { field: "password", required: true, type: "string", minLength: 8 },
+    { field: "organizationName", required: false, type: "string", minLength: 2 },
   ]),
   register
 );

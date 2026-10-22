@@ -30,7 +30,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="text-[var(--text-sm)] font-medium text-[var(--text-secondary)] leading-none"
+            className="text-sm font-medium text-[var(--text-secondary)] leading-none"
           >
             {label}
           </label>
@@ -47,15 +47,15 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             className={cn(
               "w-full rounded-[var(--radius-input)] border bg-[var(--bg-surface)]",
               "h-[var(--input-height)] px-3.5",
-              "text-[var(--text-base)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
+              "text-base text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
               "transition-colors duration-[var(--ease-base)]",
               "focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)] focus:ring-opacity-[0.15]",
-              "disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[var(--bg-secondary)]",
+              "disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[var(--bg-subtle)]",
               hasError
                 ? "border-[var(--danger)] focus:ring-[var(--danger)] focus:border-[var(--danger)]"
                 : hasSuccess
                   ? "border-[var(--success)] focus:ring-[var(--success)] focus:border-[var(--success)]"
-                  : "border-[var(--border-default)] hover:border-[var(--border-strong)]",
+                  : "border-[var(--border-default)] hover:border-[var(--border-default)]",
               leading  ? "pl-10" : "",
               trailing ? "pr-10" : "",
               className
@@ -70,9 +70,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         </div>
         {(hint || error || success) && (
           <p className={cn(
-            "text-[var(--text-xs)] leading-tight",
+            "text-xs leading-tight",
             hasError   ? "text-[var(--danger-text)]"
-            : hasSuccess ? "text-[var(--success-text)]"
+            : hasSuccess ? "text-[var(--accent)]"
             : "text-[var(--text-muted)]"
           )}>
             {error || success || hint}
@@ -97,7 +97,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     return (
       <div className="flex flex-col gap-1.5 w-full">
         {label && (
-          <label htmlFor={inputId} className="text-[var(--text-sm)] font-medium text-[var(--text-secondary)] leading-none">
+          <label htmlFor={inputId} className="text-sm font-medium text-[var(--text-secondary)] leading-none">
             {label}
           </label>
         )}
@@ -106,19 +106,19 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           id={inputId}
           className={cn(
             "w-full min-h-[96px] rounded-[var(--radius-input)] border bg-[var(--bg-surface)] px-3.5 py-3",
-            "text-[var(--text-base)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
+            "text-base text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
             "transition-colors duration-[var(--ease-base)] resize-y",
             "focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)] focus:ring-opacity-[0.15]",
             "disabled:opacity-50 disabled:cursor-not-allowed",
             error
               ? "border-[var(--danger)] focus:ring-[var(--danger)] focus:border-[var(--danger)]"
-              : "border-[var(--border-default)] hover:border-[var(--border-strong)]",
+              : "border-[var(--border-default)] hover:border-[var(--border-default)]",
             className
           )}
           {...props}
         />
         {(hint || error) && (
-          <p className={cn("text-[var(--text-xs)]", error ? "text-[var(--danger-text)]" : "text-[var(--text-muted)]")}>
+          <p className={cn("text-xs", error ? "text-[var(--danger-text)]" : "text-[var(--text-muted)]")}>
             {error || hint}
           </p>
         )}
@@ -141,7 +141,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="flex flex-col gap-1.5 w-full">
         {label && (
-          <label htmlFor={inputId} className="text-[var(--text-sm)] font-medium text-[var(--text-secondary)] leading-none">
+          <label htmlFor={inputId} className="text-sm font-medium text-[var(--text-secondary)] leading-none">
             {label}
           </label>
         )}
@@ -151,13 +151,13 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             id={inputId}
             className={cn(
               "h-[var(--input-height)] w-full appearance-none rounded-[var(--radius-input)] border bg-[var(--bg-surface)] px-3.5 pr-9",
-              "text-[var(--text-base)] text-[var(--text-primary)]",
+              "text-base text-[var(--text-primary)]",
               "transition-colors duration-[var(--ease-base)] cursor-pointer",
               "focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)] focus:ring-opacity-[0.15]",
               "disabled:opacity-50 disabled:cursor-not-allowed",
               error
                 ? "border-[var(--danger)]"
-                : "border-[var(--border-default)] hover:border-[var(--border-strong)]",
+                : "border-[var(--border-default)] hover:border-[var(--border-default)]",
               className
             )}
             {...props}
@@ -171,7 +171,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           </span>
         </div>
         {(hint || error) && (
-          <p className={cn("text-[var(--text-xs)]", error ? "text-[var(--danger-text)]" : "text-[var(--text-muted)]")}>
+          <p className={cn("text-xs", error ? "text-[var(--danger-text)]" : "text-[var(--text-muted)]")}>
             {error || hint}
           </p>
         )}
@@ -193,7 +193,7 @@ export function Checkbox({ label, className, id, ...props }: CheckboxProps) {
         type="checkbox"
         id={inputId}
         className={cn(
-          "h-4 w-4 rounded-[4px] border border-[var(--border-strong)] bg-[var(--bg-surface)]",
+          "h-4 w-4 rounded-[4px] border border-[var(--border-default)] bg-[var(--bg-surface)]",
           "accent-[var(--accent)] cursor-pointer",
           "focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
           "disabled:opacity-50 disabled:cursor-not-allowed",
@@ -202,7 +202,7 @@ export function Checkbox({ label, className, id, ...props }: CheckboxProps) {
         {...props}
       />
       {label && (
-        <span className="text-[var(--text-base)] text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">
+        <span className="text-base text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">
           {label}
         </span>
       )}

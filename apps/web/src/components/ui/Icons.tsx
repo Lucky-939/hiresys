@@ -24,6 +24,12 @@ export const Icons = {
       <path d="M10.5 14v-.5a3 3 0 013-3" />
     </svg>
   ),
+  jobs: (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="6" width="12" height="8" rx="1" />
+      <path d="M5 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+    </svg>
+  ),
   organization: (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="2" width="5" height="7" rx="0.5" />

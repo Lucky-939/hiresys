@@ -41,7 +41,7 @@ function ResetPasswordForm() {
   }
 
   return (
-    <div className="w-full max-w-[400px] bg-white p-8 rounded-2xl shadow-sm border border-[var(--border-default)]">
+    <div className="w-full max-w-[400px] bg-[var(--bg-surface)] p-8 rounded-[var(--radius-default)] border border-[var(--border-default)]">
       <div className="flex justify-center mb-8">
         <Logo size="lg" />
       </div>
@@ -49,12 +49,12 @@ function ResetPasswordForm() {
       <h2 className="text-[24px] font-bold text-center text-[var(--text-primary)] tracking-tight mb-2">
         Reset Password
       </h2>
-      <p className="text-sm text-center text-[var(--text-tertiary)] mb-8">
+      <p className="text-sm text-center text-[var(--text-muted)] mb-8">
         Enter your new password below.
       </p>
 
       {error && (
-        <div className="p-3 mb-5 rounded-lg bg-[var(--danger-bg)]/10 border border-[var(--danger-border)]/50 text-[var(--danger-text)] text-sm flex items-center gap-2">
+        <div className="p-3 mb-5 rounded-[var(--radius-default)] bg-[var(--danger-bg)]/10 border border-[var(--danger-border)]/50 text-[var(--danger-text)] text-sm flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--danger-text)] shrink-0" />
           {error}
         </div>
@@ -62,7 +62,7 @@ function ResetPasswordForm() {
 
       {success ? (
         <div className="text-center">
-          <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-[var(--accent-muted)] text-[var(--accent)] rounded-full flex items-center justify-center mx-auto mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
@@ -72,7 +72,7 @@ function ResetPasswordForm() {
           </p>
           <button
             onClick={() => router.push("/login")}
-            className="w-full py-2.5 px-4 mt-2 text-sm font-bold text-white bg-[var(--accent)] rounded-lg outline-none transition-all hover:bg-[var(--accent-hover)] hover:shadow-md"
+            className="w-full py-2.5 px-4 mt-2 text-sm font-bold text-[var(--bg-surface)] bg-[var(--accent)] rounded-[var(--radius-default)] outline-none transition-all hover:bg-[var(--accent-hover)]"
           >
             Go to Login
           </button>
@@ -89,15 +89,15 @@ function ResetPasswordForm() {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full px-3.5 py-2.5 text-sm bg-white border border-[var(--border-default)] rounded-lg outline-none transition-all placeholder:text-[var(--text-disabled)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+              autoComplete="new-password"
+              className="w-full px-3.5 py-2.5 text-sm bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-default)] outline-none transition-all placeholder:text-[var(--text-disabled)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 px-4 mt-2 text-sm font-bold text-white bg-[var(--accent)] rounded-lg outline-none transition-all hover:bg-[var(--accent-hover)] hover:shadow-md focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 disabled:opacity-70 flex items-center justify-center h-11"
+            className="w-full py-2.5 px-4 mt-2 text-sm font-bold text-[var(--bg-surface)] bg-[var(--accent)] rounded-[var(--radius-default)] outline-none transition-all hover:bg-[var(--accent-hover)] focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 disabled:opacity-70 flex items-center justify-center h-11"
           >
             {loading ? (
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -109,7 +109,7 @@ function ResetPasswordForm() {
       )}
 
       {!success && (
-        <p className="text-center text-sm font-medium text-[var(--text-tertiary)] mt-7">
+        <p className="text-center text-sm font-medium text-[var(--text-muted)] mt-7">
           <Link href="/login" className="text-[var(--accent)] hover:underline underline-offset-2">
             Cancel
           </Link>
@@ -121,7 +121,7 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="h-screen flex items-center justify-center p-6 bg-[#F8FAFC]">
+    <div className="h-screen flex items-center justify-center p-6 bg-[var(--bg-base)]">
       <Suspense fallback={<div>Loading...</div>}>
         <ResetPasswordForm />
       </Suspense>

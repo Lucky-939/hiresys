@@ -14,6 +14,7 @@ export interface AvatarProps {
   size?: "xs" | "sm" | "md" | "lg" | "hero";
   className?: string;
   alt?: string;
+  style?: React.CSSProperties;
 }
 
 const sizeMap = {
@@ -24,7 +25,7 @@ const sizeMap = {
   hero: { outer: "h-16 w-16", text: "text-[20px] font-bold"     },
 };
 
-export function Avatar({ name, src, size = "md", className, alt }: AvatarProps) {
+export function Avatar({ name, src, size = "md", className, alt, style }: AvatarProps) {
   const { outer, text } = sizeMap[size];
   const initials = name
     ? name.trim().split(/\s+/).map(n => n[0]).join("").substring(0, 2).toUpperCase()
@@ -39,6 +40,7 @@ export function Avatar({ name, src, size = "md", className, alt }: AvatarProps) 
         text,
         className
       )}
+      style={style}
     >
       {src ? (
         <img src={src} alt={alt || name || "avatar"} className="h-full w-full object-cover" />
@@ -66,7 +68,7 @@ export function AvatarGroup({ names, max = 3 }: { names: string[]; max?: number 
       ))}
       {overflow > 0 && (
         <div
-          className="h-8 w-8 rounded-full border-2 border-[var(--bg-surface)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] text-[10px] font-semibold flex items-center justify-center"
+          className="h-8 w-8 rounded-full border-2 border-[var(--bg-surface)] bg-[var(--bg-subtle)] text-[var(--text-secondary)] text-[10px] font-semibold flex items-center justify-center"
           style={{ zIndex: 0 } as React.CSSProperties}
         >
           +{overflow}

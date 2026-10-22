@@ -10,6 +10,8 @@ export class CandidateRepository {
     return prisma.candidate.findUnique({
       where: { id },
       include: {
+        job: true,
+        pipelineStage: true,
         interviews: {
           include: {
             report: true,
@@ -26,6 +28,8 @@ export class CandidateRepository {
     return prisma.candidate.findMany({
       where: { organizationId },
       include: {
+        job: true,
+        pipelineStage: true,
         interviews: {
           include: {
             report: true,
@@ -39,12 +43,19 @@ export class CandidateRepository {
   }
 
   async findByEmail(organizationId: string, email: string) {
-    return prisma.candidate.findUnique({
+    return prisma.candidate.findFirst({
       where: {
-        organizationId_email: {
-          organizationId,
-          email,
-        },
+        organizationId,
+        email,
+      },
+    });
+  }
+
+  async findByJobAndEmail(jobId: string, email: string) {
+    return prisma.candidate.findFirst({
+      where: {
+        jobId,
+        email,
       },
     });
   }

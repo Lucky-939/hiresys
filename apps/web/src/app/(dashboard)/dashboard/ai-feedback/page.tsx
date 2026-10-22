@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -13,6 +13,8 @@ export default function AIFeedbackPage() {
         <PageHeader
           title="AI Feedback"
           description="Review AI-generated insights and hiring recommendations from completed interviews."
+          backHref="/dashboard"
+          backLabel="Back to Dashboard"
           actions={
             <Button size="sm" variant="outline" onClick={() => router.push("/dashboard/interviews")}>
               View Interviews

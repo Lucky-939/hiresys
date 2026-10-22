@@ -1,13 +1,14 @@
 import { Response, Request, NextFunction } from "express";
 import { AuthRequest } from "../../middleware/auth.middleware";
 import { CandidateService } from "./candidate.service";
+import { AppError } from "../../utils/errors";
 
 const candidateService = new CandidateService();
 
 export const exportCandidatesCSV = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.userId!;
-    const orgId = req.params.orgId as string;
+    const orgId = (req.params.orgId as string) || (req.query.orgId as string) || (req.query.organizationId as string);
 
     const csvData = await candidateService.exportCandidatesCSV(orgId, userId);
 
@@ -77,4 +78,44 @@ export const updateCandidateDecision = async (req: AuthRequest, res: Response) =
   const { decision, notes } = req.body;
   const candidate = await candidateService.makeHiringDecision(id, decision, notes, req.userId!);
   res.json({ success: true, data: candidate });
+};
+
+export const sendCandidateOutcomeEmail = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const id = req.params.id as string;
+    const { templateType, subject, message } = req.body;
+    const result = await candidateService.sendOutcomeEmail(id, req.userId!, {
+      templateType,
+      subject,
+      message,
+    });
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getCandidateResumeFile = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const id = req.params.id as string;
+    const { candidate } = await candidateService.getCandidateById(id, req.userId!);
+
+    const { getCandidateResumePath } = require("../../utils/file-storage");
+    const filePath = getCandidateResumePath(id);
+
+    if (!filePath) {
+      throw new AppError("No PDF resume file found for this candidate. Only extracted text is available.", 404);
+    }
+
+    const safeName = (candidate.name || "Candidate").replace(/[^a-zA-Z0-9_-]/g, "_");
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${safeName}_Resume.pdf"`);
+    res.removeHeader("X-Frame-Options");
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    res.setHeader("Content-Security-Policy", "frame-ancestors *");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.sendFile(filePath);
+  } catch (err) {
+    next(err);
+  }
 };

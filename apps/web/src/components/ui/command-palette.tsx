@@ -47,7 +47,7 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (ope
       />
       
       {/* Dialog */}
-      <div className="relative z-50 w-full max-w-[600px] overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-2xl animate-in fade-in zoom-in-95 duration-200 mx-4">
+      <div className="relative z-50 w-full max-w-[600px] overflow-hidden rounded-[var(--radius-default)] border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-none animate-in fade-in zoom-in-95 duration-200 mx-4">
         <Command
           className="flex h-full w-full flex-col overflow-hidden bg-transparent"
           onKeyDown={(e) => {
@@ -59,9 +59,9 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (ope
             <Command.Input 
               autoFocus
               placeholder="Search candidates, interviews, tools..." 
-              className="flex h-14 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-[var(--text-subtle)] text-[var(--text-primary)]"
+              className="flex h-14 w-full rounded-[var(--radius-default)] bg-transparent py-3 text-sm outline-none placeholder:text-[var(--text-subtle)] text-[var(--text-primary)]"
             />
-            <span className="text-xs text-[var(--text-subtle)] bg-[var(--bg-elevated)] px-2 py-1 rounded border border-[var(--border-subtle)]">ESC</span>
+            <span className="text-xs text-[var(--text-subtle)] bg-[var(--bg-elevated)] px-2 py-1 rounded border border-[var(--border-divider)]">ESC</span>
           </div>
 
           <Command.List className="max-h-[400px] overflow-y-auto overflow-x-hidden p-2">
@@ -74,7 +74,7 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (ope
                 key={c.id}
                 value={`${c.name} ${c.email} ${c.role || ""}`}
                 onSelect={() => { router.push(`/dashboard/candidates/${c.id}`); setOpen(false); }}
-                className="flex cursor-pointer flex-col rounded-md px-2 py-2 text-sm hover:bg-[var(--accent-muted)] hover:text-[var(--accent)] text-[var(--text-primary)] transition-colors data-[selected=true]:bg-[var(--accent-muted)] data-[selected=true]:text-[var(--accent)]"
+                className="flex cursor-pointer flex-col rounded-[var(--radius-default)] px-2 py-2 text-sm hover:bg-[var(--accent-muted)] hover:text-[var(--accent)] text-[var(--text-primary)] transition-colors data-[selected=true]:bg-[var(--accent-muted)] data-[selected=true]:text-[var(--accent)]"
               >
                 <span className="font-semibold">{c.name}</span>
                 <span className="text-xs text-[var(--text-muted)] truncate">{c.email} • {c.role || "General"}</span>

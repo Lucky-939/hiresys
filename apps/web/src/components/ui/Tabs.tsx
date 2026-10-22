@@ -36,11 +36,11 @@ export function Tabs({ tabs, activeTab, onChange, className, size = "default" }:
               "flex items-center gap-1.5 whitespace-nowrap font-medium transition-all duration-[var(--ease-base)]",
               "border-b-2 -mb-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
               size === "sm"
-                ? "px-3 py-2 text-[var(--text-xs)]"
-                : "px-4 py-3 text-[var(--text-sm)]",
+                ? "px-3 py-2 text-xs"
+                : "px-4 py-3 text-sm",
               isActive
                 ? "border-[var(--accent)] text-[var(--accent)]"
-                : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
+                : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:border-[var(--border-default)]"
             )}
             aria-selected={isActive}
             role="tab"
@@ -49,7 +49,7 @@ export function Tabs({ tabs, activeTab, onChange, className, size = "default" }:
             {tab.label}
             {tab.count !== undefined && (
               <span className={cn(
-                "inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold",
+                "inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-[var(--radius-default)] text-[10px] font-semibold",
                 isActive
                   ? "bg-[var(--accent-muted)] text-[var(--accent)]"
                   : "bg-[var(--bg-elevated)] text-[var(--text-muted)]"
@@ -90,7 +90,7 @@ const dotColors: Record<NonNullable<TimelineItem["variant"]>, string> = {
   default: "bg-[var(--border-strong)]",
   accent:  "bg-[var(--accent)]",
   success: "bg-[var(--success)]",
-  warning: "bg-[var(--warning)]",
+  warning: "bg-[var(--danger)]",
   danger:  "bg-[var(--danger)]",
 };
 
@@ -113,15 +113,15 @@ export function ActivityTimeline({ items, className }: ActivityTimelineProps) {
                 dotColors[variant]
               )} />
               <div className="flex flex-col gap-0.5 min-w-0 flex-1 pb-1">
-                <span className="text-[var(--text-sm)] font-medium text-[var(--text-primary)] leading-snug">
+                <span className="text-sm font-medium text-[var(--text-primary)] leading-snug">
                   {item.title}
                 </span>
                 {item.description && (
-                  <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] leading-relaxed">
+                  <span className="text-xs text-[var(--text-muted)] leading-relaxed">
                     {item.description}
                   </span>
                 )}
-                <span className="text-[var(--text-xs)] text-[var(--text-muted)] mt-0.5">
+                <span className="text-xs text-[var(--text-muted)] mt-0.5">
                   {item.timestamp}
                 </span>
               </div>

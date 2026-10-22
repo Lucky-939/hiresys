@@ -12,13 +12,18 @@ export async function authenticate(
   next: NextFunction,
 ) {
   try {
+    let token: string | undefined;
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      throw new AppError("No token provided", 401);
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.split(" ")[1];
+    } else if (req.query.token && typeof req.query.token === "string") {
+      token = req.query.token;
     }
 
-    const token = authHeader.split(" ")[1];
+    if (!token) {
+      throw new AppError("No token provided", 401);
+    }
     
     // Check blocklist
     const { redis } = require("../config/redis");
@@ -30,10 +35,19 @@ export async function authenticate(
     const payload = jwt.verify(token, process.env.JWT_SECRET!) as {
       sub: string;
     };
-    req.userId = payload.sub;
-    
-    // Also assign req.user for express compatibility where needed
-    (req as any).user = { id: payload.sub };
+
+    const { prisma } = require("../config/database");
+    const user = await prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: { id: true, email: true, emailVerified: true },
+    });
+
+    if (!user) {
+      throw new AppError("Invalid or expired session. Please log in again.", 401);
+    }
+
+    req.userId = user.id;
+    (req as any).user = user;
 
     next();
   } catch (err) {

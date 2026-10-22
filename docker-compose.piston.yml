@@ -1,0 +1,7 @@
+services:
+  piston:
+    image: ghcr.io/engineer-man/piston
+    container_name: interview-piston
+    ports:
+      - "2000:2000"
+    restart: always

@@ -1,25 +1,26 @@
+﻿import Link from "next/link";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * HireSys — Page Template Architecture v1.0
+ * HireSys â€” Page Template Architecture v1.0
  * Phase 4: Canonical templates every page inherits from.
  * 
  * Templates:
- * - DashboardTemplate     → Dashboard page
- * - WorkspaceTemplate     → Candidates, Interviews, Pipeline, AI
- * - MasterDetailTemplate  → Candidate Workspace (30/70 split)
- * - DetailTemplate        → Candidate Profile, Interview Report
- * - SettingsTemplate      → Settings (Stripe-style left nav)
- * - AIWorkspaceTemplate   → Resume Parser, Question Gen, AI Feedback
- * - CodingTemplate        → Coding Room (no shell, full-bleed)
+ * - DashboardTemplate     â†’ Dashboard page
+ * - WorkspaceTemplate     â†’ Candidates, Interviews, Pipeline, AI
+ * - MasterDetailTemplate  â†’ Candidate Workspace (30/70 split)
+ * - DetailTemplate        â†’ Candidate Profile, Interview Report
+ * - SettingsTemplate      â†’ Settings (Stripe-style left nav)
+ * - AIWorkspaceTemplate   â†’ Resume Parser, Question Gen, AI Feedback
+ * - CodingTemplate        â†’ Coding Room (no shell, full-bleed)
  *
  * Rules:
  * - No page may invent its own layout outside these templates.
  * - Container max-width: 1440px (standard), fluid (pipeline, coding).
  * - Horizontal padding: 32px desktop / 24px tablet / 16px mobile.
  * - Vertical rhythm: 32px between major sections.
- * - PageHeader always appears before content — never after.
+ * - PageHeader always appears before content â€” never after.
  */
 
 /* ============================================================
@@ -41,11 +42,11 @@ export function DashboardTemplate({
   header, kpiRow, primaryRow, secondaryRow, activityRow, className
 }: DashboardTemplateProps) {
   return (
-    <div className={cn("w-full max-w-[1440px] mx-auto flex flex-col gap-6 page-enter", className)}>
+    <div className={cn("w-full max-w-[var(--content-max-width)] mx-auto flex flex-col gap-6 page-enter", className)}>
       {/* Block 1: Hero */}
       <section aria-label="Dashboard overview">{header}</section>
 
-      {/* Block 2: KPIs — exactly 4 cards */}
+      {/* Block 2: KPIs â€” exactly 4 cards */}
       <section aria-label="Key metrics">
         {kpiRow}
       </section>
@@ -73,9 +74,9 @@ export function DashboardTemplate({
 
 /* ============================================================
    2. WORKSPACE TEMPLATE
-   Purpose: Daily operational pages — Candidates, Interviews, etc.
+   Purpose: Daily operational pages â€” Candidates, Interviews, etc.
    Grid: Full width, dense content.
-   Structure: PageHeader → Toolbar (Search/Filters/Actions) → Content.
+   Structure: PageHeader â†’ Toolbar (Search/Filters/Actions) â†’ Content.
    ============================================================ */
 interface WorkspaceTemplateProps {
   header: React.ReactNode;
@@ -87,14 +88,14 @@ interface WorkspaceTemplateProps {
 export function WorkspaceTemplate({ header, toolbar, content, className }: WorkspaceTemplateProps) {
   return (
     <div className={cn("w-full flex flex-col gap-0 page-enter", className)}>
-      {/* Page Header — always first */}
+      {/* Page Header â€” always first */}
       <div className="pb-5 border-b border-[var(--border-default)]">
         {header}
       </div>
 
       {/* Toolbar: Search, Filters, Actions */}
       {toolbar && (
-        <div className="py-4 flex items-center gap-3 flex-wrap border-b border-[var(--border-subtle)]">
+        <div className="py-4 flex items-center gap-3 flex-wrap border-b border-[var(--border-divider)]">
           {toolbar}
         </div>
       )}
@@ -110,7 +111,7 @@ export function WorkspaceTemplate({ header, toolbar, content, className }: Works
 
 /* ============================================================
    3. MASTER-DETAIL TEMPLATE (30/70 SPLIT)
-   Purpose: Candidate Workspace — no page reloads, continuous flow.
+   Purpose: Candidate Workspace â€” no page reloads, continuous flow.
    Left: Compact scrollable list (30%).
    Right: Rich detail panel (70%).
    Spec Vol 3.8 / 5.8 / 6.6.
@@ -155,9 +156,9 @@ export function MasterDetailTemplate({ header, listPanel, detailPanel, className
 
 /* ============================================================
    4. DETAIL TEMPLATE
-   Purpose: Single object deep view — Candidate Profile, Report.
+   Purpose: Single object deep view â€” Candidate Profile, Report.
    Max width: 960px centered.
-   Structure: Back link → PageHeader → Tabbed/Sectioned content.
+   Structure: Back link â†’ PageHeader â†’ Tabbed/Sectioned content.
    ============================================================ */
 interface DetailTemplateProps {
   backLink?: React.ReactNode;
@@ -241,12 +242,12 @@ export function SettingsTemplate({
                   key={item.id}
                   onClick={() => onItemChange!(item.id)}
                   className={cn(
-                    "flex items-center gap-2.5 w-full text-left px-3 h-9 rounded-[var(--radius-sm)]",
-                    "text-[var(--text-sm)] font-medium transition-colors duration-[var(--ease-base)]",
+                    "flex items-center gap-2.5 w-full text-left px-3 h-9 rounded-[var(--radius-default)]",
+                    "text-sm font-medium transition-colors duration-[var(--ease-base)]",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
                     isActive
                       ? "bg-[var(--accent-muted)] text-[var(--accent)] font-semibold"
-                      : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]"
+                      : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]"
                   )}
                 >
                   {item.icon && (
@@ -272,7 +273,7 @@ export function SettingsTemplate({
 /* ============================================================
    6. AI WORKSPACE TEMPLATE
    Purpose: Resume Parser, Question Generator, AI Feedback.
-   Pattern: Action → Processing → Result → Accept.
+   Pattern: Action â†’ Processing â†’ Result â†’ Accept.
    Never chat-first.
    ============================================================ */
 interface AIWorkspaceTemplateProps {
@@ -335,17 +336,17 @@ export function CodingTemplate({ header, leftPanel, editorPanel, rightPanel, cla
 
       {/* Workspace */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left: Notes / Questions / Problem — 25% */}
+        {/* Left: Notes / Questions / Problem â€” 25% */}
         <div className="w-1/4 min-w-[240px] border-r border-[#333] flex flex-col overflow-hidden bg-[#1E1E1E]">
           {leftPanel}
         </div>
 
-        {/* Center: Editor — 50% */}
+        {/* Center: Editor â€” 50% */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {editorPanel}
         </div>
 
-        {/* Right: Output + Video — 25% */}
+        {/* Right: Output + Video â€” 25% */}
         {rightPanel && (
           <div className="w-1/4 min-w-[200px] border-l border-[#333] flex flex-col overflow-hidden bg-[#1E1E1E]">
             {rightPanel}
@@ -361,20 +362,42 @@ export function CodingTemplate({ header, leftPanel, editorPanel, rightPanel, cla
    SHARED: Back Link component
    ============================================================ */
 interface BackLinkProps {
-  onClick: () => void;
+  onClick?: () => void;
+  href?: string;
   label?: string;
+  className?: string;
 }
 
-export function BackLink({ onClick, label = "Back" }: BackLinkProps) {
+export function BackLink({ onClick, href, label = "Back", className }: BackLinkProps) {
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className={cn(
+          "inline-flex items-center gap-1.5 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors duration-[var(--ease-base)] cursor-pointer group",
+          className
+        )}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="group-hover:-translate-x-0.5 transition-transform">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+        <span>{label}</span>
+      </Link>
+    );
+  }
   return (
     <button
+      type="button"
       onClick={onClick}
-      className="flex items-center gap-1.5 text-[var(--text-sm)] font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors duration-[var(--ease-base)]"
+      className={cn(
+        "inline-flex items-center gap-1.5 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors duration-[var(--ease-base)] cursor-pointer group bg-transparent border-0 p-0",
+        className
+      )}
     >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="group-hover:-translate-x-0.5 transition-transform">
         <polyline points="15 18 9 12 15 6" />
       </svg>
-      {label}
+      <span>{label}</span>
     </button>
   );
 }

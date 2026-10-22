@@ -1,4 +1,5 @@
 import { prisma } from "../../config/database";
+import { DEFAULT_PIPELINE_STAGES } from "../stages/stage.constants";
 
 export class OrgRepository {
   create(data: { name: string; slug: string; ownerId: string }) {
@@ -12,6 +13,12 @@ export class OrgRepository {
           organizationId: org.id,
           role: "OWNER",
         },
+      });
+      await tx.pipelineStage.createMany({
+        data: DEFAULT_PIPELINE_STAGES.map((stage) => ({
+          ...stage,
+          organizationId: org.id,
+        })),
       });
       return org;
     });
@@ -37,8 +44,18 @@ export class OrgRepository {
 
   findUserOrgs(userId: string) {
     return prisma.organization.findMany({
-      where: { members: { some: { userId } } },
-      include: { _count: { select: { interviews: true, members: true } } },
+      where: { 
+        members: { 
+          some: { 
+            userId,
+            role: { not: "CANDIDATE" }
+          } 
+        } 
+      },
+      include: { 
+        _count: { select: { interviews: true, members: true } },
+        members: { where: { userId }, select: { role: true } }
+      },
     });
   }
 
@@ -46,7 +63,10 @@ export class OrgRepository {
   
   getMembers(organizationId: string) {
     return prisma.organizationMember.findMany({
-      where: { organizationId },
+      where: { 
+        organizationId,
+        role: { not: "CANDIDATE" }
+      },
       include: {
         user: { select: { id: true, name: true, email: true } },
       },
@@ -61,7 +81,7 @@ export class OrgRepository {
     });
   }
 
-  updateMemberRole(organizationId: string, userId: string, role: "ADMIN" | "MEMBER") {
+  updateMemberRole(organizationId: string, userId: string, role: "ADMIN" | "RECRUITER" | "INTERVIEWER") {
     return prisma.organizationMember.update({
       where: { userId_organizationId: { userId, organizationId } },
       data: { role },
@@ -77,7 +97,7 @@ export class OrgRepository {
   // --- Invites ---
 
   // @ts-ignore Prisma client lock
-  createInvite(data: { email: string; organizationId: string; role: "ADMIN" | "MEMBER"; createdById: string; expiresAt: Date }) {
+  createInvite(data: { email: string; organizationId: string; role: "ADMIN" | "RECRUITER" | "INTERVIEWER"; createdById: string; expiresAt: Date }) {
     // @ts-ignore
     return prisma.orgInvite.create({ data });
   }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useOrgStore, Org } from "@/store/org.store";
+import { Select } from "@/components/ui/Input";
 
 export function useOrganizations() {
   const { selectedOrgId, orgs, fetchOrgs } = useOrgStore();
@@ -36,18 +37,18 @@ export function OrganizationSelector({ orgs }: { orgs: Org[] }) {
   if (orgs.length <= 1) return null;
 
   return (
-    <div style={{ position: "relative" }}>
-      <select
+    <div className="w-[200px]">
+      <Select
         value={selectedOrgId || ""}
         onChange={(e) => setSelectedOrgId(e.target.value)}
-        className="filter-select"
+        className="h-9 w-full !py-0"
       >
         {orgs.map((org) => (
           <option key={org.id} value={org.id}>
             {org.name}
           </option>
         ))}
-      </select>
+      </Select>
     </div>
   );
 }

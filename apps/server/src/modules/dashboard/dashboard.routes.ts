@@ -4,4 +4,5 @@ import { getDashboardStats } from "./dashboard.controller";
 
 export const dashboardRoutes = Router();
 
+dashboardRoutes.get("/", authenticate, getDashboardStats);
 dashboardRoutes.get("/stats", authenticate, getDashboardStats);

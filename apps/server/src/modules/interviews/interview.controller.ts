@@ -10,11 +10,15 @@ export async function createInterview(
   next: NextFunction,
 ) {
   try {
-    const interview = await service.create({
+    const result = await service.create({
       ...req.body,
       userId: req.userId!,
     });
-    res.status(201).json({ success: true, data: interview });
+    res.status(201).json({
+      success: true,
+      data: result.interview,
+      warning: result.warning,
+    });
   } catch (err) {
     next(err);
   }
@@ -58,12 +62,56 @@ export async function updateInterview(
   next: NextFunction,
 ) {
   try {
-    const interview = await service.update(
+    const result = await service.update(
       req.params.id as string,
       req.userId!,
       req.body,
     );
-    res.json({ success: true, data: interview });
+    res.json({
+      success: true,
+      data: result.interview,
+      warning: result.warning,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function resendInvite(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const result = await service.resendInvite(
+      req.params.id as string,
+      req.userId!,
+    );
+    res.json({
+      success: true,
+      message: result.message,
+      data: result.interview,
+      warning: result.warning,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getCandidateRoomLink(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const result = await service.getCandidateRoomLink(
+      req.params.id as string,
+      req.userId!,
+    );
+    res.json({
+      success: true,
+      data: result,
+    });
   } catch (err) {
     next(err);
   }

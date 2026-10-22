@@ -9,6 +9,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { api } from "@/lib/api";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Select } from "@/components/ui/Input";
 import { Icons } from "@/components/ui/Icons";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -16,14 +17,10 @@ import { getErrorMessage } from "@/lib/error";
 
 const Editor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
-const LANGUAGES = ["javascript", "typescript", "python", "java", "cpp", "go"];
+const LANGUAGES = ["javascript", "python"];
 const LANG_LABELS: Record<string, string> = {
   javascript: "JavaScript",
-  typescript: "TypeScript",
   python: "Python",
-  java: "Java",
-  cpp: "C++",
-  go: "Go",
 };
 
 const STARTER_CODE: Record<string, string> = {
@@ -59,33 +56,48 @@ export default function CodingRoomPage({
   const { user } = useAuthStore();
   const router = useRouter();
 
+  // Active auth token & user
+  const [activeToken, setActiveToken] = useState<string | null>(null);
+  const [participantName, setParticipantName] = useState<string>("");
+
   // Editor state
   const [language, setLanguage] = useState("javascript");
   const [code, setCode] = useState(STARTER_CODE["javascript"]);
   const [users, setUsers] = useState<RoomUser[]>([]);
+  
+  // Execution state
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [executionOutput, setExecutionOutput] = useState<{ stdout: string; stderr: string; isError: boolean } | null>(null);
   const [connected, setConnected] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [loadingInitial, setLoadingInitial] = useState(true);
 
-  // Notes state
+  // Notes state (interviewer only)
   const [notes, setNotes] = useState("");
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "error">("saved");
 
-  // Interview Info (Mocked for now since not all fields returned by backend perfectly match brief)
+  // Interview Info
   const [interviewInfo, setInterviewInfo] = useState({
     candidateName: "Loading...",
-    role: "Loading...",
+    candidateEmail: "",
+    role: "Technical Interview",
     stage: "INTERVIEWING",
+    description: "",
   });
 
   // AI state
   const [questions, setQuestions] = useState<string[]>([]);
+  const [activeQuestion, setActiveQuestion] = useState<string>("");
+  const [activeQuestionIdx, setActiveQuestionIdx] = useState<number | null>(null);
+  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium");
+  const [evals, setEvals] = useState<Record<number, string>>({});
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [loadingFeedback, setLoadingFeedback] = useState(false);
   
-  // Left Panel Tabs
-  const [activeTab, setActiveTab] = useState<"notes" | "questions" | "report">("notes");
+  // Layout State
+  const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const [isCandidate, setIsCandidate] = useState(false);
 
   // Report state
   const [generatingReport, setGeneratingReport] = useState(false);
@@ -110,7 +122,33 @@ export default function CodingRoomPage({
 
   // Initial fetch
   useEffect(() => {
-    api.get(`/interviews/${roomId}`).then((res) => {
+    if (typeof window === "undefined") return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryToken = urlParams.get("token");
+
+    let tokenToUse: string | null = queryToken;
+
+    if (queryToken) {
+      sessionStorage.setItem("candidate_room_token", queryToken);
+      // Only set in localStorage if user doesn't already have an active recruiter login
+      if (!localStorage.getItem("token")) {
+        localStorage.setItem("token", queryToken);
+      }
+    } else {
+      tokenToUse = sessionStorage.getItem("candidate_room_token") || localStorage.getItem("token");
+    }
+
+    if (!tokenToUse) {
+      router.replace(`/login?redirect=${encodeURIComponent(`/room/${roomId}`)}`);
+      return;
+    }
+
+    setActiveToken(tokenToUse);
+
+    api.get(`/interviews/${roomId}`, {
+      headers: { Authorization: `Bearer ${tokenToUse}` }
+    }).then((res) => {
       const iv = res.data.data;
       if (iv.status === "COMPLETED") {
         setIsCompleted(true);
@@ -118,18 +156,31 @@ export default function CodingRoomPage({
       if (iv.language) setLanguage(iv.language);
       if (iv.codeSubmitted) setCode(iv.codeSubmitted);
       if (iv.interviewNotes) setNotes(iv.interviewNotes);
-      
+
+      const candidateFlag = Boolean(iv.isCandidate);
+      setIsCandidate(candidateFlag);
+
+      const resolvedName =
+        iv.currentUserName ||
+        (candidateFlag ? (iv.candidate?.name || "Candidate") : (user?.name || "Interviewer"));
+      setParticipantName(resolvedName);
+
       setInterviewInfo({
-        candidateName: iv.candidate?.name || "Jane Doe",
-        role: iv.title || "Senior Engineer",
-        stage: iv.candidate?.stage || "INTERVIEWING",
+        candidateName: iv.candidate?.name || "Candidate",
+        candidateEmail: iv.candidate?.email || "",
+        role: iv.title || "Technical Interview",
+        stage: iv.candidate?.pipelineStage?.name || "INTERVIEWING",
+        description: iv.description || "",
       });
-      
-      // If there's a report, we can show it
+
+      if (iv.description) {
+        setActiveQuestion(iv.description);
+      }
+
       if (iv.report) {
         setFeedback({
           overall: iv.report.overallScore + "/100 - " + iv.report.recommendation,
-          timeComplexity: "O(N)", // Mock data since real report structure varies
+          timeComplexity: "O(N)",
           spaceComplexity: "O(1)",
           strengths: ["Clean code", "Good communication"],
           improvements: ["Edge cases"],
@@ -138,96 +189,240 @@ export default function CodingRoomPage({
       }
     }).catch(err => {
       console.error("Failed to load interview", err);
+      if (err.response?.status === 401) {
+        router.replace(`/login?redirect=${encodeURIComponent(`/room/${roomId}`)}`);
+      } else if (err.response?.status === 403) {
+        toast.error("You do not have access to this interview room.");
+        router.replace("/dashboard");
+      }
     }).finally(() => {
       setLoadingInitial(false);
     });
-  }, [roomId]);
+  }, [roomId, router, user]);
 
   // Debounced auto-save
   useEffect(() => {
-    if (loadingInitial || isCompleted) return;
+    if (loadingInitial || isCompleted || !activeToken) return;
     setSaveStatus("saving");
     const timeout = setTimeout(() => {
-      api.patch(`/interviews/${roomId}`, { codeSubmitted: code, language, interviewNotes: notes })
+      const payload: { codeSubmitted: string; language: string; interviewNotes?: string } = {
+        codeSubmitted: code,
+        language,
+      };
+      // Interviewers save notes; candidate submissions only save code/language
+      if (!isCandidate && notes !== undefined) {
+        payload.interviewNotes = notes;
+      }
+
+      api.patch(`/interviews/${roomId}`, payload, {
+        headers: { Authorization: `Bearer ${activeToken}` }
+      })
         .then(() => setSaveStatus("saved"))
         .catch(() => setSaveStatus("error"));
     }, 2000);
     return () => clearTimeout(timeout);
-  }, [code, language, notes, roomId, loadingInitial, isCompleted]);
+  }, [code, language, notes, roomId, loadingInitial, isCompleted, isCandidate, activeToken]);
 
   // Socket setup
   useEffect(() => {
-    if (!user) return;
-    const socket = getSocket();
+    if (!participantName || !activeToken) return;
+
+    const socket = getSocket(activeToken);
     socket.connect();
+
     socket.on("connect", () => {
       setConnected(true);
-      socket.emit("room:join", { roomId, name: user.name });
+      socket.emit("room:join", { roomId, name: participantName });
     });
+
     socket.on("disconnect", () => setConnected(false));
+
     socket.on("code:update", ({ code: remoteCode }: { code: string }) => {
       isRemoteChange.current = true;
       setCode(remoteCode);
     });
+
     socket.on("language:update", ({ language: remoteLang }: { language: string }) => {
       setLanguage(remoteLang);
       setCode(STARTER_CODE[remoteLang] || "");
     });
+
+    socket.on("question:active", ({ question }: { question: string }) => {
+      setActiveQuestion(question);
+    });
+
     socket.on("room:users", (roomUsers: RoomUser[]) => setUsers(roomUsers));
+    
+    socket.on("code:execution_started", () => {
+      setIsExecuting(true);
+      setExecutionOutput(null);
+    });
+    
+    socket.on("code:execution_result", (result: { stdout: string; stderr: string; isError: boolean }) => {
+      setIsExecuting(false);
+      setExecutionOutput(result);
+    });
+    
+    socket.on("error", (err: { message: string }) => {
+      if (isExecuting) setIsExecuting(false);
+      toast.error(err.message);
+    });
+
     return () => {
-      socket.off("connect"); socket.off("disconnect"); socket.off("code:update"); socket.off("language:update"); socket.off("room:users");
+      socket.off("connect");
+      socket.off("disconnect");
+      socket.off("code:update");
+      socket.off("language:update");
+      socket.off("question:active");
+      socket.off("room:users");
+      socket.off("code:execution_started");
+      socket.off("code:execution_result");
+      socket.off("error");
       disconnectSocket();
     };
-  }, [roomId, user]);
+  }, [roomId, participantName, activeToken]);
 
-  async function handleGenerateQuestions() {
-    if (isCompleted) return;
-    setActiveTab("questions");
-    if (questions.length > 0) return; // Already have questions
+  function handleSendQuestionToCandidate(q: string, idx: number) {
+    if (isCompleted || isCandidate) return;
+    setActiveQuestion(q);
+    setActiveQuestionIdx(idx);
+
+    const socket = getSocket(activeToken || undefined);
+
+    // 1. Live broadcast to candidate's Problem Statement card
+    socket.emit("question:send", { roomId, question: q });
+
+    // 2. Persist to PostgreSQL database so refreshing the page retains the assigned problem
+    api.patch(
+      `/interviews/${roomId}`,
+      { description: q },
+      { headers: { Authorization: `Bearer ${activeToken}` } }
+    ).catch(err => console.error("Failed to persist question:", err));
+
+    // 3. Format and insert question into Monaco code editor as comments so candidate sees it in both places!
+    const commentPrefix = language === "python" ? "#" : "//";
+    const questionHeader = `${commentPrefix} ========================================================\n${commentPrefix} 📌 PROBLEM ${idx + 1}:\n${commentPrefix} ${q.replace(/\n/g, `\n${commentPrefix} `)}\n${commentPrefix} ========================================================\n\n`;
+    
+    // Only prepend if not already in code
+    const shortSignature = q.slice(0, 30);
+    if (!code.includes(shortSignature)) {
+      const newCode = questionHeader + (code.trim() ? code : (STARTER_CODE[language] || ""));
+      setCode(newCode);
+      socket.emit("code:change", { roomId, code: newCode });
+    }
+
+    toast.success(`Question ${idx + 1} sent to Candidate's screen & code editor!`);
+  }
+
+  function handlePasteQuestionInEditor(q: string, idx: number) {
+    if (isCompleted || isCandidate) return;
+    const commentPrefix = language === "python" ? "#" : "//";
+    const commentHeader = `${commentPrefix} ========================================================\n${commentPrefix} PROBLEM ${idx + 1}:\n${commentPrefix} ${q.replace(/\n/g, `\n${commentPrefix} `)}\n${commentPrefix} ========================================================\n\n`;
+    const newCode = commentHeader + (code || "");
+    setCode(newCode);
+    getSocket(activeToken || undefined).emit("code:change", { roomId, code: newCode });
+    toast.success(`Question ${idx + 1} pasted into code editor!`);
+  }
+
+  function handleEvalClick(q: string, evalType: "Strong" | "Average" | "Weak", qIdx: number) {
+    if (isCompleted || isCandidate) return;
+    setEvals(prev => ({...prev, [qIdx]: evalType}));
+    
+    setNotes(prev => {
+      const performanceLineMap = {
+        "Strong": "🟢 Performance: Strong",
+        "Average": "🟡 Performance: Average",
+        "Weak": "🔴 Performance: Weak"
+      };
+      const targetQ = `Q: ${q}`;
+      
+      if (prev.includes(targetQ)) {
+        const lines = prev.split('\n');
+        const qIndex = lines.findIndex(line => line === targetQ);
+        if (qIndex !== -1 && qIndex + 1 < lines.length) {
+          if (lines[qIndex + 1].includes("Performance:")) {
+            lines[qIndex + 1] = performanceLineMap[evalType];
+            return lines.join('\n');
+          }
+        }
+      }
+      return prev + (prev ? "\n\n" : "") + `---\n${targetQ}\n${performanceLineMap[evalType]}\n`;
+    });
+  }
+
+  async function handleGenerateQuestions(diffOverride?: "easy" | "medium" | "hard") {
+    if (isCompleted || isCandidate) return;
+    const targetDifficulty = diffOverride || difficulty;
     
     setLoadingQuestions(true);
     try {
-      const response = await api.post("/ai/questions", { role: interviewInfo.role, difficulty: "medium", interviewId: roomId });
+      const response = await api.post(
+        "/ai/questions",
+        { role: interviewInfo.role, difficulty: targetDifficulty, count: 5, interviewId: roomId },
+        { headers: { Authorization: `Bearer ${activeToken}` } }
+      );
       const questionsData = response?.data?.data;
       if (Array.isArray(questionsData) && questionsData.length > 0) {
         setQuestions(questionsData);
+        toast.success(`Generated 5 ${targetDifficulty.toUpperCase()} LeetCode coding problems!`);
       }
     } catch (err: unknown) {
       console.error("Questions error:", err);
-      // For demo fallback
-      setQuestions([
-        "Explain how React's virtual DOM works.",
-        "How would you design a rate limiter?",
-        "Describe a time you had a conflict with a team member."
-      ]);
+      const easyFallbacks = [
+        "LeetCode #1: Two Sum\nGiven an array of integers 'nums' and an integer 'target', return indices of the two numbers such that they add up to target.\nFunction: function twoSum(nums, target)\nExample:\nInput: nums = [2, 7, 11, 15], target = 9\nOutput: [0, 1] (because nums[0] + nums[1] == 9)\nTarget Complexity: O(n) time, O(n) space.",
+        "LeetCode #20: Valid Parentheses\nGiven a string 's' containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid (brackets must close in correct order).\nFunction: function isValid(s)\nExample:\nInput: s = \"()[]{}\" -> Output: true\nInput: s = \"(]\" -> Output: false\nTarget Complexity: O(n) time using a stack.",
+        "LeetCode #121: Best Time to Buy and Sell Stock\nGiven an array 'prices' where prices[i] is the stock price on day i, return the maximum profit achievable by buying on one day and selling on a future day. Return 0 if no profit.\nFunction: function maxProfit(prices)\nExample:\nInput: prices = [7, 1, 5, 3, 6, 4]\nOutput: 5 (Buy at day 2 price 1, sell at day 5 price 6)\nTarget Complexity: O(n) time, O(1) space.",
+        "LeetCode #125: Valid Palindrome\nGiven a string 's', return true if it is a palindrome, considering only alphanumeric characters and ignoring case.\nFunction: function isPalindrome(s)\nExample:\nInput: s = \"A man, a plan, a canal: Panama\"\nOutput: true\nTarget Complexity: O(n) time, O(1) space.",
+        "LeetCode #217: Contains Duplicate\nGiven an integer array 'nums', return true if any value appears at least twice in the array, and return false if every element is distinct.\nFunction: function containsDuplicate(nums)\nExample:\nInput: nums = [1, 2, 3, 1]\nOutput: true\nInput: nums = [1, 2, 3, 4]\nOutput: false\nTarget Complexity: O(n) time using a hash set."
+      ];
+      const mediumFallbacks = [
+        "LeetCode #49: Group Anagrams\nGiven an array of strings 'strs', group the anagrams together in any order.\nFunction: function groupAnagrams(strs)\nExample:\nInput: strs = [\"eat\", \"tea\", \"tan\", \"ate\", \"nat\", \"bat\"]\nOutput: [[\"bat\"], [\"nat\", \"tan\"], [\"ate\", \"eat\", \"tea\"]]\nTarget Complexity: O(n * k log k) where k is max string length.",
+        "LeetCode #3: Longest Substring Without Repeating Characters\nGiven a string 's', find the length of the longest substring without duplicate characters.\nFunction: function lengthOfLongestSubstring(s)\nExample:\nInput: s = \"abcabcbb\"\nOutput: 3 (the substring is \"abc\")\nInput: s = \"bbbbb\"\nOutput: 1\nTarget Complexity: O(n) using sliding window.",
+        "LeetCode #56: Merge Intervals\nGiven an array of 'intervals' where intervals[i] = [start, end], merge all overlapping intervals and return the non-overlapping intervals.\nFunction: function merge(intervals)\nExample:\nInput: intervals = [[1, 3], [2, 6], [8, 10], [15, 18]]\nOutput: [[1, 6], [8, 10], [15, 18]]\nTarget Complexity: O(n log n) time.",
+        "LeetCode #238: Product of Array Except Self\nGiven an integer array 'nums', return an array 'answer' such that answer[i] is equal to the product of all elements of nums except nums[i]. Must run in O(n) time without division.\nFunction: function productExceptSelf(nums)\nExample:\nInput: nums = [1, 2, 3, 4]\nOutput: [24, 12, 8, 6]\nTarget Complexity: O(n) time, O(1) auxiliary space.",
+        "LeetCode #347: Top K Frequent Elements\nGiven an integer array 'nums' and an integer 'k', return the 'k' most frequent elements.\nFunction: function topKFrequent(nums, k)\nExample:\nInput: nums = [1, 1, 1, 2, 2, 3], k = 2\nOutput: [1, 2]\nTarget Complexity: O(n log k) time or O(n) bucket sort."
+      ];
+      const hardFallbacks = [
+        "LeetCode #42: Trapping Rain Water\nGiven 'n' non-negative integers representing an elevation map where width of each bar is 1, compute how much water it can trap after raining.\nFunction: function trap(height)\nExample:\nInput: height = [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1]\nOutput: 6\nTarget Complexity: O(n) time, O(1) space using two pointers.",
+        "LeetCode #76: Minimum Window Substring\nGiven strings 's' and 't', return the minimum window substring of 's' such that every character in 't' (with duplicates) is included. Return \"\" if no such substring exists.\nFunction: function minWindow(s, t)\nExample:\nInput: s = \"ADOBECODEBANC\", t = \"ABC\"\nOutput: \"BANC\"\nTarget Complexity: O(m + n) time using sliding window.",
+        "LeetCode #239: Sliding Window Maximum\nGiven an array of integers 'nums' and a sliding window of size 'k' moving from left to right, return the max sliding window array.\nFunction: function maxSlidingWindow(nums, k)\nExample:\nInput: nums = [1, 3, -1, -3, 5, 3, 6, 7], k = 3\nOutput: [3, 3, 5, 5, 6, 7]\nTarget Complexity: O(n) time using monotonic deque.",
+        "LeetCode #23: Merge k Sorted Lists\nGiven an array of 'k' linked lists, each sorted in ascending order, merge all lists into one sorted list.\nFunction: function mergeKLists(lists)\nExample:\nInput: lists = [[1, 4, 5], [1, 3, 4], [2, 6]]\nOutput: [1, 1, 2, 3, 4, 4, 5, 6]\nTarget Complexity: O(N log k) where N is total node count.",
+        "LeetCode #4: Median of Two Sorted Arrays\nGiven two sorted arrays 'nums1' and 'nums2' of sizes 'm' and 'n', return the median of the two sorted arrays.\nFunction: function findMedianSortedArrays(nums1, nums2)\nExample:\nInput: nums1 = [1, 3], nums2 = [2]\nOutput: 2.0\nTarget Complexity: O(log(min(m, n))) binary search."
+      ];
+      const selected = targetDifficulty === "easy" ? easyFallbacks : targetDifficulty === "hard" ? hardFallbacks : mediumFallbacks;
+      setQuestions(selected);
+      toast.success(`Loaded 5 ${targetDifficulty.toUpperCase()} LeetCode coding challenges!`);
     } finally {
       setLoadingQuestions(false);
     }
   }
 
   async function handleGetFeedback() {
-    if (isCompleted) return;
+    if (isCompleted || isCandidate) return;
     if (!code || code.trim().length < 10) {
       toast.error("Write some code first before requesting feedback.");
       return;
     }
     setLoadingFeedback(true);
     try {
-      const response = await api.post("/ai/feedback", { code, language, interviewId: roomId });
+      const response = await api.post(
+        "/ai/feedback",
+        { code, language, interviewId: roomId },
+        { headers: { Authorization: `Bearer ${activeToken}` } }
+      );
       const feedbackData = response?.data?.data;
       if (feedbackData && typeof feedbackData === "object") {
         setFeedback(feedbackData as Feedback);
       }
     } catch (err: unknown) {
       console.error("Feedback error:", err);
-      // Fallback for demo
       setFeedback({
-        overall: "The code looks solid and handles basic cases well.",
+        overall: "The code demonstrates good structure and handles common test cases.",
         timeComplexity: "O(N)",
         spaceComplexity: "O(1)",
-        strengths: ["Clean syntax", "Good variable names"],
-        improvements: ["Consider edge cases with negative numbers"],
-        optimizedCode: code + "\n// This is an optimized version."
+        strengths: ["Clean syntax", "Appropriate naming conventions"],
+        improvements: ["Consider handling boundary conditions and null checks"],
+        optimizedCode: code + "\n// AI Optimized version"
       });
     } finally {
       setLoadingFeedback(false);
@@ -235,12 +430,20 @@ export default function CodingRoomPage({
   }
 
   async function handleGenerateReport() {
-    if (isCompleted) return;
+    if (isCompleted || isCandidate) return;
     setGeneratingReport(true);
     try {
-      await api.patch(`/interviews/${roomId}`, { status: "COMPLETED", codeSubmitted: code, language, interviewNotes: notes });
+      await api.patch(
+        `/interviews/${roomId}`,
+        { status: "COMPLETED", codeSubmitted: code, language, interviewNotes: notes },
+        { headers: { Authorization: `Bearer ${activeToken}` } }
+      );
       setIsCompleted(true);
-      await api.post(`/reports/${roomId}/generate`, { codeSubmitted: code, language, questionsAsked: questions, interviewNotes: notes });
+      await api.post(
+        `/reports/${roomId}/generate`,
+        { codeSubmitted: code, language, questionsAsked: questions, interviewNotes: notes },
+        { headers: { Authorization: `Bearer ${activeToken}` } }
+      );
       router.push(`/dashboard/interviews/${roomId}/report`);
     } catch (err: unknown) {
       toast.error(getErrorMessage(err));
@@ -254,14 +457,14 @@ export default function CodingRoomPage({
     if (isRemoteChange.current) { isRemoteChange.current = false; return; }
     const newCode = value ?? "";
     setCode(newCode);
-    getSocket().emit("code:change", { roomId, code: newCode });
-  }, [roomId, isCompleted]);
+    getSocket(activeToken || undefined).emit("code:change", { roomId, code: newCode });
+  }, [roomId, isCompleted, activeToken]);
 
   function handleLanguageChange(lang: string) {
     if (isCompleted) return;
     setLanguage(lang);
     setCode(STARTER_CODE[lang] || "");
-    getSocket().emit("language:change", { roomId, language: lang });
+    getSocket(activeToken || undefined).emit("language:change", { roomId, language: lang });
   }
 
   function handleEditorMount(ed: editor.IStandaloneCodeEditor) {
@@ -269,28 +472,39 @@ export default function CodingRoomPage({
     if (!isCompleted) ed.focus();
   }
 
+  function handleRunCode() {
+    if (isCompleted || isExecuting) return;
+    if (!code || code.trim().length === 0) return;
+    setIsExecuting(true);
+    setExecutionOutput(null);
+    getSocket(activeToken || undefined).emit("code:execute", { roomId, language, code });
+  }
+
   if (loadingInitial) {
     return (
       <div className="flex h-screen items-center justify-center bg-[var(--bg-base)]">
-        <div className="w-6 h-6 border-2 border-[var(--border-default)] border-t-[var(--accent)] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[var(--border-default)] border-t-[var(--accent)] rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen w-full bg-[var(--bg-base)] text-[var(--text-primary)] overflow-hidden">
+    <div className="flex flex-row-reverse h-screen w-full bg-[var(--bg-base)] text-[var(--text-primary)] overflow-hidden">
       
-      {/* Left Panel: Interview Info & Notes */}
-      <div className="w-1/2 flex flex-col border-r border-[var(--border-default)] bg-[var(--bg-surface)]">
-        
-        {/* Header Fixed Area */}
-        <div className="p-4 border-b border-[var(--border-default)] flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button onClick={() => window.history.back()} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors p-1" title="Back">
-              {Icons.back}
-            </button>
-            <div className="h-6 w-px bg-[var(--border-default)]" />
+      {/* ─────────────────────────────────────────────────────────────
+          RIGHT PANEL: RECRUITER / INTERVIEWER WORKSPACE
+          ───────────────────────────────────────────────────────────── */}
+      {isPanelOpen && !isCandidate && (
+        <div className="w-2/5 flex flex-col border-l border-[var(--border-default)] bg-[var(--bg-surface)]">
+          {/* Header */}
+          <div className="p-4 border-b border-[var(--border-default)] flex items-center justify-between bg-[var(--bg-surface)]">
             <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+                  Candidate Evaluation
+                </span>
+                <Badge variant="neutral" className="px-1.5 py-0 text-[10px]">{interviewInfo.stage}</Badge>
+              </div>
               <h1 className="font-bold text-lg leading-tight tracking-tight flex items-center gap-2">
                 {interviewInfo.candidateName}
                 {isCompleted && (
@@ -299,51 +513,185 @@ export default function CodingRoomPage({
                   </span>
                 )}
               </h1>
-              <div className="text-xs text-[var(--text-secondary)] flex items-center gap-2">{interviewInfo.role} • <Badge variant="warning" className="px-1.5 py-0 bg-transparent border-transparent" style={{fontSize: "10px"}}>{interviewInfo.stage}</Badge></div>
+              <p className="text-xs text-[var(--text-secondary)] font-mono mt-0.5">
+                {interviewInfo.role}
+              </p>
             </div>
-          </div>
           
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--bg-elevated)] rounded-md border border-[var(--border-default)] text-xs font-mono text-[var(--text-secondary)]">
-              {Icons.clock} {formatTime(elapsed)}
+            <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--bg-elevated)] rounded-[var(--radius-default)] border border-[var(--border-default)] text-xs font-mono text-[var(--text-secondary)]">
+                {Icons.clock} {formatTime(elapsed)}
+              </div>
+              <div className="flex -space-x-2 mr-1">
+                {users.map((u, i) => (
+                  <div
+                    key={i}
+                    title={u.name}
+                    className="h-6 w-6 rounded-full border-2 border-[var(--bg-surface)] flex items-center justify-center text-[10px] text-white font-bold"
+                    style={{ backgroundColor: u.color, zIndex: users.length - i }}
+                  >
+                    {u.name.charAt(0).toUpperCase()}
+                  </div>
+                ))}
+              </div>
+              <Button
+                onClick={handleGenerateReport}
+                disabled={generatingReport || isCompleted}
+                variant={isCompleted ? "secondary" : "default"}
+                size="sm"
+                className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {generatingReport ? "Submitting..." : isCompleted ? "View Report" : "Submit Interview"}
+              </Button>
             </div>
-            <div className="flex -space-x-2 mr-2">
-              {users.map((u, i) => (
-                <div key={i} className="h-6 w-6 rounded-full border-2 border-[var(--bg-surface)] flex items-center justify-center text-[10px] text-white font-bold" style={{ backgroundColor: u.color, zIndex: users.length - i }}>
-                  {u.name.charAt(0).toUpperCase()}
-                </div>
-              ))}
-            </div>
-            <Button onClick={handleGenerateReport} disabled={generatingReport || isCompleted} variant={isCompleted ? "secondary" : "default"} size="sm" className="h-8">
-              {generatingReport ? "Submitting..." : isCompleted ? "View Report" : "Submit Interview"}
-            </Button>
           </div>
-        </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-[var(--border-default)] px-4">
-          <button 
-            onClick={() => setActiveTab("notes")}
-            className={cn("px-4 py-3 text-sm font-medium border-b-2 transition-colors", activeTab === "notes" ? "border-[var(--accent)] text-[var(--text-primary)]" : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]")}
-          >
-            Notes
-          </button>
-          <button 
-            onClick={() => { setActiveTab("questions"); handleGenerateQuestions(); }}
-            className={cn("px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5", activeTab === "questions" ? "border-[var(--accent)] text-[var(--text-primary)]" : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]")}
-          >
-            AI Questions
-          </button>
-        </div>
+          {/* Unified Content Area */}
+          <div className="flex-1 overflow-y-auto bg-[var(--bg-base)] flex flex-col">
+            
+            {/* AI Questions Section */}
+            <div className="p-5 flex flex-col gap-3 border-b border-[var(--border-default)] shrink-0 bg-[var(--bg-surface)]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold text-[var(--text-primary)] flex items-center gap-1.5">
+                    🤖 AI Interview Copilot
+                  </h2>
+                  <p className="text-[11px] text-[var(--text-muted)]">
+                    LeetCode algorithmic problems calibrated to difficulty
+                  </p>
+                  {/* Difficulty selector buttons */}
+                  <div className="flex items-center gap-1 mt-2">
+                    <span className="text-[10px] uppercase font-bold text-[var(--text-muted)] mr-1">Level:</span>
+                    {(["easy", "medium", "hard"] as const).map((diff) => (
+                      <button
+                        key={diff}
+                        type="button"
+                        onClick={() => {
+                          setDifficulty(diff);
+                          handleGenerateQuestions(diff);
+                        }}
+                        disabled={loadingQuestions || isCompleted}
+                        className={cn(
+                          "px-2 py-0.5 rounded text-[10px] font-semibold transition-all capitalize border cursor-pointer",
+                          difficulty === diff
+                            ? diff === "easy"
+                              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-sm"
+                              : diff === "medium"
+                              ? "bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-sm"
+                              : "bg-red-500/20 text-red-400 border-red-500/40 shadow-sm"
+                            : "bg-[var(--bg-base)] text-[var(--text-muted)] border-[var(--border-default)] hover:text-white hover:border-[var(--border-divider)]"
+                        )}
+                      >
+                        {diff}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {!loadingQuestions && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs flex items-center gap-1 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 self-start"
+                    onClick={() => handleGenerateQuestions(difficulty)}
+                    disabled={isCompleted}
+                  >
+                    {questions.length === 0 ? "⚡ Generate 5 LeetCode Problems" : "🔄 Regenerate 5 LeetCode Problems"}
+                  </Button>
+                )}
+              </div>
+              
+              {loadingQuestions ? (
+                <div className="flex flex-col items-center justify-center py-6 gap-3 text-[var(--text-muted)]">
+                  <div className="w-5 h-5 border-2 border-[var(--border-default)] border-t-[var(--accent)] rounded-full animate-spin" />
+                  <p className="text-xs">Generating tailored questions...</p>
+                </div>
+              ) : questions.length === 0 ? (
+                <div className="text-xs text-[var(--text-muted)] text-center py-4 border border-dashed border-[var(--border-default)] rounded-[var(--radius-default)] bg-[var(--bg-base)]">
+                  Click <strong className="text-[var(--text-secondary)]">Generate Now</strong> to create tailored interview questions.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {questions.map((q, idx) => (
+                    <div key={idx} className="p-3.5 rounded-[var(--radius-default)] border border-[var(--border-divider)] bg-[var(--bg-base)] hover:border-[var(--accent)] transition-colors group">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-xs text-[var(--text-primary)] leading-relaxed font-medium">{q}</p>
+                        <Badge variant="outline" className="text-[9px] shrink-0">Q{idx + 1}</Badge>
+                      </div>
+                      {/* Question Actions: Send to Candidate / Paste in Editor */}
+                      <div className="mt-2.5 pt-2 border-t border-[var(--border-divider)] flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            variant={activeQuestionIdx === idx ? "default" : "outline"}
+                            size="sm"
+                            className={cn(
+                              "h-6 text-[10px] px-2 gap-1 font-medium transition-colors",
+                              activeQuestionIdx === idx
+                                ? "bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600 shadow-sm"
+                                : "hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 text-[var(--text-secondary)]"
+                            )}
+                            onClick={() => handleSendQuestionToCandidate(q, idx)}
+                            title="Push this question live to Candidate's problem card"
+                          >
+                            {activeQuestionIdx === idx ? "✓ On Candidate Screen" : "📌 Send to Candidate"}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-6 text-[10px] px-2 gap-1 text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-white"
+                            onClick={() => handlePasteQuestionInEditor(q, idx)}
+                            title="Insert this question into the Monaco editor as code comments"
+                          >
+                            📋 Paste in Editor
+                          </Button>
+                        </div>
+                      </div>
 
-        {/* Tab Content Area */}
-        <div className="flex-1 overflow-y-auto bg-[var(--bg-base)]">
-          {activeTab === "notes" && (
-            <div className="h-full flex flex-col">
-              <div className="p-2 border-b border-[var(--border-default)] bg-[var(--bg-surface)] flex justify-end px-4">
-                <span className="text-xs text-[var(--text-tertiary)] flex items-center gap-1">
-                  {saveStatus === "saving" && <><span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" /> Saving...</>}
-                  {saveStatus === "saved" && <><span className="w-1.5 h-1.5 rounded-full bg-green-500" /> Saved</>}
+                      {/* Rubric Evaluation */}
+                      <div className="mt-2 pt-2 border-t border-[var(--border-divider)] flex items-center gap-1.5">
+                        <span className="text-[10px] uppercase font-semibold text-[var(--text-muted)] mr-1">Rubric Score:</span>
+                        <Button
+                          variant={evals[idx] === 'Strong' ? 'default' : 'outline'}
+                          size="sm"
+                          className={cn("h-6 text-[10px] px-2 transition-colors", evals[idx] === 'Strong' ? "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600" : "hover:bg-emerald-500/10 hover:text-emerald-500")}
+                          onClick={() => handleEvalClick(q, 'Strong', idx)}
+                        >
+                          🟢 Strong
+                        </Button>
+                        <Button
+                          variant={evals[idx] === 'Average' ? 'default' : 'outline'}
+                          size="sm"
+                          className={cn("h-6 text-[10px] px-2 transition-colors", evals[idx] === 'Average' ? "bg-amber-500 hover:bg-amber-600 text-white border-amber-500" : "hover:bg-amber-500/10 hover:text-amber-500")}
+                          onClick={() => handleEvalClick(q, 'Average', idx)}
+                        >
+                          🟡 Average
+                        </Button>
+                        <Button
+                          variant={evals[idx] === 'Weak' ? 'default' : 'outline'}
+                          size="sm"
+                          className={cn("h-6 text-[10px] px-2 transition-colors", evals[idx] === 'Weak' ? "bg-red-500 hover:bg-red-600 text-white border-red-500" : "hover:bg-red-500/10 hover:text-red-500")}
+                          onClick={() => handleEvalClick(q, 'Weak', idx)}
+                        >
+                          🔴 Weak
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Private Notes Section */}
+            <div className="flex-1 flex flex-col min-h-[350px]">
+              <div className="p-3 border-b border-[var(--border-default)] bg-[var(--bg-surface)] flex justify-between items-center px-5 sticky top-0 z-10">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-semibold text-[var(--text-primary)]">Interviewer Notes</h2>
+                  <span className="text-[10px] text-amber-500 font-mono bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                    🔒 Confidential
+                  </span>
+                </div>
+                <span className="text-xs text-[var(--text-muted)] flex items-center gap-1 font-mono">
+                  {saveStatus === "saving" && <><span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-pulse" /> Saving...</>}
+                  {saveStatus === "saved" && <><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Auto-saved</>}
                   {saveStatus === "error" && <><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> Save error</>}
                 </span>
               </div>
@@ -351,78 +699,236 @@ export default function CodingRoomPage({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 disabled={isCompleted}
-                placeholder="Type your interview notes here... Markdown is supported."
-                className="w-full h-full p-6 bg-[var(--bg-base)] text-[var(--text-primary)] text-sm leading-relaxed resize-none focus:outline-none placeholder:text-[var(--text-disabled)]"
+                placeholder="Type your private evaluation notes here... (Scoring rubric selections will automatically append here). Markdown is supported."
+                className="w-full flex-1 p-5 bg-[var(--bg-base)] text-[var(--text-primary)] text-xs leading-relaxed resize-none focus:outline-none placeholder:text-[var(--text-disabled)] font-mono"
               />
             </div>
-          )}
+          </div>
+        </div>
+      )}
 
-          {activeTab === "questions" && (
-            <div className="p-6 flex flex-col gap-4">
-              {loadingQuestions ? (
-                <div className="flex flex-col items-center justify-center py-12 gap-4 text-[var(--text-muted)]">
-                  <div className="w-6 h-6 border-2 border-[var(--border-default)] border-t-[var(--accent)] rounded-full animate-spin" />
-                  <p className="text-sm">Generating contextual questions...</p>
+      {/* ─────────────────────────────────────────────────────────────
+          RIGHT PANEL: CANDIDATE WORKSPACE (GUIDANCE & PROBLEM PANEL)
+          ───────────────────────────────────────────────────────────── */}
+      {isPanelOpen && isCandidate && (
+        <div className="w-2/5 flex flex-col border-l border-[var(--border-default)] bg-[var(--bg-surface)]">
+          {/* Candidate Header */}
+          <div className="p-4 border-b border-[var(--border-default)] flex items-center justify-between bg-[var(--bg-surface)]">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                  Candidate Session
+                </span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              </div>
+              <h1 className="font-bold text-lg leading-tight tracking-tight">
+                Welcome, {interviewInfo.candidateName}
+              </h1>
+              <p className="text-xs text-[var(--text-secondary)] font-mono mt-0.5">
+                {interviewInfo.role}
+              </p>
+            </div>
+          
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--bg-elevated)] rounded-[var(--radius-default)] border border-[var(--border-default)] text-xs font-mono text-[var(--text-secondary)]">
+                {Icons.clock} {formatTime(elapsed)}
+              </div>
+              <div className="flex -space-x-2">
+                {users.map((u, i) => (
+                  <div
+                    key={i}
+                    title={u.name}
+                    className="h-6 w-6 rounded-full border-2 border-[var(--bg-surface)] flex items-center justify-center text-[10px] text-white font-bold"
+                    style={{ backgroundColor: u.color, zIndex: users.length - i }}
+                  >
+                    {u.name.charAt(0).toUpperCase()}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Candidate Instructions Body */}
+          <div className="flex-1 overflow-y-auto bg-[var(--bg-base)] p-5 space-y-4">
+            
+            {/* Guidelines Card */}
+            <div className="p-4 rounded-[var(--radius-default)] border border-[var(--border-default)] bg-[var(--bg-surface)] space-y-3">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                <span>📋</span> Interview Instructions
+              </h2>
+              <ul className="text-xs text-[var(--text-secondary)] space-y-2.5 leading-relaxed">
+                <li className="flex items-start gap-2">
+                  <span className="text-emerald-400 font-bold">•</span>
+                  <span><strong>Real-Time Sync:</strong> Your code in the editor is synchronized live with your interviewer.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-emerald-400 font-bold">•</span>
+                  <span><strong>Language Choice:</strong> Select your preferred programming language from the top toolbar dropdown.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-emerald-400 font-bold">•</span>
+                  <span><strong>Testing Code:</strong> Click <strong>Run Code</strong> anytime to compile and execute your solution in our cloud sandbox. Terminal outputs will appear below.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-emerald-400 font-bold">•</span>
+                  <span><strong>Communication:</strong> Feel free to ask questions and explain your thought process with your interviewer as you write your code.</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Problem Statement Card */}
+            <div className="p-4 rounded-[var(--radius-default)] border border-[var(--border-default)] bg-[var(--bg-surface)] space-y-3">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <span>💡</span> Problem Statement
+                </span>
+                {activeQuestion && (
+                  <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1 font-semibold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live Assigned
+                  </span>
+                )}
+              </h2>
+
+              {activeQuestion ? (
+                <div className="p-3.5 rounded-[var(--radius-default)] bg-indigo-500/10 border border-indigo-500/30 space-y-2 animate-in fade-in duration-200">
+                  <div className="flex items-center gap-1.5 text-indigo-400 font-bold uppercase text-[10px]">
+                    <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" /> Question from Interviewer
+                  </div>
+                  <p className="text-xs text-[var(--text-primary)] font-medium leading-relaxed">
+                    {activeQuestion}
+                  </p>
                 </div>
-              ) : questions.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 gap-4 text-[var(--text-muted)] text-center">
-                  <p className="text-sm max-w-[200px]">Click to generate AI questions tailored for this role.</p>
-                  <Button variant="outline" onClick={handleGenerateQuestions} disabled={isCompleted}>Generate Now</Button>
+              ) : interviewInfo.description ? (
+                <div className="text-xs text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap font-mono bg-[var(--bg-base)] p-3 rounded border border-[var(--border-divider)]">
+                  {interviewInfo.description}
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {questions.map((q, idx) => (
-                    <div key={idx} className="p-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-sm hover:border-[var(--accent)] transition-colors group">
-                      <div className="flex items-start justify-between gap-4">
-                        <p className="text-sm text-[var(--text-primary)] leading-relaxed">{q}</p>
-                        <div className="flex flex-col items-end gap-2 shrink-0">
-                          <Badge variant="outline" className="text-[10px]">Medium</Badge>
-                          <label className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] cursor-pointer">
-                            <input type="checkbox" className="rounded border-[var(--border-strong)] text-[var(--accent)] focus:ring-[var(--accent)] accent-[var(--accent)]" />
-                            Used
-                          </label>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="sm" className="mt-3 h-7 text-xs text-[var(--accent)] opacity-0 group-hover:opacity-100 transition-opacity -ml-2" onClick={() => setNotes(prev => prev + `\n\nQ: ${q}\nA: `)}>
-                        + Add to notes
-                      </Button>
-                    </div>
-                  ))}
+                <div className="text-xs text-[var(--text-muted)] leading-relaxed bg-[var(--bg-base)] p-3 rounded border border-dashed border-[var(--border-divider)]">
+                  Your interviewer will outline the problem scenario and assign questions directly to your screen or inside the code editor.
                 </div>
               )}
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* Right Panel: Collaborative Coding Room */}
-      <div className="w-1/2 flex flex-col relative bg-[#1E1E1E]">
-        
-        {/* Editor Toolbar */}
-        <div className="absolute top-0 right-0 left-0 h-12 flex items-center justify-between px-4 z-10 pointer-events-none">
-          <div className="pointer-events-auto">
-            {/* Status indicators could go here */}
+            {/* Quick Tips */}
+            <div className="p-4 rounded-[var(--radius-default)] border border-[var(--border-divider)] bg-[var(--bg-surface)] space-y-2">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-1.5">
+                <span>⚡</span> Pro Tips
+              </h2>
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                Focus on edge cases, clean variable names, and algorithmic efficiency. You can collapse this side panel using the arrow button at the top to expand the code editor to full screen.
+              </p>
+            </div>
+
           </div>
-          <div className="flex items-center gap-3 pointer-events-auto bg-[#252526] p-1.5 rounded-md border border-[#333] shadow-lg">
-            <select
-              value={language}
-              onChange={(e) => handleLanguageChange(e.target.value)}
-              disabled={isCompleted}
-              className="bg-transparent text-[#CCCCCC] text-xs font-medium outline-none cursor-pointer border-none px-2 py-1 hover:text-white"
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          LEFT PANEL: COLLABORATIVE MONACO CODE EDITOR & TERMINAL
+          ───────────────────────────────────────────────────────────── */}
+      <div className={cn("flex flex-col relative bg-[#1E1E1E]", isPanelOpen ? "w-3/5" : "w-full")}>
+        
+        {/* Editor Top Toolbar */}
+        <div className="absolute top-0 right-0 left-0 h-12 flex items-center justify-between px-4 z-10 pointer-events-none bg-[#1E1E1E]/95 backdrop-blur-sm border-b border-[#333]">
+          
+          {/* Top Left: Role Banner & Interview Info */}
+          <div className="pointer-events-auto flex items-center gap-3">
+            {!isCandidate ? (
+              <>
+                <button
+                  onClick={() => router.push("/dashboard/interviews")}
+                  className="text-[#858585] hover:text-white transition-colors p-1 flex items-center gap-1 text-xs font-medium"
+                  title="Exit to Dashboard"
+                >
+                  {Icons.back} <span className="hidden sm:inline">Dashboard</span>
+                </button>
+                <div className="h-4 w-px bg-[#333]" />
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                  Interviewer Console
+                </span>
+                <span className="text-xs text-[#888] hidden md:inline">
+                  Evaluating: <strong className="text-white">{interviewInfo.candidateName}</strong>
+                </span>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-xs font-bold text-white tracking-wide uppercase">HireSys</span>
+                </div>
+                <div className="h-4 w-px bg-[#333]" />
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  Candidate Mode
+                </span>
+                <span className="text-xs text-[#888] hidden md:inline">
+                  {interviewInfo.role}
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* Top Right: Code Controls */}
+          <div className="flex items-center gap-2 pointer-events-auto">
+            <div className="flex items-center gap-2.5 bg-[#252526] p-1 rounded-[var(--radius-default)] border border-[#333]">
+              <Select
+                value={language}
+                onChange={(e) => handleLanguageChange(e.target.value)}
+                disabled={isCompleted}
+                className="!bg-transparent !text-[#CCCCCC] !text-xs !font-medium !outline-none cursor-pointer !border-none !px-2 !py-0.5 hover:!text-white !h-7 !w-28 focus:!ring-0"
+              >
+                {LANGUAGES.map((lang) => (
+                  <option key={lang} value={lang} className="bg-[#252526]">{LANG_LABELS[lang]}</option>
+                ))}
+              </Select>
+
+              {/* AI Review Code is ONLY visible to interviewers */}
+              {!isCandidate && (
+                <>
+                  <div className="w-px h-4 bg-[#333]" />
+                  <Button 
+                    size="sm" 
+                    onClick={handleGetFeedback} 
+                    disabled={isCompleted || loadingFeedback}
+                    className="h-7 text-xs bg-indigo-600 hover:bg-indigo-700 text-white border-none shadow-none rounded-[var(--radius-default)] px-2.5 flex items-center gap-1.5"
+                  >
+                    {loadingFeedback ? "Reviewing..." : "⚡ AI Review Code"}
+                  </Button>
+                </>
+              )}
+
+              <div className="w-px h-4 bg-[#333]" />
+              <Button 
+                size="sm" 
+                onClick={handleRunCode} 
+                disabled={isCompleted || isExecuting}
+                className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-none shadow-none rounded-[var(--radius-default)] px-3 flex items-center gap-1.5"
+              >
+                {isExecuting ? (
+                  <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Running...</>
+                ) : (
+                  <>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                      <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    Run Code
+                  </>
+                )}
+              </Button>
+            </div>
+            
+            {/* Toggle Panel Button (Available for both Interviewer and Candidate) */}
+            <button 
+              onClick={() => setIsPanelOpen(!isPanelOpen)} 
+              className="flex items-center justify-center w-8 h-8 rounded-[var(--radius-default)] bg-[#252526] border border-[#333] text-[#858585] hover:text-white hover:bg-[#333] transition-colors ml-1 shadow-sm" 
+              title={isPanelOpen ? "Collapse Panel" : "Expand Panel"}
             >
-              {LANGUAGES.map((lang) => (
-                <option key={lang} value={lang} className="bg-[#252526]">{LANG_LABELS[lang]}</option>
-              ))}
-            </select>
-            <div className="w-px h-4 bg-[#333]" />
-            <Button 
-              size="sm" 
-              onClick={handleGetFeedback} 
-              disabled={isCompleted || loadingFeedback}
-              className="h-7 text-xs bg-indigo-600 hover:bg-indigo-700 text-white border-none shadow-none rounded-sm px-3 flex items-center gap-1.5"
-            >
-              {loadingFeedback ? "Reviewing..." : "AI Review Code"}
-            </Button>
+              {isPanelOpen ? (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              ) : (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              )}
+            </button>
           </div>
         </div>
 
@@ -449,38 +955,74 @@ export default function CodingRoomPage({
           />
         </div>
 
-        {/* AI Feedback Overlay */}
-        {feedback && (
-          <div className="absolute bottom-6 right-6 left-6 max-h-[40%] bg-[var(--bg-surface)] border border-[var(--accent-muted)] rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-8">
-            <div className="flex items-center justify-between p-3 border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
-              <h4 className="text-sm font-semibold text-[var(--accent)] flex items-center gap-1.5">
-                AI Code Review
+        {/* Terminal UI */}
+        <div className="h-48 shrink-0 bg-[#1E1E1E] border-t border-[#333] flex flex-col">
+          <div className="h-8 flex items-center px-4 border-b border-[#333] bg-[#252526]">
+            <span className="text-xs font-semibold text-[#858585] uppercase tracking-wider flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#555]" />
+              Terminal Output
+            </span>
+            {executionOutput && (
+              <span className={cn("ml-auto text-[10px] font-mono px-2 py-0.5 rounded", executionOutput.isError ? "bg-red-500/20 text-red-400" : "bg-emerald-500/20 text-emerald-400")}>
+                {executionOutput.isError ? "Exit with Error" : "Completed Successfully"}
+              </span>
+            )}
+          </div>
+          <div className="flex-1 p-4 overflow-y-auto font-mono text-xs">
+            {isExecuting ? (
+              <span className="text-[#858585] animate-pulse">Executing code in sandbox...</span>
+            ) : executionOutput ? (
+              <div className="flex flex-col gap-2 whitespace-pre-wrap">
+                {executionOutput.stdout && <span className="text-[#CCCCCC]">{executionOutput.stdout}</span>}
+                {executionOutput.stderr && <span className="text-[#F48771]">{executionOutput.stderr}</span>}
+                {!executionOutput.stdout && !executionOutput.stderr && <span className="text-[#858585] italic">Program executed with no console output</span>}
+              </div>
+            ) : (
+              <span className="text-[#555]">Click &apos;Run Code&apos; to execute program output here.</span>
+            )}
+          </div>
+        </div>
+
+        {/* AI Feedback Overlay (Interviewer Only) */}
+        {feedback && !isCandidate && (
+          <div className="absolute bottom-6 right-6 left-6 max-h-[40%] bg-[var(--bg-surface)] border border-indigo-500/40 rounded-[var(--radius-default)] overflow-hidden flex flex-col shadow-2xl animate-in slide-in-from-bottom-8 z-20">
+            <div className="flex items-center justify-between p-3 border-b border-[var(--border-divider)] bg-[var(--bg-elevated)]">
+              <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-wide flex items-center gap-1.5">
+                ⚡ AI Code Review & Feedback
               </h4>
               <button onClick={() => setFeedback(null)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
                 {Icons.close}
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              <div className="flex items-start justify-between gap-4">
-                <p className="text-sm text-[var(--text-primary)] font-medium leading-relaxed">{feedback.overall}</p>
-                <div className="flex gap-2 shrink-0">
-                  <Badge variant="success" className="font-mono text-xs shadow-sm bg-[var(--bg-surface)]">Time: {feedback.timeComplexity}</Badge>
-                  <Badge variant="info" className="font-mono text-xs shadow-sm bg-[var(--bg-surface)]">Space: {feedback.spaceComplexity}</Badge>
+              <div className="flex flex-col gap-2">
+                <p className="text-xs text-[var(--text-primary)] font-medium leading-relaxed">{feedback.overall}</p>
+                <div className="flex items-center gap-3">
+                  <div className="text-[11px] text-[var(--text-secondary)] bg-[var(--bg-elevated)] px-2.5 py-1 rounded border border-[var(--border-default)] font-mono">
+                    <strong className="text-indigo-400 mr-1">Time:</strong> {feedback.timeComplexity}
+                  </div>
+                  <div className="text-[11px] text-[var(--text-secondary)] bg-[var(--bg-elevated)] px-2.5 py-1 rounded border border-[var(--border-default)] font-mono">
+                    <strong className="text-indigo-400 mr-1">Space:</strong> {feedback.spaceComplexity}
+                  </div>
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {feedback.strengths?.length > 0 && (
-                  <div className="bg-[var(--success-bg)]/20 p-3 rounded-lg border border-[var(--success-bg)]/30">
-                    <h5 className="text-xs font-semibold text-[var(--success-text)] mb-2 uppercase tracking-wide">Strengths</h5>
+                  <div className="bg-[var(--bg-elevated)] p-3 rounded border border-[var(--border-default)]">
+                    <h5 className="text-[11px] font-semibold text-emerald-400 mb-1.5 uppercase tracking-wide flex items-center gap-1">
+                      Strengths
+                    </h5>
                     <ul className="text-xs text-[var(--text-secondary)] space-y-1 list-disc list-inside">
                       {feedback.strengths.map((s, i) => <li key={i}>{s}</li>)}
                     </ul>
                   </div>
                 )}
                 {feedback.improvements?.length > 0 && (
-                  <div className="bg-[var(--warning-bg)]/20 p-3 rounded-lg border border-[var(--warning-bg)]/30">
-                    <h5 className="text-xs font-semibold text-[var(--warning-text)] mb-2 uppercase tracking-wide">Areas for Improvement</h5>
+                  <div className="bg-[var(--bg-elevated)] p-3 rounded border border-[var(--border-default)]">
+                    <h5 className="text-[11px] font-semibold text-amber-400 mb-1.5 uppercase tracking-wide flex items-center gap-1">
+                      Improvement Areas
+                    </h5>
                     <ul className="text-xs text-[var(--text-secondary)] space-y-1 list-disc list-inside">
                       {feedback.improvements.map((s, i) => <li key={i}>{s}</li>)}
                     </ul>

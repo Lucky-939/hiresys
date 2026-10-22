@@ -5,7 +5,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { api } from "@/lib/api";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { Input, Select } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -31,11 +31,13 @@ export default function MembersPage() {
 
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("MEMBER");
+  const [inviteRole, setInviteRole] = useState("RECRUITER");
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState("");
   const [inviteLink, setInviteLink] = useState("");
   const [copied, setCopied] = useState(false);
+  
+  const [confirmModal, setConfirmModal] = useState<{ open: boolean; userId: string | null }>({ open: false, userId: null });
 
   useEffect(() => {
     if (!isReady || !selectedOrgId) { if (isReady && !selectedOrgId) setLoading(false); return; }
@@ -64,12 +66,17 @@ export default function MembersPage() {
   }
 
   async function handleRemoveMember(userId: string) {
-    if (!confirm("Remove this member? This cannot be undone.")) return;
+    setConfirmModal({ open: true, userId });
+  }
+
+  async function confirmRemoveMember() {
+    if (!confirmModal.userId) return;
     try {
-      await api.delete(`/organizations/${selectedOrgId}/members/${userId}`);
-      setMembers(prev => prev.filter(m => m.user.id !== userId));
+      await api.delete(`/organizations/${selectedOrgId}/members/${confirmModal.userId}`);
+      setMembers(prev => prev.filter(m => m.user.id !== confirmModal.userId));
       toast.success("Member removed");
     } catch (err: unknown) { toast.error(getErrorMessage(err)); }
+    finally { setConfirmModal({ open: false, userId: null }); }
   }
 
   async function handleInvite() {
@@ -90,19 +97,20 @@ export default function MembersPage() {
   }
 
   function closeInviteModal() {
-    setInviteModalOpen(false); setInviteEmail(""); setInviteRole("MEMBER");
+    setInviteModalOpen(false); setInviteEmail(""); setInviteRole("RECRUITER");
     setInviteLink(""); setInviteError(""); setCopied(false);
   }
 
   const ROLE_BADGE: Record<string, any> = {
     OWNER: { label: "Owner", variant: "accent"   },
     ADMIN: { label: "Admin", variant: "info"      },
-    MEMBER:{ label: "Member", variant: "neutral"  },
+    RECRUITER:{ label: "Recruiter", variant: "neutral"  },
+    INTERVIEWER:{ label: "Interviewer", variant: "neutral"  },
   };
 
-  /* ——— Member Table ——— */
+  /* â€”â€”â€” Member Table â€”â€”â€” */
   const content = (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] overflow-hidden bg-[var(--bg-surface)]">
+    <div className="rounded-[var(--radius-default)] border border-[var(--border-default)] overflow-hidden bg-[var(--bg-surface)]">
       {/* Table header */}
       <div className="flex items-center gap-4 px-5 py-2.5 bg-[var(--bg-elevated)] border-b border-[var(--border-default)]">
         <span className="flex-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Member</span>
@@ -114,7 +122,7 @@ export default function MembersPage() {
       {/* Rows */}
       {loading ? (
         Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-4 px-5 py-4 border-b border-[var(--border-subtle)]">
+          <div key={i} className="flex items-center gap-4 px-5 py-4 border-b border-[var(--border-divider)]">
             <Skeleton width={36} height={36} rounded="full" />
             <div className="flex-1 flex flex-col gap-1.5"><Skeleton width="40%" height={13} /><Skeleton width="55%" height={11} /></div>
             <Skeleton width={60} height={20} rounded="full" />
@@ -132,18 +140,18 @@ export default function MembersPage() {
         members.map(member => {
           const isSelf = member.user.id === user?.id;
           const isOwner = member.role === "OWNER";
-          const roleCfg = ROLE_BADGE[member.role] ?? ROLE_BADGE.MEMBER;
+          const roleCfg = ROLE_BADGE[member.role] ?? ROLE_BADGE.INTERVIEWER;
           return (
-            <div key={member.id} className="flex items-center gap-4 px-5 py-3.5 border-b border-[var(--border-subtle)] hover:bg-[var(--bg-elevated)] transition-colors last:border-b-0">
+            <div key={member.id} className="flex items-center gap-4 px-5 py-3.5 border-b border-[var(--border-divider)] hover:bg-[var(--bg-elevated)] transition-colors last:border-b-0">
               {/* Member */}
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <Avatar name={member.user.name} size="sm" />
                 <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] truncate">
+                  <span className="text-sm font-semibold text-[var(--text-primary)] truncate">
                     {member.user.name}
-                    {isSelf && <span className="ml-1.5 text-[var(--text-muted)] font-normal text-[var(--text-xs)]">(You)</span>}
+                    {isSelf && <span className="ml-1.5 text-[var(--text-muted)] font-normal text-xs">(You)</span>}
                   </span>
-                  <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] truncate">{member.user.email}</span>
+                  <span className="text-xs text-[var(--text-muted)] truncate">{member.user.email}</span>
                 </div>
               </div>
 
@@ -154,7 +162,7 @@ export default function MembersPage() {
 
               {/* Joined */}
               <div className="hidden md:block w-36 shrink-0">
-                <span className="text-[var(--text-xs)] text-[var(--text-muted)]">
+                <span className="text-xs text-[var(--text-muted)]">
                   {new Date(member.createdAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
                 </span>
               </div>
@@ -164,17 +172,18 @@ export default function MembersPage() {
                 <div className="w-28 shrink-0 flex items-center justify-end gap-1.5">
                   {!isOwner && !isSelf && (
                     <>
-                      <select
+                      <Select
                         value={member.role}
                         onChange={e => handleRoleChange(member.user.id, e.target.value)}
-                        className="h-7 px-2 text-[var(--text-xs)] font-medium text-[var(--text-secondary)] bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-[var(--radius-sm)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] cursor-pointer"
+                        className="h-7 !py-0 !pl-2 !pr-6 text-xs font-medium text-[var(--text-secondary)] bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-[var(--radius-default)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] cursor-pointer w-[90px]"
                       >
                         <option value="ADMIN">Admin</option>
-                        <option value="MEMBER">Member</option>
-                      </select>
+                        <option value="RECRUITER">Recruiter</option>
+                        <option value="INTERVIEWER">Interviewer</option>
+                      </Select>
                       <button
                         onClick={() => handleRemoveMember(member.user.id)}
-                        className="h-7 w-7 flex items-center justify-center rounded-[var(--radius-sm)] text-[var(--text-muted)] hover:text-[var(--danger-text)] hover:bg-[var(--danger-bg)] transition-colors"
+                        className="h-7 w-7 flex items-center justify-center rounded-[var(--radius-default)] text-[var(--text-muted)] hover:text-[var(--danger-text)] hover:bg-[var(--danger-bg)] transition-colors"
                         title="Remove member"
                         aria-label={`Remove ${member.user.name}`}
                       >
@@ -198,6 +207,8 @@ export default function MembersPage() {
           <PageHeader
             title="Team Members"
             description="Manage access and roles for your organization."
+            backHref="/dashboard"
+            backLabel="Back to Dashboard"
             actions={
               <div className="flex items-center gap-2">
                 {orgs.length > 1 && <OrganizationSelector orgs={orgs} />}
@@ -227,17 +238,17 @@ export default function MembersPage() {
       >
         {inviteLink ? (
           <div className="flex flex-col gap-4">
-            <div className="flex items-start gap-3 p-3.5 rounded-[var(--radius-md)] bg-[var(--success-bg)] border border-[var(--success-border)]">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[var(--success-text)] mt-0.5 shrink-0"><polyline points="20 6 9 17 4 12"/></svg>
+            <div className="flex items-start gap-3 p-3.5 rounded-[var(--radius-default)] bg-[var(--accent-muted)] border border-[var(--accent)]">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[var(--accent)] mt-0.5 shrink-0"><polyline points="20 6 9 17 4 12"/></svg>
               <div>
-                <p className="text-[var(--text-sm)] font-semibold text-[var(--success-text)]">Invite link ready</p>
-                <p className="text-[var(--text-xs)] text-[var(--success-text)] opacity-80 mt-0.5">Share this link with your colleague.</p>
+                <p className="text-sm font-semibold text-[var(--accent)]">Invite link ready</p>
+                <p className="text-xs text-[var(--accent)] opacity-80 mt-0.5">Share this link with your colleague.</p>
               </div>
             </div>
             <div className="flex gap-2">
               <input
                 readOnly value={inviteLink} onClick={e => (e.target as HTMLInputElement).select()}
-                className="flex-1 h-9 px-3 bg-[var(--bg-sunken)] border border-[var(--border-default)] rounded-[var(--radius-sm)] text-[var(--text-xs)] font-mono text-[var(--text-primary)] focus:outline-none cursor-copy"
+                className="flex-1 h-9 px-3 bg-[var(--bg-sunken)] border border-[var(--border-default)] rounded-[var(--radius-default)] text-xs font-mono text-[var(--text-primary)] focus:outline-none cursor-copy"
               />
               <Button variant="outline" size="sm" onClick={copyInviteLink} className="shrink-0 w-20 justify-center">
                 {copied ? "Copied!" : "Copy"}
@@ -251,31 +262,45 @@ export default function MembersPage() {
               autoFocus label="Email address *" type="email"
               value={inviteEmail}
               onChange={e => { setInviteEmail(e.target.value); setInviteError(""); }}
+              onKeyDown={e => { if (e.key === "Enter") handleInvite(); }}
               placeholder="colleague@company.com" error={inviteError}
             />
             <div className="flex flex-col gap-2">
-              <label className="text-[var(--text-sm)] font-medium text-[var(--text-secondary)]">Role</label>
+              <label className="text-sm font-medium text-[var(--text-secondary)]">Role</label>
               {[
-                { value: "MEMBER", label: "Member", desc: "Can conduct interviews and view candidates." },
+                { value: "RECRUITER", label: "Recruiter", desc: "Full pipeline and interview management." },
+                { value: "INTERVIEWER", label: "Interviewer", desc: "Can only view assigned interviews and submit feedback." },
                 { value: "ADMIN",  label: "Admin",  desc: "Full access including managing team members." },
               ].map(r => (
                 <label
                   key={r.value}
                   className={cn(
-                    "flex items-start gap-3 p-3 rounded-[var(--radius-sm)] border cursor-pointer transition-colors",
-                    inviteRole === r.value ? "bg-[var(--accent-muted)] border-[var(--accent)]" : "border-[var(--border-default)] hover:border-[var(--border-strong)]"
+                    "flex items-start gap-3 p-3 rounded-[var(--radius-default)] border cursor-pointer transition-colors",
+                    inviteRole === r.value ? "bg-[var(--accent-muted)] border-[var(--accent)]" : "border-[var(--border-default)] hover:border-[var(--border-default)]"
                   )}
                 >
                   <input type="radio" name="role" value={r.value} checked={inviteRole === r.value} onChange={e => setInviteRole(e.target.value)} className="mt-0.5 accent-[var(--accent)]" />
                   <div>
-                    <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{r.label}</p>
-                    <p className="text-[var(--text-xs)] text-[var(--text-muted)] mt-0.5">{r.desc}</p>
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">{r.label}</p>
+                    <p className="text-xs text-[var(--text-muted)] mt-0.5">{r.desc}</p>
                   </div>
                 </label>
               ))}
             </div>
           </div>
         )}
+      </Modal>
+
+      <Modal open={confirmModal.open} onClose={() => setConfirmModal({ open: false, userId: null })} title="Remove Member">
+        <p className="text-[var(--text-secondary)] text-sm mb-6">
+          Remove this member? This cannot be undone.
+        </p>
+        <div className="flex justify-end gap-3">
+          <Button variant="outline" onClick={() => setConfirmModal({ open: false, userId: null })}>Cancel</Button>
+          <Button onClick={confirmRemoveMember} className="bg-[var(--danger)] hover:bg-[var(--danger-hover)] text-white">
+            Yes, remove
+          </Button>
+        </div>
       </Modal>
     </>
   );

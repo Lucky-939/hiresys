@@ -74,7 +74,7 @@ export default function InvitePage() {
     return (
       <div className="invite-layout">
         <div className="invite-card">
-          <div style={{ color: "var(--error-text)", marginBottom: "16px" }}>
+          <div style={{ color: "var(--danger-text)", marginBottom: "16px" }}>
             {Icons.error}
           </div>
           <h1 className="invite-title">Invite Error</h1>
@@ -107,7 +107,7 @@ export default function InvitePage() {
         </p>
 
         {error && (
-          <div style={{ background: "var(--error-bg)", color: "var(--error-text)", padding: "12px", borderRadius: "var(--radius-md)", fontSize: "13px", marginTop: "16px" }}>
+          <div style={{ background: "var(--danger-bg)", color: "var(--danger-text)", padding: "12px", borderRadius: "var(--radius-default)", fontSize: "13px", marginTop: "16px" }}>
             {error}
           </div>
         )}
@@ -115,14 +115,19 @@ export default function InvitePage() {
         <div style={{ marginTop: "32px" }}>
           {!user ? (
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              <p style={{ fontSize: "13px", color: "var(--text-secondary)", textAlign: "center", marginBottom: "8px" }}>
-                You must be logged in to accept this invite.
+              <p style={{ fontSize: "13px", color: "var(--text-secondary)", textAlign: "center", marginBottom: "4px" }}>
+                To join this organization, create your password or log in.
               </p>
-              <Link href={`/login?redirect=/invite/${token}`} style={{ textDecoration: "none" }}>
-                <Button style={{ width: "100%" }}>Log In</Button>
+              <Link href={`/register?redirect=/invite/${token}${invite?.email ? `&email=${encodeURIComponent(invite.email)}` : ""}`} style={{ textDecoration: "none" }}>
+                <Button style={{ width: "100%" }}>Create Account &amp; Set Password</Button>
               </Link>
-              <Link href={`/register?redirect=/invite/${token}`} style={{ textDecoration: "none" }}>
-                <Button variant="secondary" style={{ width: "100%" }}>Create Account</Button>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "4px 0" }}>
+                <div style={{ flex: 1, height: "1px", background: "var(--border-default)" }} />
+                <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase" }}>Already registered?</span>
+                <div style={{ flex: 1, height: "1px", background: "var(--border-default)" }} />
+              </div>
+              <Link href={`/login?redirect=/invite/${token}${invite?.email ? `&email=${encodeURIComponent(invite.email)}` : ""}`} style={{ textDecoration: "none" }}>
+                <Button variant="secondary" style={{ width: "100%" }}>Log In</Button>
               </Link>
             </div>
           ) : (
@@ -148,14 +153,13 @@ export default function InvitePage() {
           padding: 24px;
         }
         .invite-card {
-          background: #FFFFFF;
-          border: 1px solid var(--border-subtle);
-          border-radius: var(--radius-2xl);
+          background: var(--bg-surface);
+          border: 1px solid var(--border-default);
+          border-radius: var(--radius-default);
           padding: 40px 32px;
           max-width: 420px;
           width: 100%;
           text-align: center;
-          box-shadow: var(--shadow-sm);
         }
         .invite-title {
           font-size: 24px;

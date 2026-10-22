@@ -1,3 +1,5 @@
+import { prisma } from "../../config/database";
+import { assertTeamMember } from "../../utils/rbac";
 import { Response, NextFunction } from "express";
 import { AuthRequest } from "../../middleware/auth.middleware";
 import { AppError } from "../../utils/errors";
@@ -64,7 +66,32 @@ export async function analyzeResume(
   next: NextFunction,
 ) {
   try {
+    const userId = req.userId;
+    if (!userId) throw new AppError("Unauthorized", 401);
+
     if (!req.file) throw new AppError("No PDF file uploaded", 400);
+
+    const candidateId = req.body.candidateId;
+    let organizationId: string | undefined;
+
+    if (candidateId) {
+      const candidate = await prisma.candidate.findUnique({
+        where: { id: candidateId },
+        select: { id: true, organizationId: true },
+      });
+      if (!candidate) throw new AppError("Candidate not found", 404);
+      
+      // Verify caller is a team member of candidate's organization (assertTeamMember blocks CANDIDATE role with 403)
+      await assertTeamMember(candidate.organizationId, userId);
+      organizationId = candidate.organizationId;
+    } else {
+      const orgId = (req.headers["x-organization-id"] as string) || req.body.organizationId;
+      if (!orgId) {
+        throw new AppError("Organization ID is required", 400);
+      }
+      await assertTeamMember(orgId, userId);
+      organizationId = orgId;
+    }
 
     const resumeText = await extractTextFromPDF(req.file.buffer);
 
@@ -75,11 +102,20 @@ export async function analyzeResume(
       );
     }
 
-    const jobId = randomUUID();
-    const candidateId = req.body.candidateId;
+    if (candidateId) {
+      const { saveCandidateResume } = require("../../utils/file-storage");
+      const resumeUrl = saveCandidateResume(candidateId, req.file.buffer);
+      const { prisma } = require("../../config/database");
+      await prisma.candidate.update({
+        where: { id: candidateId },
+        data: { resumeUrl, resumeText },
+      });
+    }
 
-    await setCache(`resume-result:${jobId}`, { status: "processing" }, 3600);
-    await resumeQueue.add("analyze", { jobId, resumeText, candidateId });
+    const jobId = randomUUID();
+
+    await setCache(`resume-result:${jobId}`, { status: "processing", organizationId }, 3600);
+    await resumeQueue.add("analyze", { jobId, resumeText, candidateId, organizationId });
 
     res.json({
       success: true,
@@ -97,16 +133,24 @@ export async function getResumeStatus(
   next: NextFunction,
 ) {
   try {
+    const userId = req.userId;
+    if (!userId) throw new AppError("Unauthorized", 401);
+
     const { jobId } = req.params;
 
     const result = await getCache<{
       status: string;
       data?: unknown;
       error?: string;
+      organizationId?: string;
     }>(`resume-result:${jobId}`);
 
     if (!result) {
       throw new AppError("Job not found or expired", 404);
+    }
+
+    if (result.organizationId) {
+      await assertTeamMember(result.organizationId, userId);
     }
 
     res.json({ success: true, ...result });

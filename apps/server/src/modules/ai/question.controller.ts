@@ -19,7 +19,7 @@ export async function getQuestions(
     }
 
     if (interviewId && req.userId) {
-      const interview = await interviewService.getById(interviewId, req.userId);
+      const interview = await interviewService.assertInterviewer(interviewId, req.userId);
       if (interview.status === "COMPLETED") {
         throw new AppError("Completed interviews cannot use AI", 403);
       }

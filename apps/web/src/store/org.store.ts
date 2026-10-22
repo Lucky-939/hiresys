@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 export type Org = {
   id: string;
   name: string;
+  role?: string;
 };
 
 interface OrgState {

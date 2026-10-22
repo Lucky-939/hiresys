@@ -26,7 +26,7 @@ interface Report {
 const RECOMMENDATION_CONFIG: Record<string, { label: string; variant: any }> = {
   STRONG_HIRE: { label: "Strong Hire", variant: "success"     },
   HIRE:        { label: "Hire",        variant: "info"        },
-  MAYBE:       { label: "Maybe",       variant: "warning"     },
+  MAYBE:       { label: "Maybe",       variant: "neutral"     },
   NO_HIRE:     { label: "No Hire",     variant: "danger"      },
 };
 
@@ -62,9 +62,9 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
     return (
       <div className="max-w-[960px] mx-auto flex flex-col gap-5 p-6">
         <Skeleton height={24} width={120} />
-        <Skeleton height={160} rounded="lg" />
-        <Skeleton height={120} rounded="lg" />
-        <Skeleton height={200} rounded="lg" />
+        <Skeleton height={160} rounded="md" />
+        <Skeleton height={120} rounded="md" />
+        <Skeleton height={200} rounded="md" />
       </div>
     );
   }
@@ -77,17 +77,17 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
   });
   const generatedTime = new Date(report.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-  /* ——— Sidebar: Score + Decision ——— */
+  /* â€”â€”â€” Sidebar: Score + Decision â€”â€”â€” */
   const sidebar = (
     <div className="flex flex-col gap-4">
       {/* Overall Score Card */}
       <Card padding="default">
         <div className="flex flex-col items-center text-center gap-3">
-          <span className="text-[var(--text-xs)] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Overall Score</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Overall Score</span>
           <span className="text-[64px] font-black leading-none tracking-tight text-[var(--text-primary)]">
             {report.overallScore}
           </span>
-          <span className="text-[var(--text-sm)] text-[var(--text-muted)]">/ 100</span>
+          <span className="text-sm text-[var(--text-muted)]">/ 100</span>
           <Badge variant={rec.variant} className="uppercase tracking-wide text-[11px] font-bold px-3">
             {rec.label}
           </Badge>
@@ -105,7 +105,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
           ].map(row => (
             <div key={row.label} className="flex flex-col gap-0.5">
               <dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{row.label}</dt>
-              <dd className="text-[var(--text-xs)] font-medium text-[var(--text-secondary)]">{row.value}</dd>
+              <dd className="text-xs font-mono text-[var(--text-secondary)]">{row.value}</dd>
             </div>
           ))}
         </dl>
@@ -113,10 +113,10 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
     </div>
   );
 
-  /* ——— Main Content ——— */
+  /* â€”â€”â€” Main Content â€”â€”â€” */
   const content = (
     <>
-      {/* Score Breakdown — horizontal bars (circular gauges BANNED per spec vol 7.18) */}
+      {/* Score Breakdown â€” horizontal bars (circular gauges BANNED per spec vol 7.18) */}
       <Card padding="default">
         <CardHeader>
           <CardTitle>Score Breakdown</CardTitle>
@@ -145,7 +145,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
             {report.strengths.length > 0 ? (
               <ul className="flex flex-col gap-2">
                 {report.strengths.map((s, i) => (
-                  <li key={i} className="flex items-start gap-2.5 text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
+                  <li key={i} className="flex items-start gap-2.5 text-sm text-[var(--text-secondary)] leading-relaxed">
                     <span className="text-[var(--success)] shrink-0 mt-0.5">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                     </span>
@@ -153,14 +153,14 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
                   </li>
                 ))}
               </ul>
-            ) : <p className="text-[var(--text-sm)] text-[var(--text-muted)] italic">No strengths identified.</p>}
+            ) : <p className="text-sm text-[var(--text-muted)] italic">No strengths identified.</p>}
           </CardContent>
         </Card>
 
         <Card padding="default">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <span className="text-[var(--warning)]">
+              <span className="text-[var(--danger)]">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
               </span>
               <CardTitle>Areas for Improvement</CardTitle>
@@ -170,15 +170,15 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
             {report.improvements.length > 0 ? (
               <ul className="flex flex-col gap-2">
                 {report.improvements.map((s, i) => (
-                  <li key={i} className="flex items-start gap-2.5 text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
-                    <span className="text-[var(--warning)] shrink-0 mt-0.5">
+                  <li key={i} className="flex items-start gap-2.5 text-sm text-[var(--text-secondary)] leading-relaxed">
+                    <span className="text-[var(--danger)] shrink-0 mt-0.5">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
                     </span>
                     {s}
                   </li>
                 ))}
               </ul>
-            ) : <p className="text-[var(--text-sm)] text-[var(--text-muted)] italic">No improvement areas identified.</p>}
+            ) : <p className="text-sm text-[var(--text-muted)] italic">No improvement areas identified.</p>}
           </CardContent>
         </Card>
       </div>
@@ -195,7 +195,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
           <Badge variant="accent" size="sm">AI</Badge>
         </CardHeader>
         <CardContent>
-          <p className="text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">{report.aiSummary}</p>
+          <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{report.aiSummary}</p>
         </CardContent>
       </Card>
 
@@ -203,13 +203,13 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
       {report.snapshotCodeSubmitted && (
         <Card padding="none">
           <details className="group">
-            <summary className="px-5 py-4 flex items-center gap-3 cursor-pointer list-none hover:bg-[var(--bg-elevated)] transition-colors rounded-[var(--radius-lg)] select-none">
+            <summary className="px-5 py-4 flex items-center gap-3 cursor-pointer list-none hover:bg-[var(--bg-elevated)] transition-colors rounded-[var(--radius-default)] select-none">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="transition-transform group-open:rotate-90 text-[var(--text-muted)]"><polyline points="9 18 15 12 9 6"/></svg>
-              <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">Submitted Code</span>
+              <span className="text-sm font-semibold text-[var(--text-primary)]">Submitted Code</span>
               {report.snapshotLanguage && <Badge variant="neutral" size="sm" className="font-mono">{report.snapshotLanguage}</Badge>}
             </summary>
-            <div className="px-5 pb-5 pt-0 border-t border-[var(--border-subtle)]">
-              <pre className="mt-4 p-4 bg-[var(--bg-sunken)] border border-[var(--border-default)] rounded-[var(--radius-md)] overflow-x-auto text-[var(--text-xs)] font-mono text-[var(--text-primary)] leading-relaxed">
+            <div className="px-5 pb-5 pt-0 border-t border-[var(--border-divider)]">
+              <pre className="mt-4 p-4 bg-[var(--bg-sunken)] border border-[var(--border-default)] rounded-[var(--radius-default)] overflow-x-auto text-xs font-mono text-[var(--text-primary)] leading-relaxed">
                 <code>{report.snapshotCodeSubmitted}</code>
               </pre>
             </div>
@@ -221,16 +221,16 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
       {report.snapshotQuestions && report.snapshotQuestions.length > 0 && (
         <Card padding="none">
           <details className="group">
-            <summary className="px-5 py-4 flex items-center gap-3 cursor-pointer list-none hover:bg-[var(--bg-elevated)] transition-colors rounded-[var(--radius-lg)] select-none">
+            <summary className="px-5 py-4 flex items-center gap-3 cursor-pointer list-none hover:bg-[var(--bg-elevated)] transition-colors rounded-[var(--radius-default)] select-none">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="transition-transform group-open:rotate-90 text-[var(--text-muted)]"><polyline points="9 18 15 12 9 6"/></svg>
-              <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">Interview Questions Asked</span>
+              <span className="text-sm font-semibold text-[var(--text-primary)]">Interview Questions Asked</span>
               <Badge variant="neutral" size="sm">{report.snapshotQuestions.length}</Badge>
             </summary>
-            <div className="px-5 pb-5 pt-0 border-t border-[var(--border-subtle)]">
+            <div className="px-5 pb-5 pt-0 border-t border-[var(--border-divider)]">
               <ul className="mt-4 flex flex-col gap-2">
                 {report.snapshotQuestions.map((q, i) => (
-                  <li key={i} className="flex items-start gap-2.5 text-[var(--text-sm)] text-[var(--text-secondary)]">
-                    <span className="text-[var(--text-muted)] font-mono tabular-nums shrink-0 text-[var(--text-xs)] mt-0.5">{i + 1}.</span>
+                  <li key={i} className="flex items-start gap-2.5 text-sm text-[var(--text-secondary)]">
+                    <span className="text-[var(--text-muted)] font-mono tabular-nums shrink-0 text-xs mt-0.5">{i + 1}.</span>
                     {q}
                   </li>
                 ))}
@@ -244,11 +244,11 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
 
   return (
     <DetailTemplate
-      backLink={<BackLink onClick={() => router.back()} label="Back to Interviews" />}
+      backLink={<BackLink href="/dashboard/interviews" label="Back to Interviews" />}
       header={
         <PageHeader
           title={report.snapshotInterviewTitle || report.interview?.title || "Interview Report"}
-          description={`Generated on ${generatedDate} · ${generatedTime}`}
+          description={`Generated on ${generatedDate} • ${generatedTime}`}
         />
       }
       sidebar={sidebar}

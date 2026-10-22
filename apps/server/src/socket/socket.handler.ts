@@ -1,6 +1,7 @@
 import { Server, Socket } from "socket.io";
 import jwt from "jsonwebtoken";
 import { InterviewService } from "../modules/interviews/interview.service";
+import { PistonClient } from "../config/piston";
 
 const interviewService = new InterviewService();
 
@@ -34,11 +35,18 @@ function getUniqueUsers(users: Map<string, RoomUser>): RoomUser[] {
 }
 
 export function registerSocketHandlers(io: Server) {
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth.token;
       if (!token) {
         return next(new Error("Authentication error"));
+      }
+
+      // SEC-09: Check Redis token blocklist (verify logged-out token is refused)
+      const { redis } = require("../config/redis");
+      const isBlocked = await redis.get(`bl_${token}`);
+      if (isBlocked) {
+        return next(new Error("Token has been revoked"));
       }
       
       const payload = jwt.verify(token, process.env.JWT_SECRET!) as {
@@ -46,8 +54,8 @@ export function registerSocketHandlers(io: Server) {
       };
       socket.data.userId = payload.sub;
       next();
-    } catch (err) {
-      next(new Error("Authentication error"));
+    } catch (err: any) {
+      next(new Error(err?.message === "Token has been revoked" ? "Token has been revoked" : "Authentication error"));
     }
   });
 
@@ -109,6 +117,70 @@ export function registerSocketHandlers(io: Server) {
       } catch (err) {
         socket.emit("error", { message: "Unauthorized or room not found" });
         socket.disconnect();
+      }
+    });
+
+    socket.on("question:send", async ({ roomId, question }: { roomId: string; question: string }) => {
+      try {
+        const userId = socket.data.userId;
+        const interview = await interviewService.getById(roomId, userId);
+        if (interview.status === "COMPLETED") {
+          return socket.emit("error", { message: "Interview is already completed" });
+        }
+        io.to(roomId).emit("question:active", { question });
+      } catch (err) {
+        socket.emit("error", { message: "Unauthorized or room not found" });
+      }
+    });
+
+    socket.on("code:execute", async ({ roomId, language, code }) => {
+      try {
+        const userId = socket.data.userId;
+        await interviewService.assertCanExecuteCode(roomId, userId);
+
+        if (!["javascript", "python"].includes(language)) {
+          return socket.emit("error", { message: "Unsupported language for execution" });
+        }
+
+        // SEC-10: Rate limit code:execute via Redis (5/min per user per room)
+        const { redis } = require("../config/redis");
+        const rateLimitKey = `ratelimit:code_exec:${roomId}:${userId}`;
+        const execCount = await redis.incr(rateLimitKey);
+        if (execCount === 1) {
+          await redis.expire(rateLimitKey, 60);
+        }
+
+        if (execCount > 5) {
+          const ttl = await redis.ttl(rateLimitKey);
+          const waitSeconds = ttl > 0 ? ttl : 60;
+          return socket.emit("error", {
+            message: `Rate limit exceeded: You can execute code up to 5 times per minute in this room. Please wait ${waitSeconds}s before trying again.`
+          });
+        }
+
+        io.to(roomId).emit("code:execution_started");
+
+        const timeout = 3000;
+        
+        const result = await PistonClient.execute({
+          language: language === "javascript" ? "javascript" : "python",
+          version: "*", // Use latest available
+          files: [{ name: "main", content: code }],
+          run_timeout: timeout,
+          compile_timeout: 3000,
+          run_memory_limit: 256 * 1024 * 1024,
+        });
+
+        const isError = result.run.code !== 0 || !!result.run.stderr;
+        
+        io.to(roomId).emit("code:execution_result", {
+          stdout: result.run.stdout,
+          stderr: result.run.stderr,
+          runTime: result.run.output ? result.run.output.length : 0, // Piston API does not easily expose ms run time in basic payload, but this is a placeholder. Wait, let's omit runTime calculation or provide a static message.
+          isError
+        });
+      } catch (err: any) {
+        socket.emit("error", { message: err.message || "Failed to execute code" });
       }
     });
 

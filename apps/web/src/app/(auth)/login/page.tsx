@@ -1,19 +1,28 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { sanitizeRedirect } from "@/lib/redirect";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import Link from "next/link";
 import { getErrorMessage } from "@/lib/error";
 import { Logo } from "@/components/ui/Logo";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const emailParam = searchParams.get("email") || "";
   const setAuth = useAuthStore((s) => s.setAuth);
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({ email: emailParam, password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [remember, setRemember] = useState(false);
+
+  useEffect(() => {
+    if (emailParam) {
+      setForm((prev) => ({ ...prev, email: emailParam }));
+    }
+  }, [emailParam]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -23,7 +32,9 @@ export default function LoginPage() {
       const { data } = await api.post("/auth/login", form);
       localStorage.setItem("token", data.token);
       setAuth(data.token, data.user);
-      router.push("/dashboard");
+      const redirectParam = searchParams.get("redirect");
+      const target = sanitizeRedirect(redirectParam);
+      router.push(target);
     } catch (err: unknown) {
       setError(getErrorMessage(err));
     } finally {
@@ -32,15 +43,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="h-screen flex overflow-hidden bg-white text-[var(--text-primary)]">
+    <div className="h-screen flex overflow-hidden bg-[var(--bg-base)] text-[var(--text-primary)]">
       {/* Left panel — Brand Hero */}
-      <div className="hidden lg:flex lg:w-[55%] flex-col justify-between p-10 xl:p-14 bg-[#F8FAFC] relative overflow-hidden border-r border-[var(--border-default)]">
-        {/* Animated gradient mesh */}
-        <div className="absolute inset-0 opacity-40 mix-blend-multiply">
-          <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-blue-200/50 rounded-full blur-[120px] animate-pulse" />
-          <div className="absolute bottom-[-15%] left-[-5%] w-[400px] h-[400px] bg-indigo-200/40 rounded-full blur-[100px]" />
-          <div className="absolute top-[40%] left-[30%] w-[300px] h-[300px] bg-sky-200/50 rounded-full blur-[80px]" />
-        </div>
+      <div className="hidden lg:flex lg:w-[55%] flex-col justify-between p-10 xl:p-14 bg-[var(--bg-surface)] relative overflow-hidden border-r border-[var(--border-default)]">
 
         {/* Subtle grid pattern overlay */}
         <div className="absolute inset-0 opacity-[0.015]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23000000\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} />
@@ -92,21 +97,21 @@ export default function LoginPage() {
       </div>
 
       {/* Right panel — Form */}
-      <div className="w-full lg:w-[45%] flex items-center justify-center p-6 sm:p-10 xl:p-16 bg-white overflow-y-auto">
+      <div className="w-full lg:w-[45%] flex items-center justify-center p-6 sm:p-10 xl:p-16 bg-[var(--bg-base)] overflow-y-auto">
         <div className="w-full max-w-[400px]">
           <Logo size="lg" className="mb-10 lg:hidden" />
 
           <h2 className="text-[28px] font-bold text-[var(--text-primary)] tracking-tight mb-1.5">
             Welcome back
           </h2>
-          <p className="text-sm text-[var(--text-tertiary)] mb-7">
+          <p className="text-sm text-[var(--text-muted)] mb-7">
             Sign in to your hiring workspace
           </p>
 
 
 
           {error && (
-            <div className="p-3 mb-5 rounded-lg bg-[var(--danger-bg)]/10 border border-[var(--danger-border)]/50 text-[var(--danger-text)] text-sm flex items-center gap-2">
+            <div className="p-3 mb-5 rounded-[var(--radius-default)] bg-[var(--danger-bg)]/10 border border-[var(--danger-border)]/50 text-[var(--danger-text)] text-sm flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--danger-text)] shrink-0" />
               {error}
             </div>
@@ -124,7 +129,7 @@ export default function LoginPage() {
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 placeholder="you@company.com"
                 autoComplete="email"
-                className="w-full px-3.5 py-2.5 text-sm bg-white border border-[var(--border-default)] rounded-lg outline-none transition-all placeholder:text-[var(--text-disabled)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+                className="w-full px-3.5 py-2.5 text-sm bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-default)] outline-none transition-all placeholder:text-[var(--text-disabled)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
               />
             </div>
 
@@ -140,9 +145,8 @@ export default function LoginPage() {
                 required
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                placeholder="••••••••"
                 autoComplete="current-password"
-                className="w-full px-3.5 py-2.5 text-sm bg-white border border-[var(--border-default)] rounded-lg outline-none transition-all placeholder:text-[var(--text-disabled)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+                className="w-full px-3.5 py-2.5 text-sm bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-default)] outline-none transition-all placeholder:text-[var(--text-disabled)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
               />
             </div>
 
@@ -151,7 +155,7 @@ export default function LoginPage() {
                 type="checkbox"
                 checked={remember}
                 onChange={(e) => setRemember(e.target.checked)}
-                className="w-4 h-4 rounded border-[var(--border-strong)] text-[var(--accent)] focus:ring-[var(--accent)] accent-[var(--accent)] cursor-pointer"
+                className="w-4 h-4 rounded border-[var(--border-default)] text-[var(--accent)] focus:ring-[var(--accent)] accent-[var(--accent)] cursor-pointer"
               />
               Remember me for 30 days
             </label>
@@ -159,7 +163,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 mt-1 text-sm font-bold text-white bg-[var(--accent)] rounded-lg outline-none transition-all hover:bg-[var(--accent-hover)] hover:shadow-md focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 disabled:opacity-70 flex items-center justify-center h-11"
+              className="w-full py-2.5 px-4 mt-1 text-sm font-bold text-[var(--bg-surface)] bg-[var(--accent)] rounded-[var(--radius-default)] outline-none transition-all hover:bg-[#0a4d3c] focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 disabled:opacity-70 flex items-center justify-center h-11"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -169,9 +173,12 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-center text-sm font-medium text-[var(--text-tertiary)] mt-7">
+          <p className="text-center text-sm font-medium text-[var(--text-muted)] mt-7">
             Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-[var(--accent)] hover:underline underline-offset-2">
+            <Link
+              href={searchParams.get("redirect") ? `/register?redirect=${encodeURIComponent(searchParams.get("redirect")!)}` : "/register"}
+              className="text-[var(--accent)] hover:underline underline-offset-2"
+            >
               Create one free →
             </Link>
           </p>
@@ -181,3 +188,12 @@ export default function LoginPage() {
   );
 }
 
+
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-[var(--bg-base)] text-[var(--text-muted)]">Loading...</div>}>
+      <LoginForm />
+    </Suspense>
+  );
+}

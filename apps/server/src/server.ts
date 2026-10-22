@@ -30,7 +30,14 @@ const httpServer = http.createServer(app);
 
 export const io = new SocketServer(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      const isDev = process.env.NODE_ENV !== "production";
+      if (!origin || origin === process.env.CLIENT_URL || (isDev && /^http:\/\/localhost:\d+$/.test(origin))) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS policy violation"));
+      }
+    },
     methods: ["GET", "POST"],
     credentials: true,
   },

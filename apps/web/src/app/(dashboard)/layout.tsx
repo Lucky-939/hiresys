@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
-import { Toaster } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
+import { api } from "@/lib/api";
 
 export default function DashboardLayout({
   children,
@@ -12,34 +12,54 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const token = useAuthStore((state) => state.token);
 
   useEffect(() => {
     setMounted(true);
-    if (!token && !localStorage.getItem("token") && !localStorage.getItem("auth-storage")?.includes("token")) {
-      router.replace("/login");
-    }
-  }, [token, router]);
+    
+    const checkAuth = async () => {
+      const currentToken = useAuthStore.getState().token;
+      
+      // If there's no token in the store, redirect to login
+      if (!currentToken) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("auth-storage");
+        localStorage.removeItem("hire-sys-org");
+        router.replace("/login");
+        return;
+      }
+
+      // Verify session with backend
+      try {
+        const res = await api.get("/organizations/mine");
+        const orgs = res.data.data;
+        if (orgs.length === 0 && pathname !== "/dashboard/organization") {
+          router.replace("/dashboard/organization");
+        }
+      } catch (err: any) {
+        if (err.response?.status === 401) {
+          useAuthStore.getState().logout();
+          localStorage.removeItem("token");
+          localStorage.removeItem("auth-storage");
+          localStorage.removeItem("hire-sys-org");
+          router.replace("/login");
+        }
+      }
+    };
+    
+    checkAuth();
+  }, [token, router, pathname]);
 
   if (!mounted) return null;
-  if (!token) return null; // Prevent flash
+  if (!token) return null; // Prevent flash while redirecting
 
   return (
     <>
       <AppShell>
         {children}
       </AppShell>
-      {/* Global Toaster for the App Shell */}
-      <Toaster 
-        position="bottom-right" 
-        toastOptions={{
-          className: "bg-[var(--bg-surface)] text-[var(--text-primary)] border-[var(--border-default)] shadow-[var(--shadow-md)] rounded-[var(--radius-card)]",
-          style: {
-            fontFamily: "var(--font-sans)",
-          }
-        }} 
-      />
     </>
   );
 }

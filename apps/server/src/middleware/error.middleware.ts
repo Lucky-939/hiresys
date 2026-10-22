@@ -14,6 +14,16 @@ export function errorMiddleware(
     });
   }
 
+  if ((err as any).name === "MulterError" || (err as any).code === "LIMIT_FILE_SIZE") {
+    const isSize = (err as any).code === "LIMIT_FILE_SIZE";
+    return res.status(isSize ? 413 : 400).json({
+      success: false,
+      message: isSize
+        ? "Resume file size exceeds the 5 MB limit. Please upload a smaller file."
+        : err.message,
+    });
+  }
+
   if (err.name === "PrismaClientValidationError") {
     return res.status(400).json({
       success: false,

@@ -34,7 +34,7 @@ export class DashboardService {
     const hiredThisMonth = await prisma.candidate.count({
       where: {
         organizationId,
-        stage: "HIRED",
+        pipelineStage: { type: "POSITIVE_TERMINAL" },
         updatedAt: { gte: startOfMonth }
       }
     });
@@ -43,8 +43,8 @@ export class DashboardService {
     const pendingDecision = await prisma.candidate.count({
       where: {
         organizationId,
-        stage: {
-          notIn: ["HIRED", "REJECTED"]
+        pipelineStage: {
+          type: "STANDARD"
         }
       }
     });
@@ -57,9 +57,9 @@ export class DashboardService {
     });
 
     const pipelineCounts = await prisma.candidate.groupBy({
-      by: ['stage'],
+      by: ['stageId'],
       where: { organizationId },
-      _count: { stage: true }
+      _count: { stageId: true }
     });
 
     const stats = {
@@ -73,7 +73,7 @@ export class DashboardService {
         time: a.createdAt
       })),
       pipelineCounts: pipelineCounts.reduce((acc, curr) => {
-        acc[curr.stage] = curr._count.stage;
+        acc[curr.stageId] = curr._count.stageId;
         return acc;
       }, {} as Record<string, number>)
     };

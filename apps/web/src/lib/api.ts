@@ -18,9 +18,17 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (
+      error.response?.status === 401 &&
+      typeof window !== "undefined" &&
+      window.location.pathname !== "/login" &&
+      window.location.pathname !== "/register"
+    ) {
       localStorage.removeItem("token");
-      window.location.href = "/login";
+      localStorage.removeItem("auth-storage");
+      localStorage.removeItem("hire-sys-org");
+      const currentPath = window.location.pathname + window.location.search;
+      window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
     }
     return Promise.reject(error);
   },

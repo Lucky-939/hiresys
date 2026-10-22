@@ -11,19 +11,40 @@ function generateOtp() {
 }
 
 export class AuthService {
-  async register(name: string, email: string, password: string) {
+  async register(name: string, email: string, password: string, organizationName?: string) {
     const existing = await repo.findByEmail(email);
     if (existing) {
-      throw new AppError("An account with this email already exists", 409);
+      if (existing.emailVerified) {
+        throw new AppError("An account with this email already exists", 409);
+      } else {
+        // Account exists but is unverified.
+        // Update their password and resend OTP.
+        const hashedPassword = await bcrypt.hash(password, 12);
+        const { prisma } = require("../../config/database");
+        await prisma.user.update({
+          where: { id: existing.id },
+          data: { password: hashedPassword, name }
+        });
+        
+        // Generate and send new OTP
+        const otp = generateOtp();
+        const { redis } = require("../../config/redis");
+        await redis.setex(`verify_${existing.id}`, 600, otp); // Valid for 10 minutes
+        await redis.del(`verify_attempts_${existing.id}`);
+        await sendVerificationEmail(email, otp);
+        
+        return { message: "Account is pending verification. A new code has been sent.", userId: existing.id };
+      }
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    const user = await repo.createUser({ name, email, password: hashedPassword });
+    const user = await repo.createUser({ name, email, password: hashedPassword, organizationName });
 
     // Generate and send OTP
     const otp = generateOtp();
     const { redis } = require("../../config/redis");
     await redis.setex(`verify_${user.id}`, 600, otp); // Valid for 10 minutes
+    await redis.del(`verify_attempts_${user.id}`);
 
     await sendVerificationEmail(email, otp);
 
@@ -34,8 +55,28 @@ export class AuthService {
     const { redis } = require("../../config/redis");
     const storedOtp = await redis.get(`verify_${userId}`);
 
-    if (!storedOtp || storedOtp !== code) {
+    if (!storedOtp) {
       throw new AppError("Invalid or expired verification code", 400);
+    }
+
+    if (storedOtp !== code) {
+      const attemptsKey = `verify_attempts_${userId}`;
+      const attempts = await redis.incr(attemptsKey);
+      if (attempts === 1) {
+        const ttl = await redis.ttl(`verify_${userId}`);
+        if (ttl > 0) {
+          await redis.expire(attemptsKey, ttl);
+        }
+      }
+
+      if (attempts >= 5) {
+        await redis.del(`verify_${userId}`);
+        await redis.del(attemptsKey);
+        throw new AppError("Too many failed attempts. Verification code has been invalidated. Please request a new code.", 429);
+      }
+
+      const remaining = 5 - attempts;
+      throw new AppError(`Invalid verification code. ${remaining} attempt(s) remaining.`, 400);
     }
 
     // Update user
@@ -45,15 +86,11 @@ export class AuthService {
       data: { emailVerified: new Date() }
     });
 
-    // Delete OTP
+    // Delete OTP & attempts
     await redis.del(`verify_${userId}`);
+    await redis.del(`verify_attempts_${userId}`);
 
-    // Log user in
-    const token = jwt.sign({ sub: user.id }, process.env.JWT_SECRET!, {
-      expiresIn: "7d",
-    });
-
-    return { token, user: { id: user.id, name: user.name, email: user.email } };
+    return { message: "Email verified successfully. Please sign in." };
   }
 
   async login(email: string, password: string) {

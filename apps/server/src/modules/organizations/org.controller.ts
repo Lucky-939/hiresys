@@ -25,7 +25,12 @@ export async function getMyOrgs(
 ) {
   try {
     const orgs = await service.getUserOrgs(req.userId!);
-    res.json({ success: true, data: orgs });
+    const mappedOrgs = orgs.map(org => ({
+      ...org,
+      role: org.members[0]?.role,
+      members: undefined // remove nested array
+    }));
+    res.json({ success: true, data: mappedOrgs });
   } catch (err) {
     next(err);
   }
@@ -37,7 +42,7 @@ export async function getOrgById(
   next: NextFunction,
 ) {
   try {
-    const org = await service.getOrgById(req.params.id as string, req.userId!);
+    const org = await service.getOrgById(req.params.orgId as string, req.userId!);
     res.json({ success: true, data: org });
   } catch (err) {
     next(err);
@@ -51,7 +56,7 @@ export async function updateOrg(
 ) {
   try {
     const { name } = req.body;
-    const org = await service.updateOrgName(req.params.id as string, name, req.userId!);
+    const org = await service.updateOrgName(req.params.orgId as string, name, req.userId!);
     res.json({ success: true, data: org });
   } catch (err) {
     next(err);
@@ -62,7 +67,7 @@ export async function updateOrg(
 
 export async function getMembers(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const members = await service.getMembers(req.params.orgId as string);
+    const members = await service.getMembers(req.params.orgId as string, req.userId!);
     res.json({ success: true, data: members });
   } catch (err) {
     next(err);

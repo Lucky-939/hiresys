@@ -1,6 +1,6 @@
 import { generateText } from "./ai.service";
 
-export async function analyzeResumeText(resumeText: string): Promise<{
+export async function analyzeResumeText(resumeText: string, jobDescription?: string): Promise<{
   score: number;
   scoreExplanation: string;
   atsScore: number;
@@ -40,10 +40,12 @@ export async function analyzeResumeText(resumeText: string): Promise<{
     reason: string;
     whereToAdd: string;
   }[];
+  matchedKeywords: string[];
 }> {
   const prompt = `
 You are a Staff-level Technical Recruiter and an elite Resume Coach at a top-tier FAANG company. 
 You are conducting a ruthless but highly constructive review of the candidate's resume. Do NOT use generic praise. Every point must be tied to evidence in the text. Speak directly, avoid corporate fluff, and focus strictly on measurable improvement.
+${jobDescription ? `\nAnalyze the resume SPECIFICALLY against the following Job Description:\n---\n${jobDescription.slice(0, 4000)}\n---\n\nAssess how well the candidate's experience, skills, and metrics align with the requirements of this role. Penalize heavily for missing core skills mentioned in the job description.` : ''}
 
 Conduct a deep-dive review of the following resume text:
 ---
@@ -100,7 +102,8 @@ Return exactly this JSON structure (and ONLY this JSON, no markdown formatting o
       "reason": "Why this matters for their target roles.",
       "whereToAdd": "Specifically where in the resume to add it naturally."
     }
-  ]
+  ],
+  "matchedKeywords": ["React", "TypeScript", "Node.js"]
 }
 `;
 
@@ -121,7 +124,8 @@ Return exactly this JSON structure (and ONLY this JSON, no markdown formatting o
       strengths: [],
       weaknesses: [],
       rewrites: [],
-      missingKeywords: []
+      missingKeywords: [],
+      matchedKeywords: []
     };
   }
 }

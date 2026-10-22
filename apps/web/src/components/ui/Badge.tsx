@@ -15,29 +15,39 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantClasses: Record<NonNullable<BadgeProps["variant"]>, string> = {
-  neutral:     "bg-[var(--neutral-bg)]     text-[var(--neutral-text)]  border border-[var(--neutral-border)]",
-  accent:      "bg-[var(--accent-muted)]   text-[var(--accent)]        border border-[var(--accent-border)]",
-  success:     "bg-[var(--success-bg)]     text-[var(--success-text)]  border border-[var(--success-border)]",
-  warning:     "bg-[var(--warning-bg)]     text-[var(--warning-text)]  border border-[var(--warning-border)]",
-  danger:      "bg-[var(--danger-bg)]      text-[var(--danger-text)]   border border-[var(--danger-border)]",
-  destructive: "bg-[var(--danger-bg)]      text-[var(--danger-text)]   border border-[var(--danger-border)]",
-  live:        "bg-[var(--danger-bg)]      text-[var(--danger-text)]   border border-[var(--danger-border)]",
-  error:       "bg-[var(--danger-bg)]      text-[var(--danger-text)]   border border-[var(--danger-border)]",
-  info:        "bg-[var(--info-bg)]        text-[var(--info-text)]     border border-[var(--info-border)]",
-  outline:     "bg-transparent             text-[var(--text-secondary)] border border-[var(--border-default)]",
+  // Neutral (Gray)
+  neutral:     "bg-transparent text-[var(--text-secondary)] border border-[var(--border-default)]",
+  outline:     "bg-transparent text-[var(--text-secondary)] border border-[var(--border-default)]",
+  live:        "bg-transparent text-[var(--text-secondary)] border border-[var(--border-default)]",
+
+  // Accent (Teal)
+  accent:      "bg-transparent text-[var(--accent)] border border-[var(--accent)]",
+  success:     "bg-transparent text-[var(--accent)] border border-[var(--accent)]",
+  info:        "bg-transparent text-[var(--accent)] border border-[var(--accent)]",
+
+  // Danger (Red)
+  warning:     "bg-transparent text-[var(--danger)] border border-[var(--danger)]",
+  danger:      "bg-transparent text-[var(--danger)] border border-[var(--danger)]",
+  destructive: "bg-transparent text-[var(--danger)] border border-[var(--danger)]",
+  error:       "bg-transparent text-[var(--danger)] border border-[var(--danger)]",
 };
 
 const dotColors: Record<NonNullable<BadgeProps["variant"]>, string> = {
-  neutral:     "bg-[var(--neutral-text)]",
+  // Neutral (Gray)
+  neutral:     "bg-[var(--text-muted)]",
+  outline:     "bg-[var(--text-muted)]",
+  live:        "bg-[var(--text-muted)] live-pulse",
+
+  // Accent (Teal)
   accent:      "bg-[var(--accent)]",
-  success:     "bg-[var(--success)]",
-  warning:     "bg-[var(--warning)]",
+  success:     "bg-[var(--accent)]",
+  info:        "bg-[var(--accent)]",
+
+  // Danger (Red)
+  warning:     "bg-[var(--danger)]",
   danger:      "bg-[var(--danger)]",
   destructive: "bg-[var(--danger)]",
-  live:        "bg-[var(--danger)] live-pulse",
   error:       "bg-[var(--danger)]",
-  info:        "bg-[var(--info)]",
-  outline:     "bg-[var(--text-muted)]",
 };
 
 export function Badge({
@@ -51,7 +61,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full font-medium leading-none whitespace-nowrap",
+        "inline-flex items-center gap-1.5 rounded-[var(--radius-default)] font-medium leading-none whitespace-nowrap",
         size === "sm" ? "h-5 px-2 text-[10px]" : "h-[22px] px-2.5 text-[11px]",
         variantClasses[variant],
         className

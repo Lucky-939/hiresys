@@ -8,20 +8,22 @@ datasource db {
 }
 
 model User {
-  id            String               @id @default(cuid())
-  email         String               @unique
-  password      String?
-  emailVerified DateTime?
-  name          String
-  role          Role                 @default(USER)
-  organizations OrganizationMember[] 
-  interviews    Interview[]          
-  candidates    Candidate[]          
-  candidateDecisions Candidate[]     @relation("CandidateDecisionBy")
-  createdInvites OrgInvite[]
-  notifications Notification[]
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
+  id                 String               @id @default(cuid())
+  email              String               @unique
+  password           String?
+  emailVerified      DateTime?
+  name               String
+  role               Role                 @default(USER)
+  organizations      OrganizationMember[]
+  interviews         Interview[]
+  candidates         Candidate[]
+  candidateDecisions Candidate[]          @relation("CandidateDecisionBy")
+  assignedInterviews Interview[]          @relation("InterviewInterviewer")
+  createdInvites     OrgInvite[]
+  createdJobs        Job[]
+  notifications      Notification[]
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
 
   @@index([email])
 }
@@ -34,7 +36,7 @@ model Notification {
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([createdAt])
@@ -46,16 +48,18 @@ enum Role {
 }
 
 model Organization {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  plan      Plan     @default(FREE)
-  members   OrganizationMember[]
-  interviews Interview[]
-  candidates Candidate[]
-  invites   OrgInvite[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String               @id @default(cuid())
+  name           String
+  slug           String               @unique
+  plan           Plan                 @default(FREE)
+  members        OrganizationMember[]
+  interviews     Interview[]
+  candidates     Candidate[]
+  jobs           Job[]
+  invites        OrgInvite[]
+  pipelineStages PipelineStage[]
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
 
   @@index([slug])
 }
@@ -64,7 +68,7 @@ model OrganizationMember {
   id             String       @id @default(cuid())
   userId         String
   organizationId String
-  role           OrgRole      @default(MEMBER)
+  role           OrgRole      @default(RECRUITER)
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdAt      DateTime     @default(now())
@@ -73,42 +77,49 @@ model OrganizationMember {
 }
 
 model OrgInvite {
-  id             String       @id @default(cuid())
+  id             String    @id @default(cuid())
   email          String
   organizationId String
-  role           OrgRole      @default(MEMBER)
-  token          String       @unique @default(cuid())
+  role           OrgRole   @default(RECRUITER)
+  token          String    @unique @default(cuid())
   expiresAt      DateTime
   acceptedAt     DateTime?
   createdById    String
 
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  createdBy      User         @relation(fields: [createdById], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User         @relation(fields: [createdById], references: [id])
 
-  createdAt      DateTime     @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([email, organizationId])
   @@index([token])
 }
 
 model Interview {
-  id             String          @id @default(cuid())
+  id             String           @id @default(cuid())
   title          String
   description    String?
-  status         InterviewStatus @default(SCHEDULED)
+  status         InterviewStatus  @default(SCHEDULED)
   scheduledAt    DateTime?
   organizationId String
   createdById    String
-  codeSubmitted  String?         @db.Text
+  codeSubmitted  String?          @db.Text
   language       String?
-  interviewNotes String?         @db.Text
-  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  createdBy      User            @relation(fields: [createdById], references: [id])
+  interviewNotes String?          @db.Text
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy      User             @relation(fields: [createdById], references: [id])
   candidateId    String?
-  candidate      Candidate?      @relation(fields: [candidateId], references: [id], onDelete: SetNull)
+  candidate      Candidate?       @relation(fields: [candidateId], references: [id], onDelete: SetNull)
+  interviewerId  String?
+  interviewer    User?            @relation("InterviewInterviewer", fields: [interviewerId], references: [id])
   report         InterviewReport?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  candidateInviteSentAt    DateTime?
+  interviewerInviteSentAt  DateTime?
+  candidateInviteFailed    Boolean          @default(false)
+  interviewerInviteFailed  Boolean          @default(false)
+  needsPasswordReset       Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   @@index([organizationId])
   @@index([status])
@@ -125,6 +136,9 @@ enum OrgRole {
   OWNER
   ADMIN
   MEMBER
+  RECRUITER
+  INTERVIEWER
+  CANDIDATE
 }
 
 enum InterviewStatus {
@@ -157,68 +171,129 @@ model InterviewReport {
   version                 Int            @default(1)
 
   // Immutable snapshots — capture exact interview state at report generation time
-  snapshotInterviewTitle  String?
-  snapshotCodeSubmitted   String?
-  snapshotLanguage        String?
-  snapshotQuestions       Json?
-  snapshotResumeScore     Int?
-  snapshotInterviewNotes  String?        @db.Text
+  snapshotInterviewTitle String?
+  snapshotCodeSubmitted  String?
+  snapshotLanguage       String?
+  snapshotQuestions      Json?
+  snapshotResumeScore    Int?
+  snapshotInterviewNotes String? @db.Text
 
-  createdAt               DateTime       @default(now())
+  createdAt DateTime @default(now())
 }
 
-enum CandidateStage {
-  APPLIED
-  SCREENING
-  INTERVIEWING
-  OFFER
-  HIRED
-  REJECTED
+enum StageType {
+  STANDARD
+  POSITIVE_TERMINAL
+  NEGATIVE_TERMINAL
+}
+
+model PipelineStage {
+  id    String    @id @default(cuid())
+  name  String
+  order Int
+  color String    @default("var(--accent)")
+  type  StageType @default(STANDARD)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  candidates Candidate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, name])
+  @@index([organizationId, order])
+}
+
+
+enum CandidateSource {
+  INTERNAL
+  PUBLIC_APPLICATION
 }
 
 model Candidate {
-  id              String            @id @default(cuid())
-  
-  name            String
-  email           String
-  phone           String?
-  linkedinUrl     String?
-  
-  stage           CandidateStage    @default(APPLIED)
-  
-  resumeText      String?
-  resumeScore     Int?
-  atsScore        Int?
-  
-  organizationId  String
-  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  
-  createdById     String
-  createdBy       User              @relation(fields: [createdById], references: [id])
-  
-  interviews      Interview[]
-  activities      CandidateActivity[]
-  
-  decisionNotes   String?           @db.Text
-  decisionById    String?
-  decisionAt      DateTime?
-  decisionBy      User?             @relation("CandidateDecisionBy", fields: [decisionById], references: [id])
-  
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  
-  @@unique([organizationId, email])
+  id String @id @default(cuid())
+
+  name        String
+  email       String
+  phone       String?
+  linkedinUrl String?
+
+  stageId       String
+  pipelineStage PipelineStage @relation(fields: [stageId], references: [id])
+
+  resumeUrl      String?
+  resumeText     String?
+  resumeScore    Int?
+  resumeAnalysis Json?
+  atsScore       Int?
+
+  source        CandidateSource @default(INTERNAL)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  jobId String?
+  job   Job?    @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  interviews Interview[]
+  activities CandidateActivity[]
+
+  decisionNotes String?   @db.Text
+  decisionById  String?
+  decisionAt    DateTime?
+  decisionBy    User?     @relation("CandidateDecisionBy", fields: [decisionById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([jobId, email])
+  @@index([organizationId, email])
   @@index([organizationId])
+  @@index([jobId])
   @@index([createdAt])
 }
 
 model CandidateActivity {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   candidateId String
   candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   type        String
   description String
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 
   @@index([candidateId])
+}
+
+enum JobStatus {
+  DRAFT
+  OPEN
+  CLOSED
+}
+
+model Job {
+  id          String    @id @default(cuid())
+  title       String
+  description String    @db.Text
+  department  String?
+  location    String?
+  status      JobStatus @default(OPEN)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  candidates Candidate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([status])
 }

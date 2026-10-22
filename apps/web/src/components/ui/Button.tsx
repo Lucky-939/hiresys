@@ -18,20 +18,20 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const variantClasses: Record<NonNullable<ButtonProps["variant"]>, string> = {
-  default:     "bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] active:bg-[var(--accent-active)] shadow-[var(--shadow-sm)]",
-  primary:     "bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] active:bg-[var(--accent-active)] shadow-[var(--shadow-sm)]",
-  secondary:   "bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-default)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-secondary)]",
-  outline:     "bg-transparent text-[var(--text-primary)] border border-[var(--border-default)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-secondary)]",
-  ghost:       "bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]",
-  destructive: "bg-[var(--danger)] text-white hover:bg-[var(--danger-hover)] active:bg-[var(--danger-active)] shadow-[var(--shadow-sm)]",
+  default:     "bg-[var(--accent)] text-white hover:bg-[var(--accentHover)] active:bg-[var(--accent)]",
+  primary:     "bg-[var(--accent)] text-white hover:bg-[var(--accentHover)] active:bg-[var(--accent)]",
+  secondary:   "bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-default)] hover:bg-[var(--bg-base)]",
+  outline:     "bg-transparent text-[var(--text-primary)] border border-[var(--border-default)] hover:bg-[var(--bg-base)]",
+  ghost:       "bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-base)] hover:text-[var(--text-primary)]",
+  destructive: "bg-[var(--danger)] text-white hover:opacity-90 active:opacity-100",
 };
 
 const sizeClasses: Record<NonNullable<ButtonProps["size"]>, string> = {
-  sm:      "h-[34px] px-3 text-[var(--text-btn)] rounded-[var(--radius-btn)]",
-  default: "h-[40px] px-4 text-[var(--text-btn)] rounded-[var(--radius-btn)]",
-  md:      "h-[40px] px-4 text-[var(--text-btn)] rounded-[var(--radius-btn)]",
-  lg:      "h-[44px] px-5 text-[var(--text-btn)] rounded-[var(--radius-btn)]",
-  icon:    "h-[36px] w-[36px] rounded-[var(--radius-btn)]",
+  sm:      "h-[34px] px-3.5 text-[14px] rounded-[var(--radius-default)]",
+  default: "h-[40px] px-4 text-[14px] rounded-[var(--radius-default)]",
+  md:      "h-[40px] px-4 text-[14px] rounded-[var(--radius-default)]",
+  lg:      "h-[44px] px-5 text-[14px] rounded-[var(--radius-default)]",
+  icon:    "h-[36px] w-[36px] rounded-[var(--radius-default)]",
 };
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(

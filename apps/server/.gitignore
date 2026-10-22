@@ -1,7 +1,10 @@
 node_modules
+dist/
+uploads/
+*.log
 # Keep environment variables out of version control
 .env
-
-/src/generated/prisma
+.env.*
+!.env.example
 
 /src/generated/prisma

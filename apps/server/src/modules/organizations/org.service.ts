@@ -1,22 +1,26 @@
 import { OrgRepository } from "./org.repository";
 import { AppError } from "../../utils/errors";
+import { assertTeamMember, assertOrgMember } from "../../utils/rbac";
 
 const repo = new OrgRepository();
 
 export class OrgService {
   async createOrg(name: string, ownerId: string) {
-    const slug = name
+    let slug = name
       .toLowerCase()
       .trim()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "");
 
-    const existing = await repo.findBySlug(slug);
+    if (!slug) slug = "org";
+
+    let finalSlug = slug;
+    const existing = await repo.findBySlug(finalSlug);
     if (existing) {
-      throw new AppError("An organization with this name already exists", 409);
+      finalSlug = `${slug}-${Math.random().toString(36).substring(2, 7)}`;
     }
 
-    return repo.create({ name, slug, ownerId });
+    return repo.create({ name, slug: finalSlug, ownerId });
   }
 
   async getUserOrgs(userId: string) {
@@ -27,8 +31,7 @@ export class OrgService {
     const org = await repo.findById(id);
     if (!org) throw new AppError("Organization not found", 404);
 
-    const isMember = org.members.some((m) => m.userId === userId);
-    if (!isMember) throw new AppError("Access denied", 403);
+    await assertTeamMember(id, userId);
 
     return org;
   }
@@ -37,8 +40,7 @@ export class OrgService {
     const org = await repo.findById(id);
     if (!org) throw new AppError("Organization not found", 404);
 
-    const member = org.members.find((m) => m.userId === userId);
-    if (!member) throw new AppError("Access denied", 403);
+    const member = await assertTeamMember(id, userId);
 
     if (member.role !== "OWNER" && member.role !== "ADMIN") {
       throw new AppError("Only owners and admins can rename the organization", 403);
@@ -49,13 +51,21 @@ export class OrgService {
 
   // --- Members ---
 
-  async getMembers(orgId: string) {
+  async getMembers(orgId: string, userId: string) {
+    await assertTeamMember(orgId, userId);
     return repo.getMembers(orgId);
   }
 
-  async updateMemberRole(orgId: string, targetUserId: string, newRole: "ADMIN" | "MEMBER", requesterId: string) {
-    const requester = await repo.getMember(orgId, requesterId);
-    if (!requester) throw new AppError("Requester is not a member", 403);
+  async updateMemberRole(orgId: string, targetUserId: string, newRole: string, requesterId: string) {
+    const requester = await assertTeamMember(orgId, requesterId);
+
+    const allowedRoles = ["ADMIN", "RECRUITER", "INTERVIEWER"];
+    if (newRole === "OWNER") {
+      throw new AppError("Cannot assign OWNER role. Organization ownership cannot be transferred or granted via member role management.", 403);
+    }
+    if (!allowedRoles.includes(newRole)) {
+      throw new AppError(`Invalid role: ${newRole}. Allowed roles are: ${allowedRoles.join(", ")}`, 400);
+    }
 
     const target = await repo.getMember(orgId, targetUserId);
     if (!target) throw new AppError("Target user is not a member", 404);
@@ -68,7 +78,7 @@ export class OrgService {
       throw new AppError("Only owner can manage admin accounts", 403);
     }
 
-    return repo.updateMemberRole(orgId, targetUserId, newRole);
+    return repo.updateMemberRole(orgId, targetUserId, newRole as "ADMIN" | "RECRUITER" | "INTERVIEWER");
   }
 
   async removeMember(orgId: string, targetUserId: string, requesterId: string) {
@@ -76,8 +86,7 @@ export class OrgService {
       throw new AppError("You cannot remove yourself", 400);
     }
 
-    const requester = await repo.getMember(orgId, requesterId);
-    if (!requester) throw new AppError("Requester is not a member", 403);
+    const requester = await assertTeamMember(orgId, requesterId);
 
     const target = await repo.getMember(orgId, targetUserId);
     if (!target) throw new AppError("Target user is not a member", 404);
@@ -95,7 +104,20 @@ export class OrgService {
 
   // --- Invites ---
 
-  async inviteMember(orgId: string, email: string, role: "ADMIN" | "MEMBER", requesterId: string) {
+  async inviteMember(orgId: string, email: string, role: string, requesterId: string) {
+    const inviter = await assertTeamMember(orgId, requesterId);
+    if (inviter.role !== "OWNER" && inviter.role !== "ADMIN") {
+      throw new AppError("Only owners and admins can invite members", 403);
+    }
+
+    const allowedRoles = ["ADMIN", "RECRUITER", "INTERVIEWER"];
+    if (role === "OWNER") {
+      throw new AppError("Cannot invite members with OWNER role.", 403);
+    }
+    if (!allowedRoles.includes(role)) {
+      throw new AppError(`Invalid role: ${role}. Allowed roles are: ${allowedRoles.join(", ")}`, 400);
+    }
+    
     // 1. Check if user already exists and is a member
     const { prisma } = require("../../config/database");
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -120,7 +142,7 @@ export class OrgService {
     return repo.createInvite({
       email,
       organizationId: orgId,
-      role,
+      role: role as "ADMIN" | "RECRUITER" | "INTERVIEWER",
       createdById: requesterId,
       expiresAt,
     });

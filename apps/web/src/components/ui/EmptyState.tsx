@@ -38,8 +38,8 @@ export function EmptyState({
       {icon && (
         <div
           className={cn(
-            "flex items-center justify-center rounded-[var(--radius-card)]",
-            "border border-[var(--border-default)] bg-[var(--bg-secondary)]",
+            "flex items-center justify-center rounded-[var(--radius-default)]",
+            "border border-[var(--border-default)] bg-[var(--bg-subtle)]",
             "text-[var(--text-muted)]",
             compact ? "h-10 w-10" : "h-12 w-12"
           )}
@@ -51,20 +51,20 @@ export function EmptyState({
         <h3
           className={cn(
             "font-semibold text-[var(--text-primary)]",
-            compact ? "text-[var(--text-base)]" : "text-[var(--text-lg)]"
+            compact ? "text-base" : "text-lg"
           )}
         >
           {title}
         </h3>
         {description && (
-          <p className="text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
+          <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
             {description}
           </p>
         )}
       </div>
       {action && <div className="mt-1">{action}</div>}
       {secondaryAction && (
-        <div className="text-[var(--text-sm)] text-[var(--text-muted)]">{secondaryAction}</div>
+        <div className="text-sm text-[var(--text-muted)]">{secondaryAction}</div>
       )}
     </div>
   );

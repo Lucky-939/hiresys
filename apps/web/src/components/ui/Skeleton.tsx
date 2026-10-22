@@ -13,10 +13,10 @@ interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const radiusMap = {
-  sm:   "var(--radius-sm)",
-  md:   "var(--radius-md)",
-  card: "var(--radius-card)",
-  full: "var(--radius-full)",
+  sm:   "var(--radius-default)",
+  md:   "var(--radius-default)",
+  card: "var(--radius-default)",
+  full: "var(--radius-default)",
 };
 
 export function Skeleton({ className, width, height, rounded = "md", style, ...props }: SkeletonProps) {
@@ -39,7 +39,7 @@ export function Skeleton({ className, width, height, rounded = "md", style, ...p
 
 export function KPICardSkeleton() {
   return (
-    <div className="h-[148px] rounded-[var(--radius-card)] border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 flex flex-col justify-between">
+    <div className="h-[148px] p-5 flex flex-col justify-between">
       <div className="flex items-center gap-2">
         <Skeleton width={18} height={18} rounded="sm" />
         <Skeleton width={72} height={11} />
@@ -52,7 +52,7 @@ export function KPICardSkeleton() {
 
 export function CandidateCardSkeleton() {
   return (
-    <div className="h-[76px] rounded-[var(--radius-card)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 flex items-center gap-3">
+    <div className="h-[76px] rounded-[var(--radius-default)] border border-[var(--border-default)] bg-[var(--bg-surface)] px-4 flex items-center gap-3">
       <Skeleton width={36} height={36} rounded="full" />
       <div className="flex-1 flex flex-col gap-2">
         <Skeleton width="55%" height={12} />
@@ -77,7 +77,7 @@ export function TableRowSkeleton({ cols = 5 }: { cols?: number }) {
 
 export function InterviewCardSkeleton() {
   return (
-    <div className="rounded-[var(--radius-card)] border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 flex items-center gap-4">
+    <div className="rounded-[var(--radius-default)] border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 flex items-center gap-4">
       <Skeleton width={36} height={36} rounded="full" />
       <div className="flex-1 flex flex-col gap-2">
         <Skeleton width="50%" height={13} />

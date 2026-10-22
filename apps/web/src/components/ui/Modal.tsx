@@ -1,11 +1,12 @@
 "use client";
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
 /**
  * HireSys Modal v2.0
- * Radius: 20px (--radius-modal)
- * Shadow: --shadow-md
+ * Radius: 4px (--radius-default)
+ * Shadow: None
  * No backdrop blur — semi-transparent dark overlay only.
  * Esc to close. Click-outside to close. Body scroll locked.
  */
@@ -17,17 +18,24 @@ interface ModalProps {
   description?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
-  size?: "sm" | "default" | "lg";
+  size?: "sm" | "default" | "lg" | "xl" | "2xl";
 }
 
 const sizeMap = {
   sm:      "max-w-sm",
   default: "max-w-[560px]",
   lg:      "max-w-2xl",
+  xl:      "max-w-4xl",
+  "2xl":   "max-w-5xl",
 };
 
 export function Modal({ open, onClose, title, description, children, footer, size = "default" }: ModalProps) {
   const overlayRef = React.useRef<HTMLDivElement>(null);
+
+  const onCloseRef = React.useRef(onClose);
+  React.useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -36,7 +44,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
 
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -87,11 +95,16 @@ export function Modal({ open, onClose, title, description, children, footer, siz
       document.body.style.overflow = "";
       if (previousFocus) previousFocus.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
-  if (!open) return null;
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  return (
+  if (!open || !mounted) return null;
+
+  return createPortal(
     <div
       ref={overlayRef}
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -104,29 +117,29 @@ export function Modal({ open, onClose, title, description, children, footer, siz
       <div
         className={cn(
           "w-full bg-[var(--bg-surface)] border border-[var(--border-default)]",
-          "rounded-[var(--radius-modal)] shadow-[var(--shadow-md)]",
+          "rounded-[var(--radius-default)]",
           "animate-slide-up flex flex-col max-h-[88vh]",
           sizeMap[size]
         )}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-5 border-b border-[var(--border-subtle)]">
+        <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-5 border-b border-[var(--border-divider)]">
           <div className="flex flex-col gap-1">
             <h2
               id="modal-title"
-              className="text-[var(--text-xl)] font-semibold text-[var(--text-primary)] leading-tight tracking-tight"
+              className="text-xl font-semibold text-[var(--text-primary)] leading-tight tracking-tight"
             >
               {title}
             </h2>
             {description && (
-              <p className="text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
+              <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
                 {description}
               </p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="h-7 w-7 flex items-center justify-center rounded-[var(--radius-sm)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors shrink-0 -mr-1 -mt-1"
+            className="h-7 w-7 flex items-center justify-center rounded-[var(--radius-default)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-base)] transition-colors shrink-0 -mr-1 -mt-1"
             aria-label="Close modal"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -142,11 +155,12 @@ export function Modal({ open, onClose, title, description, children, footer, siz
 
         {/* Footer */}
         {footer && (
-          <div className="px-6 pb-6 pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between gap-3">
+          <div className="px-6 pb-6 pt-4 border-t border-[var(--border-divider)] flex items-center justify-between gap-3">
             {footer}
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

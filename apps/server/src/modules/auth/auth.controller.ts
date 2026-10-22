@@ -9,8 +9,8 @@ export async function register(
   next: NextFunction,
 ) {
   try {
-    const { name, email, password } = req.body;
-    const result = await service.register(name, email, password);
+    const { name, email, password, organizationName } = req.body;
+    const result = await service.register(name, email, password, organizationName);
     res.status(201).json({ success: true, ...result });
   } catch (err) {
     next(err); // passes error to errorMiddleware

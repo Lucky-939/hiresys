@@ -50,7 +50,7 @@ export function KPICard({
   if (loading) {
     return (
       <div className={cn(
-        "h-[148px] rounded-[var(--radius-card)] border border-[var(--border-default)] bg-[var(--bg-surface)] p-5",
+        "h-[148px] p-6",
         "flex flex-col gap-3 justify-between",
         className
       )}>
@@ -66,9 +66,7 @@ export function KPICard({
 
   return (
     <div className={cn(
-      "h-[148px] rounded-[var(--radius-card)] border border-[var(--border-default)] bg-[var(--bg-surface)] p-5",
-      "flex flex-col justify-between",
-      "transition-shadow duration-[var(--ease-base)] hover:shadow-[var(--shadow-sm)]",
+      "h-[148px] p-6 flex flex-col justify-between",
       className
     )}>
       {/* Label + Icon */}
@@ -76,29 +74,29 @@ export function KPICard({
         {icon && (
           <span className="text-[var(--text-muted)] flex items-center shrink-0">{icon}</span>
         )}
-        <span className="text-[var(--text-sm)] font-medium text-[var(--text-secondary)] tracking-tight leading-none">
+        <span className="text-[14px] font-medium text-[var(--text-secondary)] tracking-tight leading-none">
           {title}
         </span>
       </div>
 
       {/* Value */}
-      <span className="text-[32px] font-bold leading-none tracking-tight text-[var(--text-primary)]">
+      <span className="text-[40px] font-bold font-mono leading-none tracking-tight text-[var(--text-primary)]">
         {typeof value === "string" ? value : animated}
       </span>
 
       {/* Context / Empty */}
       <div className="flex items-center justify-between">
         {isEmpty && emptyMessage ? (
-          <span className="text-[var(--text-xs)] text-[var(--text-muted)]">{emptyMessage}</span>
+          <span className="text-[12px] text-[var(--text-muted)]">{emptyMessage}</span>
         ) : context ? (
-          <span className="text-[var(--text-xs)] text-[var(--text-muted)]">{context}</span>
+          <span className="text-[12px] text-[var(--text-muted)]">{context}</span>
         ) : (
           <span />
         )}
         {isEmpty && emptyAction && emptyActionLabel && (
           <button
             onClick={emptyAction}
-            className="text-[var(--text-xs)] font-semibold text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors"
+            className="text-[12px] font-semibold text-[var(--accent)] hover:text-[var(--accentHover)] transition-colors"
           >
             {emptyActionLabel} →
           </button>

@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import { Icons } from "@/components/ui/Icons";
 import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -164,6 +164,8 @@ export default function ResumePage() {
         <PageHeader
           title="Resume Intelligence"
           description="AI-powered resume analysis. Upload a PDF to extract insights, score skills, and get actionable improvements."
+          backHref="/dashboard"
+          backLabel="Back to Dashboard"
           actions={
             result ? (
               <Button variant="outline" size="sm" onClick={() => { setResult(null); setFile(null); }}>
@@ -182,9 +184,9 @@ export default function ResumePage() {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             className={cn(
-              "flex flex-col items-center justify-center p-16 border-2 border-dashed rounded-3xl transition-all duration-300 text-center cursor-pointer shadow-sm relative overflow-hidden group",
-              isDragging ? "border-[var(--accent)] bg-[var(--accent)]/5 scale-[1.02]" : "border-[var(--border-strong)] hover:border-[var(--accent)] bg-[var(--bg-surface)] hover:bg-[var(--accent)]/5",
-              file ? "border-solid border-[var(--success-border)] bg-[var(--success-bg)]/10" : ""
+              "flex flex-col items-center justify-center p-16 border-2 border-dashed rounded-[var(--radius-default)] transition-all duration-300 text-center cursor-pointer shadow-none relative overflow-hidden group",
+              isDragging ? "border-[var(--accent)] bg-[var(--accent)]/5 scale-[1.02]" : "border-[var(--border-default)] hover:border-[var(--accent)] bg-[var(--bg-surface)] hover:bg-[var(--accent)]/5",
+              file ? "border-solid border-[var(--accent)] bg-[var(--accent-muted)]" : ""
             )}
             onClick={() => !file && fileInputRef.current?.click()}
           >
@@ -197,8 +199,8 @@ export default function ResumePage() {
             />
             
             <div className={cn(
-              "h-20 w-20 rounded-2xl flex items-center justify-center mb-6 transition-all duration-300 shadow-sm", 
-              file ? "bg-[var(--success-bg)] text-[var(--success-text)] scale-110" : 
+              "h-20 w-20 rounded-[var(--radius-default)] flex items-center justify-center mb-6 transition-all duration-300 shadow-none", 
+              file ? "bg-[var(--accent-muted)] text-[var(--accent)] scale-110" : 
               isDragging ? "bg-[var(--accent)] text-white scale-110 shadow-md" : 
               "bg-[var(--bg-elevated)] text-[var(--text-secondary)] group-hover:bg-[var(--accent)] group-hover:text-white"
             )}>
@@ -210,7 +212,7 @@ export default function ResumePage() {
                 <h3 className="text-xl font-bold text-[var(--text-primary)] mb-1">{file.name}</h3>
                 <p className="text-sm font-medium text-[var(--text-muted)] mb-8">{formatFileSize(file.size)}</p>
                 <div className="flex justify-center gap-4">
-                  <Button variant="secondary" className="px-6 border-[var(--border-strong)]" onClick={(e) => { e.stopPropagation(); setFile(null); }}>Remove</Button>
+                  <Button variant="secondary" className="px-6 border-[var(--border-default)]" onClick={(e) => { e.stopPropagation(); setFile(null); }}>Remove</Button>
                   <Button onClick={(e) => { e.stopPropagation(); handleAnalyze(); }} className="min-w-[180px] px-8 text-[15px]">
                     Analyze Now →
                   </Button>
@@ -227,7 +229,7 @@ export default function ResumePage() {
       )}
 
       {error && (
-        <div className="p-4 rounded-[var(--radius-card)] bg-[var(--danger-bg)]/20 text-[var(--danger-text)] border border-[var(--danger-border)] text-[15px] font-medium flex items-center gap-3 animate-in fade-in max-w-3xl mx-auto w-full mt-4">
+        <div className="p-4 rounded-[var(--radius-default)] bg-[var(--danger-bg)]/20 text-[var(--danger-text)] border border-[var(--danger-border)] text-[15px] font-medium flex items-center gap-3 animate-in fade-in max-w-3xl mx-auto w-full mt-4">
           <span className="bg-[var(--danger-text)] text-white rounded-full p-1">{Icons.alert}</span>
           {error}
         </div>
@@ -235,9 +237,9 @@ export default function ResumePage() {
 
       {/* Loading State */}
       {loading && !result && (
-        <Card className="p-16 flex flex-col items-center justify-center text-center gap-8 shadow-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/80 backdrop-blur-xl animate-in zoom-in-95 duration-500 rounded-3xl max-w-3xl mx-auto w-full mt-12">
+        <Card className="p-16 flex flex-col items-center justify-center text-center gap-8 shadow-none border border-[var(--border-default)] bg-[var(--bg-surface)]/80 backdrop-blur-xl animate-in zoom-in-95 duration-500 rounded-[var(--radius-default)] max-w-3xl mx-auto w-full mt-12">
           <div className="relative flex items-center justify-center">
-            <div className="h-24 w-24 border-[3px] border-[var(--border-strong)] rounded-full" />
+            <div className="h-24 w-24 border-[3px] border-[var(--border-default)] rounded-full" />
             <div className="absolute h-24 w-24 border-[3px] border-transparent border-t-[var(--accent)] border-r-[var(--accent)] rounded-full animate-spin" />
             <div className="absolute text-[var(--accent)]">{Icons.activity}</div>
           </div>
@@ -263,20 +265,21 @@ export default function ResumePage() {
             <Card padding="default" className="flex flex-col">
               <CardHeader>
                 <CardTitle>Resume Score</CardTitle>
+                <CardDescription>AI-assisted estimate, not a hiring decision</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col gap-5">
                   <div className="flex items-baseline gap-2">
                     <span className="text-[56px] font-black text-[var(--text-primary)] leading-none tracking-tight">{result.score}</span>
-                    <span className="text-[var(--text-base)] text-[var(--text-muted)] font-medium">/ 100</span>
+                    <span className="text-base text-[var(--text-muted)] font-medium">/ 100</span>
                   </div>
-                  <p className="text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed border-l-2 border-[var(--border-strong)] pl-3 italic">
+                  <p className="text-sm text-[var(--text-secondary)] leading-relaxed border-l-2 border-[var(--border-default)] pl-3 italic">
                     {result.scoreExplanation}
                   </p>
-                  <div className="pt-3 border-t border-[var(--border-subtle)]">
+                  <div className="pt-3 border-t border-[var(--border-divider)]">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[var(--text-xs)] font-semibold text-[var(--text-muted)] uppercase tracking-wider">ATS Match</span>
-                      <span className="text-[var(--text-sm)] font-bold text-[var(--text-primary)] tabular-nums">{result.atsScore}/100</span>
+                      <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">ATS Match</span>
+                      <span className="text-sm font-bold text-[var(--text-primary)] tabular-nums">{result.atsScore}/100</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-[var(--bg-elevated)] overflow-hidden">
                       <div className="h-full bg-[var(--success)] rounded-full transition-all duration-700" style={{ width: `${result.atsScore}%` }} />
@@ -294,14 +297,14 @@ export default function ResumePage() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="flex flex-col gap-2">
-                    <h4 className="text-[var(--text-xs)] font-bold uppercase tracking-wider text-[var(--success-text)]">First Impression</h4>
-                    <p className="text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed p-3 rounded-[var(--radius-sm)] bg-[var(--bg-elevated)] border border-[var(--border-subtle)]">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--accent)]">First Impression</h4>
+                    <p className="text-sm text-[var(--text-secondary)] leading-relaxed p-3 rounded-[var(--radius-default)] bg-[var(--bg-elevated)] border border-[var(--border-divider)]">
                       {result.recruiterPerspective.firstImpression}
                     </p>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <h4 className="text-[var(--text-xs)] font-bold uppercase tracking-wider text-[var(--danger-text)]">Hiring Risks</h4>
-                    <p className="text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed p-3 rounded-[var(--radius-sm)] bg-[var(--danger-bg)] border border-[var(--danger-border)]">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--danger-text)]">Hiring Risks</h4>
+                    <p className="text-sm text-[var(--text-secondary)] leading-relaxed p-3 rounded-[var(--radius-default)] bg-[var(--danger-bg)] border border-[var(--danger-border)]">
                       {result.recruiterPerspective.hiringRisks}
                     </p>
                   </div>
@@ -313,7 +316,7 @@ export default function ResumePage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            {/* Metrics Breakdown — horizontal bars (RadarChart BANNED per spec) */}
+            {/* Metrics Breakdown â€” horizontal bars (RadarChart BANNED per spec) */}
             <Card padding="default" className="col-span-1 flex flex-col">
               <CardHeader><CardTitle>Metrics Breakdown</CardTitle></CardHeader>
               <CardContent>
@@ -330,15 +333,15 @@ export default function ResumePage() {
               <CardContent>
                 <div className="flex flex-col gap-3">
                   {result.top3Fixes.map((fix, idx) => (
-                    <div key={idx} className="flex gap-3.5 p-4 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-elevated)] hover:border-[var(--border-strong)] transition-colors">
+                    <div key={idx} className="flex gap-3.5 p-4 rounded-[var(--radius-default)] border border-[var(--border-default)] bg-[var(--bg-elevated)] hover:border-[var(--border-default)] transition-colors">
                       <div className="h-5 w-5 rounded-full bg-[var(--border-strong)] flex items-center justify-center text-[10px] font-bold text-[var(--text-secondary)] shrink-0 mt-0.5">{idx + 1}</div>
                       <div className="flex-1 flex flex-col gap-1.5">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{fix.title}</h4>
+                          <h4 className="text-sm font-semibold text-[var(--text-primary)]">{fix.title}</h4>
                           <Badge variant="neutral" size="sm">{fix.section}</Badge>
                           <Badge variant={getSeverityVariant(fix.severity)} size="sm">{fix.severity}</Badge>
                         </div>
-                        <p className="text-[var(--text-xs)] text-[var(--text-secondary)] leading-relaxed">{fix.description}</p>
+                        <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{fix.description}</p>
                       </div>
                     </div>
                   ))}
@@ -349,18 +352,18 @@ export default function ResumePage() {
 
           {/* Strengths & Weaknesses */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="p-8 border border-[var(--border-subtle)] shadow-md rounded-2xl bg-[var(--bg-surface)]">
-              <h3 className="text-[13px] font-bold text-[var(--success-text)] uppercase tracking-widest mb-6 flex items-center gap-2">
-                <span className="bg-[var(--success-bg)]/20 p-1 rounded-full">{Icons.check}</span> Proven Strengths
+            <Card className="p-8 border border-[var(--border-default)] shadow-none rounded-[var(--radius-default)] bg-[var(--bg-surface)]">
+              <h3 className="text-[13px] font-bold text-[var(--accent)] uppercase tracking-widest mb-6 flex items-center gap-2">
+                <span className="bg-[var(--accent-muted)] text-[var(--accent)] p-1 rounded-full">{Icons.check}</span> Proven Strengths
               </h3>
               <div className="flex flex-col gap-4">
                 {result.strengths.map((s, i) => (
-                  <div key={i} className="flex flex-col gap-2 p-4 rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
+                  <div key={i} className="flex flex-col gap-2 p-4 rounded-[var(--radius-default)] border border-[var(--border-divider)] bg-[var(--bg-elevated)]">
                     <h4 className="font-bold text-[14px] text-[var(--text-primary)] flex items-start gap-2">
-                       <span className="text-[var(--success-text)] mt-0.5">{Icons.checkCircle}</span>
+                       <span className="text-[var(--accent)] mt-0.5">{Icons.checkCircle}</span>
                        {s.point}
                     </h4>
-                    <div className="pl-6 border-l-2 border-[var(--border-strong)] ml-2 mt-1">
+                    <div className="pl-6 border-l-2 border-[var(--border-default)] ml-2 mt-1">
                       <p className="text-[13px] text-[var(--text-muted)] italic">"{s.evidence}"</p>
                     </div>
                   </div>
@@ -368,19 +371,19 @@ export default function ResumePage() {
               </div>
             </Card>
 
-            <Card className="p-8 border border-[var(--border-subtle)] shadow-md rounded-2xl bg-[var(--bg-surface)]">
+            <Card className="p-8 border border-[var(--border-default)] shadow-none rounded-[var(--radius-default)] bg-[var(--bg-surface)]">
               <h3 className="text-[13px] font-bold text-[var(--danger-text)] uppercase tracking-widest mb-6 flex items-center gap-2">
                 <span className="bg-[var(--danger-bg)]/20 p-1 rounded-full">{Icons.alert}</span> Areas to Improve
               </h3>
               <div className="flex flex-col gap-4">
                 {result.weaknesses.map((w, i) => (
-                  <div key={i} className="flex flex-col gap-2 p-4 rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
+                  <div key={i} className="flex flex-col gap-2 p-4 rounded-[var(--radius-default)] border border-[var(--border-divider)] bg-[var(--bg-elevated)]">
                     <div className="flex items-start justify-between gap-2">
                       <h4 className="font-bold text-[14px] text-[var(--text-primary)] flex items-start gap-2">
                          <span className="text-[var(--danger-text)] mt-0.5">{Icons.x}</span>
                          {w.issue}
                       </h4>
-                      <Badge className={cn("text-[10px] uppercase font-bold tracking-wider border", getSeverityColor(w.severity))}>
+                      <Badge variant={getSeverityVariant(w.severity)} size="sm">
                          {w.severity}
                       </Badge>
                     </div>
@@ -395,27 +398,27 @@ export default function ResumePage() {
 
           {/* Bullet Rewrites */}
           {result.rewrites.length > 0 && (
-            <Card className="p-8 border border-[var(--border-subtle)] shadow-md rounded-2xl bg-[var(--bg-surface)]">
+            <Card className="p-8 border border-[var(--border-default)] shadow-none rounded-[var(--radius-default)] bg-[var(--bg-surface)]">
               <h3 className="text-[13px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-6 flex items-center gap-2">
                 {Icons.code} Bullet Point Rewrites
               </h3>
               
               <div className="flex flex-col gap-6">
                 {result.rewrites.map((rewrite, i) => (
-                  <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[var(--bg-elevated)] p-4 rounded-[var(--radius-card)] border border-[var(--border-subtle)]">
-                    <div className="flex flex-col gap-2 p-4 rounded-[var(--radius-card)] bg-[var(--danger-bg)]/5 border border-[var(--danger-border)]/30">
+                  <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[var(--bg-elevated)] p-4 rounded-[var(--radius-default)] border border-[var(--border-divider)]">
+                    <div className="flex flex-col gap-2 p-4 rounded-[var(--radius-default)] bg-[var(--danger-bg)]/5 border border-[var(--danger-border)]/30">
                       <span className="text-[10px] uppercase font-bold tracking-widest text-[var(--danger-text)]">Original (Weak)</span>
                       <p className="text-[14px] text-[var(--text-secondary)] italic leading-relaxed line-through decoration-[var(--danger-text)]/40">
                         {rewrite.original}
                       </p>
                     </div>
-                    <div className="flex flex-col gap-2 p-4 rounded-[var(--radius-card)] bg-[var(--success-bg)]/5 border border-[var(--success-border)]/30">
-                      <span className="text-[10px] uppercase font-bold tracking-widest text-[var(--success-text)]">Improved (XYZ Format)</span>
+                    <div className="flex flex-col gap-2 p-4 rounded-[var(--radius-default)] bg-[var(--accent-muted)] border border-[var(--accent)]">
+                      <span className="text-[10px] uppercase font-bold tracking-widest text-[var(--accent)]">Improved (XYZ Format)</span>
                       <p className="text-[14px] text-[var(--text-primary)] font-medium leading-relaxed">
                         {rewrite.improved}
                       </p>
-                      <div className="mt-3 pt-3 border-t border-[var(--success-border)]/20">
-                        <p className="text-[12px] text-[var(--success-text)] font-semibold flex items-start gap-1.5">
+                      <div className="mt-3 pt-3 border-t border-[var(--accent)]/20">
+                        <p className="text-[12px] text-[var(--accent)] font-semibold flex items-start gap-1.5">
                            <span className="mt-0.5">{Icons.activity}</span> {rewrite.whyItWorks}
                         </p>
                       </div>
@@ -428,18 +431,18 @@ export default function ResumePage() {
 
           {/* Missing Keywords */}
           {result.missingKeywords.length > 0 && (
-             <Card className="p-8 border border-[var(--border-subtle)] shadow-md rounded-2xl bg-[var(--bg-surface)]">
+             <Card className="p-8 border border-[var(--border-default)] shadow-none rounded-[var(--radius-default)] bg-[var(--bg-surface)]">
                <h3 className="text-[13px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-6 flex items-center gap-2">
                  {Icons.checkCircle} Contextual Keyword Recommendations
                </h3>
                
                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                  {result.missingKeywords.map((kw, i) => (
-                   <div key={i} className="flex flex-col gap-3 p-5 rounded-[var(--radius-card)] border border-[var(--border-strong)] bg-[var(--bg-elevated)] relative overflow-hidden group hover:border-[var(--accent)] transition-colors">
+                   <div key={i} className="flex flex-col gap-3 p-5 rounded-[var(--radius-default)] border border-[var(--border-default)] bg-[var(--bg-elevated)] relative overflow-hidden group hover:border-[var(--accent)] transition-colors">
                      <div className="absolute top-0 right-0 w-16 h-16 bg-[var(--accent)]/5 rounded-bl-full -z-0" />
                      <h4 className="font-bold text-[16px] text-[var(--text-primary)] z-10 flex justify-between items-center">
                        {kw.keyword}
-                       <Badge variant="outline" className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] border-[var(--border-strong)]">
+                       <Badge variant="outline" className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] border-[var(--border-default)]">
                          {kw.whereToAdd}
                        </Badge>
                      </h4>

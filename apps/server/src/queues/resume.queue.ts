@@ -25,14 +25,29 @@ export const resumeWorker = new Worker(
     console.log(`Processing resume job: ${jobId} for candidate ${candidateId || 'none'}`);
 
     try {
-      const feedback = await analyzeResumeText(resumeText);
+      const { prisma } = require("../config/database");
+      let jobDescription: string | undefined;
+      let candidate: any = null;
 
-      if (candidateId && feedback.score) {
-        const { prisma } = require("../../config/database");
+      if (candidateId) {
+        candidate = await prisma.candidate.findUnique({
+          where: { id: candidateId },
+          include: { job: true },
+        });
+        if (candidate?.job?.description) {
+          jobDescription = candidate.job.description;
+        }
+      }
+
+      const feedback = await analyzeResumeText(resumeText, jobDescription);
+
+      if (candidateId && typeof feedback.score === "number") {
         await prisma.candidate.update({
           where: { id: candidateId },
           data: {
+            resumeText,
             resumeScore: feedback.score,
+            resumeAnalysis: feedback,
           }
         });
         
@@ -47,7 +62,7 @@ export const resumeWorker = new Worker(
 
       await setCache(
         `resume-result:${jobId}`,
-        { status: "completed", data: feedback },
+        { status: "completed", data: feedback, organizationId: candidate?.organizationId || job.data.organizationId },
         60 * 60,
       );
 

@@ -31,9 +31,10 @@ orgRoutes.post(
   createOrg
 );
 orgRoutes.get("/mine", getMyOrgs);
-orgRoutes.get("/:id", getOrgById);
+orgRoutes.get("/:orgId", getOrgById);
 orgRoutes.patch(
-  "/:id",
+  "/:orgId",
+  requireOrgRole("OWNER", "ADMIN"),
   validateRequest([
     { field: "name", required: true, type: "string", minLength: 2 },
   ]),
@@ -41,11 +42,14 @@ orgRoutes.patch(
 );
 
 // --- Members & RBAC ---
-orgRoutes.get("/:orgId/members", requireOrgRole("OWNER", "ADMIN", "MEMBER"), getMembers);
+orgRoutes.get("/:orgId/members", requireOrgRole("OWNER", "ADMIN", "RECRUITER"), getMembers);
 orgRoutes.post(
   "/:orgId/members/invite",
   requireOrgRole("OWNER", "ADMIN"),
-  validateRequest([{ field: "email", required: true, type: "string", minLength: 5 }]),
+  validateRequest([
+    { field: "email", required: true, type: "string", minLength: 5 },
+    { field: "role", required: true, type: "string" }
+  ]),
   inviteMember
 );
 orgRoutes.patch(

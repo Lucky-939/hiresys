@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -17,7 +17,7 @@ import { getErrorMessage } from "@/lib/error";
 
 const STATUS_MAP: Record<string, { label: string; variant: any }> = {
   SCHEDULED:  { label: "Scheduled",  variant: "info"    },
-  ACTIVE:     { label: "Live",        variant: "danger"  },
+  ACTIVE:     { label: "Live",        variant: "live"    },
   COMPLETED:  { label: "Completed",  variant: "neutral" },
   CANCELLED:  { label: "Cancelled",  variant: "neutral" },
 };
@@ -48,7 +48,7 @@ export default function CodingRoomsPage() {
   }, [selectedOrgId, isReady]);
 
   const tableHeader = (
-    <div className="flex items-center gap-4 px-5 py-2.5 bg-[var(--bg-elevated)] border-b border-[var(--border-default)] rounded-t-[var(--radius-lg)]">
+    <div className="flex items-center gap-4 px-5 py-2.5 bg-[var(--bg-elevated)] border-b border-[var(--border-default)] rounded-t-[var(--radius-default)]">
       <span className="w-20 shrink-0 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Status</span>
       <span className="flex-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Session</span>
       <span className="hidden md:block w-32 shrink-0 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Created</span>
@@ -66,12 +66,12 @@ export default function CodingRoomsPage() {
   );
 
   const content = (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] overflow-hidden bg-[var(--bg-surface)]">
+    <div className="rounded-[var(--radius-default)] border border-[var(--border-default)] overflow-hidden bg-[var(--bg-surface)]">
       {tableHeader}
 
       {loading ? (
         Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-4 px-5 py-3.5 border-b border-[var(--border-subtle)]">
+          <div key={i} className="flex items-center gap-4 px-5 py-3.5 border-b border-[var(--border-divider)]">
             <Skeleton width={64} height={20} rounded="full" />
             <div className="flex-1 flex flex-col gap-1.5">
               <Skeleton width="45%" height={13} />
@@ -96,7 +96,7 @@ export default function CodingRoomsPage() {
           return (
             <div
               key={iv.id}
-              className="flex items-center gap-4 px-5 py-3.5 border-b border-[var(--border-subtle)] hover:bg-[var(--bg-elevated)] transition-colors last:border-b-0 group"
+              className="flex items-center gap-4 px-5 py-3.5 border-b border-[var(--border-divider)] hover:bg-[var(--bg-elevated)] transition-colors last:border-b-0 group"
             >
               {/* Status */}
               <div className="w-20 shrink-0">
@@ -107,21 +107,21 @@ export default function CodingRoomsPage() {
               <div className="flex-1 min-w-0">
                 <button
                   onClick={() => router.push(`/room/${iv.id}`)}
-                  className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] hover:text-[var(--accent)] transition-colors text-left truncate block"
+                  className="text-sm font-semibold text-[var(--text-primary)] hover:text-[var(--accent)] transition-colors text-left truncate block"
                 >
                   {iv.title}
                 </button>
                 {iv.candidate && (
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <Avatar name={iv.candidate.name} size="xs" />
-                    <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] truncate">{iv.candidate.name}</span>
+                    <span className="text-xs text-[var(--text-muted)] truncate">{iv.candidate.name}</span>
                   </div>
                 )}
               </div>
 
               {/* Date */}
               <div className="hidden md:block w-32 shrink-0">
-                <span className="text-[var(--text-xs)] text-[var(--text-muted)]">
+                <span className="text-xs font-mono text-[var(--text-muted)]">
                   {new Date(iv.createdAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
                 </span>
               </div>
@@ -133,7 +133,7 @@ export default function CodingRoomsPage() {
                     View Report
                   </Button>
                 ) : isLive ? (
-                  <Button size="sm" onClick={() => router.push(`/room/${iv.id}`)} className="bg-[var(--danger)] hover:bg-[var(--danger-hover,#DC2626)] text-white border-none">
+                  <Button size="sm" onClick={() => router.push(`/room/${iv.id}`)}>
                     Join Live
                   </Button>
                 ) : (
@@ -155,6 +155,8 @@ export default function CodingRoomsPage() {
         <PageHeader
           title="Coding Rooms"
           description="Live collaborative coding sessions. Enter a room to start a technical interview."
+          backHref="/dashboard"
+          backLabel="Back to Dashboard"
           actions={<Button size="sm" onClick={() => router.push("/dashboard/interviews")}>New Interview</Button>}
         />
       }

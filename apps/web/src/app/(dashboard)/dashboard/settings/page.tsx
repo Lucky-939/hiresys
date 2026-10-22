@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { SettingsTemplate } from "@/components/layout/templates";
+
 import { useOrganizations } from "@/components/ui/OrganizationSelector";
 import { Icons } from "@/components/ui/Icons";
 import { toast } from "sonner";
@@ -56,30 +56,20 @@ export default function OrganizationSettingsPage() {
 
   if (loading) {
     return (
-      <SettingsTemplate
-        header={<PageHeader title="Organization Settings" description="Manage your organization's general settings." />}
-        content={
-          <div className="flex flex-col gap-4 max-w-[var(--settings-max-width)]">
-            <Skeleton width="40%" height={20} />
-            <Skeleton width="100%" height={120} rounded="lg" />
-            <Skeleton width="100%" height={80} rounded="lg" />
-          </div>
-        }
-      />
+      <div className="flex flex-col gap-4 max-w-[var(--settings-max-width)]">
+        <Skeleton width="40%" height={20} />
+        <Skeleton width="100%" height={120} rounded="md" />
+        <Skeleton width="100%" height={80} rounded="md" />
+      </div>
     );
   }
 
   if (!org) {
     return (
-      <SettingsTemplate
-        header={<PageHeader title="Organization Settings" description="Manage your organization's general settings." />}
-        content={
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <p className="text-[var(--text-sm)] text-[var(--text-muted)]">Organization not found or failed to load.</p>
-            <Button variant="outline" size="sm" className="mt-4" onClick={() => router.refresh()}>Retry</Button>
-          </div>
-        }
-      />
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <p className="text-sm text-[var(--text-muted)]">Organization not found or failed to load.</p>
+        <Button variant="outline" size="sm" className="mt-4" onClick={() => router.refresh()}>Retry</Button>
+      </div>
     );
   }
 
@@ -88,15 +78,7 @@ export default function OrganizationSettingsPage() {
   };
 
   return (
-    <SettingsTemplate
-      header={
-        <PageHeader
-          title="Organization Settings"
-          description="Manage your organization's general configuration."
-        />
-      }
-      content={
-        <div className="flex flex-col gap-5 max-w-[var(--settings-max-width)]">
+    <div className="flex flex-col gap-5 max-w-[var(--settings-max-width)]">
 
           {/* Your Profile */}
           <Card padding="default">
@@ -105,8 +87,8 @@ export default function OrganizationSettingsPage() {
               <div className="flex items-center gap-4">
                 <Avatar name={user?.name || "U"} size="lg" />
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-[var(--text-base)] font-semibold text-[var(--text-primary)]">{user?.name}</span>
-                  <span className="text-[var(--text-sm)] text-[var(--text-tertiary)]">{user?.email}</span>
+                  <span className="text-base font-semibold text-[var(--text-primary)]">{user?.name}</span>
+                  <span className="text-sm text-[var(--text-muted)]">{user?.email}</span>
                   <Badge variant="neutral" size="sm" className="mt-1 w-fit">
                     {currentMember?.role ?? "Member"}
                   </Badge>
@@ -121,7 +103,7 @@ export default function OrganizationSettingsPage() {
             <CardContent>
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[var(--text-sm)] font-medium text-[var(--text-secondary)]">Organization Name</label>
+                  <label className="text-sm font-medium text-[var(--text-secondary)]">Organization Name</label>
                   <Input
                     value={name}
                     onChange={e => setName(e.target.value)}
@@ -129,33 +111,33 @@ export default function OrganizationSettingsPage() {
                     placeholder="Acme Corp"
                   />
                   {!canManage && (
-                    <p className="text-[var(--text-xs)] text-[var(--text-muted)]">Only owners and admins can edit the organization name.</p>
+                    <p className="text-xs text-[var(--text-muted)]">Only owners and admins can edit the organization name.</p>
                   )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div className="flex flex-col gap-1">
-                    <span className="text-[var(--text-xs)] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Slug</span>
-                    <span className="text-[var(--text-sm)] font-mono text-[var(--text-secondary)]">{org.slug}</span>
+                    <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Slug</span>
+                    <span className="text-sm font-mono text-[var(--text-secondary)]">{org.slug}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-[var(--text-xs)] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Plan</span>
-                    <span className="text-[var(--text-sm)] text-[var(--text-secondary)]">{PLAN_LABEL[org.plan] ?? org.plan}</span>
+                    <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Plan</span>
+                    <span className="text-sm text-[var(--text-secondary)]">{PLAN_LABEL[org.plan] ?? org.plan}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-[var(--text-xs)] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Members</span>
-                    <span className="text-[var(--text-sm)] text-[var(--text-secondary)]">{org.members.length} member{org.members.length !== 1 ? "s" : ""}</span>
+                    <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Members</span>
+                    <span className="text-sm text-[var(--text-secondary)]">{org.members.length} member{org.members.length !== 1 ? "s" : ""}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-[var(--text-xs)] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Created</span>
-                    <span className="text-[var(--text-sm)] text-[var(--text-secondary)]">
+                    <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Created</span>
+                    <span className="text-sm text-[var(--text-secondary)]">
                       {new Date(org.createdAt).toLocaleDateString([], { month: "long", year: "numeric" })}
                     </span>
                   </div>
                 </div>
 
                 {canManage && (
-                  <div className="flex justify-end pt-2 border-t border-[var(--border-subtle)]">
+                  <div className="flex justify-end pt-2 border-t border-[var(--border-divider)]">
                     <Button size="sm" onClick={handleSave} loading={saving} disabled={name === org.name}>
                       Save Changes
                     </Button>
@@ -170,7 +152,7 @@ export default function OrganizationSettingsPage() {
             <CardHeader><CardTitle>Team Management</CardTitle></CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
+                <p className="text-sm text-[var(--text-secondary)]">
                   {org.members.length} member{org.members.length !== 1 ? "s" : ""} in this organization. Manage roles and invite new members.
                 </p>
                 <Button variant="outline" size="sm" onClick={() => router.push("/dashboard/members")}>
@@ -181,7 +163,5 @@ export default function OrganizationSettingsPage() {
           </Card>
 
         </div>
-      }
-    />
   );
 }

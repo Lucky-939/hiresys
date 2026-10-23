@@ -691,8 +691,8 @@ export default function CodingRoomPage({
               </p>
             </div>
           
-            <div className="flex items-center gap-2.5">
-              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--bg-elevated)] rounded-[var(--radius-default)] border border-[var(--border-default)] text-xs font-mono text-[var(--text-secondary)]">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-[var(--bg-elevated)] rounded-[var(--radius-default)] border border-[var(--border-default)] text-xs font-mono text-[var(--text-secondary)]">
                 {Icons.clock} {formatTime(elapsed)}
               </div>
               <div className="flex -space-x-2 mr-1">
@@ -707,12 +707,52 @@ export default function CodingRoomPage({
                   </div>
                 ))}
               </div>
+
+              {/* Google Meet Video Button ($0 Free Tier) */}
+              {meetUrl ? (
+                <div className="flex items-center gap-1">
+                  <a
+                    href={meetUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="h-8 px-2.5 rounded-[var(--radius-default)] bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                    title="Open Google Meet call"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>📹 Join Meet</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTempMeetUrl(meetUrl);
+                      setShowMeetModal(true);
+                    }}
+                    className="h-8 px-1.5 text-[var(--text-muted)] hover:text-white text-xs cursor-pointer rounded hover:bg-[var(--bg-elevated)] transition-colors"
+                    title="Edit Meet Link"
+                  >
+                    ⚙️
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTempMeetUrl(meetUrl);
+                    setShowMeetModal(true);
+                  }}
+                  className="h-8 px-2.5 rounded-[var(--radius-default)] bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-400 border border-indigo-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                  title="Connect Google Meet for interview ($0 Free Tier)"
+                >
+                  <span>📹 Connect Meet</span>
+                </button>
+              )}
+
               <Button
                 onClick={handleGenerateReport}
                 disabled={generatingReport || isCompleted}
                 variant={isCompleted ? "secondary" : "default"}
                 size="sm"
-                className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
               >
                 {generatingReport ? "Submitting..." : isCompleted ? "View Report" : "Submit Interview"}
               </Button>
@@ -1173,11 +1213,11 @@ export default function CodingRoomPage({
               </p>
             </div>
           
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--bg-elevated)] rounded-[var(--radius-default)] border border-[var(--border-default)] text-xs font-mono text-[var(--text-secondary)]">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-[var(--bg-elevated)] rounded-[var(--radius-default)] border border-[var(--border-default)] text-xs font-mono text-[var(--text-secondary)]">
                 {Icons.clock} {formatTime(elapsed)}
               </div>
-              <div className="flex -space-x-2">
+              <div className="flex -space-x-2 mr-1">
                 {users.map((u, i) => (
                   <div
                     key={i}
@@ -1189,6 +1229,20 @@ export default function CodingRoomPage({
                   </div>
                 ))}
               </div>
+
+              {/* Candidate Google Meet Button */}
+              {meetUrl && (
+                <a
+                  href={meetUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-8 px-2.5 rounded-[var(--radius-default)] bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                  title="Open Google Meet call"
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>📹 Join Meet</span>
+                </a>
+              )}
             </div>
           </div>
 
@@ -1304,148 +1358,86 @@ export default function CodingRoomPage({
         <div className="absolute top-0 right-0 left-0 h-12 flex items-center justify-between px-4 z-10 pointer-events-none bg-[#1E1E1E]/95 backdrop-blur-sm border-b border-[#333]">
           
           {/* Top Left: Role Banner & Interview Info */}
-          <div className="pointer-events-auto flex items-center gap-3">
+          <div className="pointer-events-auto flex items-center gap-2.5 min-w-0">
             {!isCandidate ? (
               <>
                 <button
                   onClick={() => router.push("/dashboard/interviews")}
-                  className="text-[#858585] hover:text-white transition-colors p-1 flex items-center gap-1 text-xs font-medium"
+                  className="text-[#858585] hover:text-white transition-colors p-1 flex items-center gap-1 text-xs font-medium shrink-0 cursor-pointer"
                   title="Exit to Dashboard"
                 >
                   {Icons.back} <span className="hidden sm:inline">Dashboard</span>
                 </button>
-                <div className="h-4 w-px bg-[#333]" />
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 flex items-center gap-1.5">
+                <div className="h-4 w-px bg-[#333] shrink-0" />
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 flex items-center gap-1.5 shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
                   Interviewer Console
                 </span>
-                <span className="text-xs text-[#888] hidden md:inline">
+                <span className="text-xs text-[#888] truncate hidden lg:inline">
                   Evaluating: <strong className="text-white">{interviewInfo.candidateName}</strong>
                 </span>
               </>
             ) : (
               <>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span className="text-xs font-bold text-white tracking-wide uppercase">HireSys</span>
                 </div>
-                <div className="h-4 w-px bg-[#333]" />
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                <div className="h-4 w-px bg-[#333] shrink-0" />
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0">
                   Candidate Mode
                 </span>
-                <span className="text-xs text-[#888] hidden md:inline">
+                <span className="text-xs text-[#888] truncate hidden lg:inline">
                   {interviewInfo.role}
                 </span>
               </>
             )}
           </div>
 
-          {/* Top Right: Code Controls & Live Google Meet */}
-          <div className="flex items-center gap-2 pointer-events-auto">
-            {/* Live Google Meet Video Button ($0 Free Tier) */}
-            {meetUrl ? (
-              <div className="flex items-center gap-1 bg-[#252526] p-1 rounded-[var(--radius-default)] border border-[#333]">
-                <a
-                  href={meetUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="h-7 px-2.5 rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
-                  title="Open Google Meet in companion window or tab"
-                >
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>📹 Join Meet</span>
-                </a>
-                {!isCandidate && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTempMeetUrl(meetUrl);
-                      setShowMeetModal(true);
-                    }}
-                    className="h-7 px-1.5 text-[#888] hover:text-white text-xs cursor-pointer rounded hover:bg-[#333] transition-colors"
-                    title="Change or Edit Google Meet Link"
-                  >
-                    ⚙️
-                  </button>
-                )}
-              </div>
-            ) : !isCandidate ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setTempMeetUrl(meetUrl);
-                  setShowMeetModal(true);
-                }}
-                className="h-7 px-2.5 rounded bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-400 border border-indigo-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
-                title="Set up Google Meet for candidate & interviewer ($0 Free Tier)"
-              >
-                <span>📹 Connect Meet</span>
-              </button>
-            ) : null}
-
-            <div className="flex items-center gap-2.5 bg-[#252526] p-1 rounded-[var(--radius-default)] border border-[#333]">
+          {/* Top Right: Code Controls */}
+          <div className="flex items-center gap-2 pointer-events-auto shrink-0">
+            {/* Language Dropdown */}
+            <div className="flex items-center gap-1.5 bg-[#252526] px-2 py-0.5 rounded-[var(--radius-default)] border border-[#333]">
+              <span className="text-[10px] text-[#888] uppercase font-bold font-mono">Lang:</span>
               <Select
                 value={language}
                 onChange={(e) => handleLanguageChange(e.target.value)}
                 disabled={isCompleted}
-                className="!bg-transparent !text-[#CCCCCC] !text-xs !font-medium !outline-none cursor-pointer !border-none !px-2 !py-0.5 hover:!text-white !h-7 !w-28 focus:!ring-0"
+                className="!bg-transparent !text-[#CCCCCC] !text-xs !font-medium !outline-none cursor-pointer !border-none !px-1 !py-0 hover:!text-white !h-7 !w-24 focus:!ring-0"
               >
                 {LANGUAGES.map((lang) => (
                   <option key={lang} value={lang} className="bg-[#252526]">{LANG_LABELS[lang]}</option>
                 ))}
               </Select>
+            </div>
 
-              {/* AI Review Code is ONLY visible to interviewers */}
-              {!isCandidate && (
+            {/* Run Code Button */}
+            <Button 
+              size="sm" 
+              onClick={handleRunCode} 
+              disabled={isCompleted || isExecuting}
+              className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-3.5 flex items-center gap-1.5 shadow-sm cursor-pointer"
+            >
+              {isExecuting ? (
                 <>
-                  <div className="w-px h-4 bg-[#333]" />
-                  <Button 
-                    size="sm" 
-                    onClick={handleGetFeedback} 
-                    disabled={isCompleted || loadingFeedback}
-                    className="h-7 text-xs bg-indigo-600 hover:bg-indigo-700 text-white border-none shadow-none rounded-[var(--radius-default)] px-2.5 flex items-center gap-1.5"
-                  >
-                    {loadingFeedback ? "Reviewing..." : "⚡ AI Review Code"}
-                  </Button>
+                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Running...</span>
+                </>
+              ) : (
+                <>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                  <span>Run Code</span>
                 </>
               )}
-
-              <div className="w-px h-4 bg-[#333]" />
-              <button
-                type="button"
-                onClick={handleCleanQuestionComments}
-                disabled={isCompleted}
-                className="h-7 text-xs text-[#888] hover:text-white px-2 py-0.5 rounded transition-colors flex items-center gap-1 cursor-pointer"
-                title="Clear question comment headers from the code editor"
-              >
-                🧹 Clear Comments
-              </button>
-
-              <div className="w-px h-4 bg-[#333]" />
-              <Button 
-                size="sm" 
-                onClick={handleRunCode} 
-                disabled={isCompleted || isExecuting}
-                className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-none shadow-none rounded-[var(--radius-default)] px-3 flex items-center gap-1.5"
-              >
-                {isExecuting ? (
-                  <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Running...</>
-                ) : (
-                  <>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                      <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                    </svg>
-                    Run Code
-                  </>
-                )}
-              </Button>
-            </div>
+            </Button>
             
-            {/* Toggle Panel Button (Available for both Interviewer and Candidate) */}
+            {/* Toggle Panel Button */}
             <button 
               onClick={() => setIsPanelOpen(!isPanelOpen)} 
-              className="flex items-center justify-center w-8 h-8 rounded-[var(--radius-default)] bg-[#252526] border border-[#333] text-[#858585] hover:text-white hover:bg-[#333] transition-colors ml-1 shadow-sm" 
-              title={isPanelOpen ? "Collapse Panel" : "Expand Panel"}
+              className="flex items-center justify-center w-8 h-8 rounded-[var(--radius-default)] bg-[#252526] border border-[#333] text-[#858585] hover:text-white hover:bg-[#333] transition-colors cursor-pointer" 
+              title={isPanelOpen ? "Collapse Side Panel" : "Expand Side Panel"}
             >
               {isPanelOpen ? (
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>

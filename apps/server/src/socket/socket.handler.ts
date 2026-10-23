@@ -133,6 +133,14 @@ export function registerSocketHandlers(io: Server) {
       }
     });
 
+    socket.on("testcases:update", async ({ roomId, testCases }: { roomId: string; testCases: any[] }) => {
+      try {
+        socket.to(roomId).emit("testcases:sync", { testCases });
+      } catch (err) {
+        socket.emit("error", { message: "Failed to broadcast test cases" });
+      }
+    });
+
     socket.on("code:execute", async ({ roomId, language, code }) => {
       try {
         const userId = socket.data.userId;

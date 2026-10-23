@@ -1,29 +1,23 @@
 "use client";
 
-import React, { useMemo } from "react";
-import { Badge } from "@/components/ui/Badge";
+import React, { useMemo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
+import { TestCase } from "@/lib/test-runner";
 
 interface FormattedProblemStatementProps {
   rawText: string;
   isCandidate?: boolean;
   onInsertStarter?: (code: string) => void;
-}
-
-interface Example {
-  index: number;
-  input: string;
-  output: string;
-  explanation?: string;
+  testCases?: TestCase[];
+  onTestCasesChange?: (cases: TestCase[]) => void;
 }
 
 interface ParsedProblem {
   title: string;
-  difficulty?: "Easy" | "Medium" | "Hard";
   description: string;
   functionSignature?: string;
-  examples: Example[];
+  examples: TestCase[];
   complexity?: string;
   constraints: string[];
   rawFallback: string[];
@@ -32,11 +26,8 @@ interface ParsedProblem {
 export function cleanProblemTitle(rawTitle: string): string {
   return rawTitle
     .replace(/^[#\*\s]+/, "")
-    // Remove "LeetCode #123:" or "LeetCode 123:" or "LeetCode:"
     .replace(/\bLeetCode\s*(#?\d+[\:\.\-]?\s*)?:?\s*/gi, "")
-    // Remove "Problem #123:" or "Problem 1:" or "Q1:"
     .replace(/\b(Problem|Question|Q)\s*(#?\d+[\:\.\-]?\s*)?:?\s*/gi, "")
-    // Remove leading numbering like "1. " or "20: " or "#20: "
     .replace(/^\s*#?\d+[\.\:\-\)]\s*/, "")
     .trim();
 }
@@ -44,7 +35,7 @@ export function cleanProblemTitle(rawTitle: string): string {
 export function parseProblemText(text: string): ParsedProblem {
   if (!text) {
     return {
-      title: "Technical Coding Challenge",
+      title: "",
       description: "",
       examples: [],
       constraints: [],
@@ -58,36 +49,31 @@ export function parseProblemText(text: string): ParsedProblem {
     .filter((l) => l.length > 0);
 
   let title = "";
-  let difficulty: "Easy" | "Medium" | "Hard" | undefined;
   const descriptionParts: string[] = [];
   let functionSignature: string | undefined;
-  const examples: Example[] = [];
+  const examples: TestCase[] = [];
   let complexity: string | undefined;
   const constraints: string[] = [];
   const rawFallback: string[] = [];
 
-  let currentExample: Partial<Example> | null = null;
+  let currentExample: Partial<TestCase> | null = null;
   let inConstraints = false;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    // Detect Title (e.g. "LeetCode #217: Contains Duplicate" or "1. Two Sum")
+    // Detect Title
     if (i === 0 && (line.toLowerCase().includes("leetcode") || line.toLowerCase().includes("problem") || /^(\d+[\.\:]|[#])/i.test(line))) {
       title = cleanProblemTitle(line);
       continue;
     }
 
-    // Detect explicit difficulty
+    // Skip explicit difficulty lines
     if (/\b(difficulty:\s*(easy|medium|hard))\b/i.test(line)) {
-      const match = line.match(/\b(easy|medium|hard)\b/i);
-      if (match) {
-        difficulty = (match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase()) as "Easy" | "Medium" | "Hard";
-      }
       continue;
     }
 
-    // Detect function signature: e.g. "Function: function containsDuplicate(nums)" or "def containsDuplicate(nums):"
+    // Detect function signature
     if (/^(function:|signature:|prototype:)/i.test(line)) {
       functionSignature = line.replace(/^(function:|signature:|prototype:)\s*/i, "").trim();
       continue;
@@ -115,7 +101,29 @@ export function parseProblemText(text: string): ParsedProblem {
       }
     }
 
-    // Detect Example markers
+    // 1. Same-line Input & Output (e.g. Input: s = "()[]{}" -> Output: true or Input: s = "(]" -> Output: false)
+    if (/^input\s*:/i.test(line) && /output\s*:/i.test(line)) {
+      if (currentExample && currentExample.input && currentExample.output) {
+        examples.push({
+          index: examples.length + 1,
+          input: currentExample.input,
+          output: currentExample.output,
+          explanation: currentExample.explanation,
+        });
+        currentExample = null;
+      }
+      const parts = line.split(/(?:->|=>|,\s*output\s*:|\s+output\s*:)/i);
+      const inVal = parts[0].replace(/^input\s*:\s*/i, "").trim();
+      const outVal = (parts[1] || "").replace(/^output\s*:\s*/i, "").replace(/[\(\[\{]?notes?.*$/i, "").trim();
+      examples.push({
+        index: examples.length + 1,
+        input: inVal,
+        output: outVal,
+      });
+      continue;
+    }
+
+    // 2. Detect Example markers
     if (/^example(\s*\d*)?:?/i.test(line)) {
       if (currentExample && currentExample.input && currentExample.output) {
         examples.push({
@@ -130,30 +138,39 @@ export function parseProblemText(text: string): ParsedProblem {
       continue;
     }
 
-    // Detect Input in example
+    // 3. Detect Input in example
     if (/^input\s*:/i.test(line)) {
-      const inputVal = line.replace(/^input\s*:\s*/i, "");
+      if (currentExample && currentExample.input && currentExample.output) {
+        examples.push({
+          index: examples.length + 1,
+          input: currentExample.input,
+          output: currentExample.output,
+          explanation: currentExample.explanation,
+        });
+        currentExample = null;
+      }
+      const inputVal = line.replace(/^input\s*:\s*/i, "").trim();
       if (!currentExample) currentExample = { index: examples.length + 1 };
       currentExample.input = inputVal;
       continue;
     }
 
-    // Detect Output in example
+    // 4. Detect Output in example
     if (/^output\s*:/i.test(line)) {
-      const outputVal = line.replace(/^output\s*:\s*/i, "");
+      const outputVal = line.replace(/^output\s*:\s*/i, "").trim();
       if (!currentExample) currentExample = { index: examples.length + 1 };
       currentExample.output = outputVal;
       continue;
     }
 
-    // Detect Explanation in example
+    // 5. Detect Explanation
     if (/^explanation\s*:/i.test(line)) {
-      const explanationVal = line.replace(/^explanation\s*:\s*/i, "");
+      const explanationVal = line.replace(/^explanation\s*:\s*/i, "").trim();
       if (currentExample) currentExample.explanation = explanationVal;
       continue;
     }
 
-    // Otherwise, accumulate description or fallback
+    // Description accumulation
     if (!currentExample && !inConstraints) {
       descriptionParts.push(line);
     } else {
@@ -171,16 +188,14 @@ export function parseProblemText(text: string): ParsedProblem {
     });
   }
 
-  // If no title was found from line 0
+  // Ensure title is extracted
   if (!title) {
     if (descriptionParts.length > 0 && descriptionParts[0].length < 60) {
       title = cleanProblemTitle(descriptionParts.shift()!);
     } else {
-      title = "Algorithmic Challenge";
+      title = "";
     }
   }
-
-  title = cleanProblemTitle(title) || "Algorithmic Challenge";
 
   const cleanDescription = descriptionParts
     .join(" ")
@@ -188,9 +203,46 @@ export function parseProblemText(text: string): ParsedProblem {
     .replace(/\b(difficulty:\s*(easy|medium|hard))\b/gi, "")
     .trim();
 
+  // If no examples were parsed, generate guaranteed 3 default test cases based on signature/description
+  if (examples.length === 0) {
+    const sig = (functionSignature || "").toLowerCase();
+    const desc = text.toLowerCase();
+
+    if (sig.includes("isvalid") || desc.includes("parentheses")) {
+      examples.push(
+        { index: 1, input: 's = "()[]{}"', output: "true" },
+        { index: 2, input: 's = "(]"', output: "false" },
+        { index: 3, input: 's = "{[]}"', output: "true" },
+      );
+    } else if (sig.includes("twosum") || desc.includes("two sum") || desc.includes("target")) {
+      examples.push(
+        { index: 1, input: "nums = [2, 7, 11, 15], target = 9", output: "[0, 1]" },
+        { index: 2, input: "nums = [3, 2, 4], target = 6", output: "[1, 2]" },
+        { index: 3, input: "nums = [3, 3], target = 6", output: "[0, 1]" },
+      );
+    } else if (sig.includes("containsduplicate") || desc.includes("duplicate")) {
+      examples.push(
+        { index: 1, input: "nums = [1, 2, 3, 1]", output: "true" },
+        { index: 2, input: "nums = [1, 2, 3, 4]", output: "false" },
+        { index: 3, input: "nums = [1, 1, 1, 3, 3, 4, 3, 2, 4, 2]", output: "true" },
+      );
+    } else if (sig.includes("maxprofit") || desc.includes("stock")) {
+      examples.push(
+        { index: 1, input: "prices = [7, 1, 5, 3, 6, 4]", output: "5" },
+        { index: 2, input: "prices = [7, 6, 4, 3, 1]", output: "0" },
+        { index: 3, input: "prices = [1, 2]", output: "1" },
+      );
+    } else if (sig.includes("ispalindrome") || desc.includes("palindrome")) {
+      examples.push(
+        { index: 1, input: 's = "A man, a plan, a canal: Panama"', output: "true" },
+        { index: 2, input: 's = "race a car"', output: "false" },
+        { index: 3, input: 's = " "', output: "true" },
+      );
+    }
+  }
+
   return {
     title,
-    difficulty,
     description: cleanDescription,
     functionSignature,
     examples,
@@ -204,8 +256,27 @@ export function FormattedProblemStatement({
   rawText,
   isCandidate = false,
   onInsertStarter,
+  testCases: externalTestCases,
+  onTestCasesChange,
 }: FormattedProblemStatementProps) {
   const parsed = useMemo(() => parseProblemText(rawText), [rawText]);
+
+  // Manage test cases state
+  const [localTestCases, setLocalTestCases] = useState<TestCase[]>([]);
+  const [isAddingCase, setIsAddingCase] = useState(false);
+  const [newCaseInput, setNewCaseInput] = useState("");
+  const [newCaseOutput, setNewCaseOutput] = useState("");
+
+  useEffect(() => {
+    if (externalTestCases && externalTestCases.length > 0) {
+      setLocalTestCases(externalTestCases);
+    } else if (parsed.examples.length > 0) {
+      setLocalTestCases(parsed.examples);
+      onTestCasesChange?.(parsed.examples);
+    }
+  }, [externalTestCases, parsed.examples]);
+
+  const activeCases = (externalTestCases && externalTestCases.length > 0) ? externalTestCases : localTestCases;
 
   const handleCopySignature = () => {
     if (!parsed.functionSignature) return;
@@ -216,7 +287,6 @@ export function FormattedProblemStatement({
   const handleInsertStarter = () => {
     if (!parsed.functionSignature || !onInsertStarter) return;
     
-    // Create clean starter boilerplate (NO COMMENTS, ONLY THE FUNCTION!)
     let starter = "";
     if (parsed.functionSignature.startsWith("def ")) {
       starter = `${parsed.functionSignature}\n    pass\n`;
@@ -230,23 +300,44 @@ export function FormattedProblemStatement({
     toast.success("Starter code inserted cleanly into editor!");
   };
 
+  const handleAddCustomTestCase = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCaseInput.trim() || !newCaseOutput.trim()) {
+      toast.error("Please provide both Input and Expected Output.");
+      return;
+    }
+
+    const newCase: TestCase = {
+      index: activeCases.length + 1,
+      input: newCaseInput.trim(),
+      output: newCaseOutput.trim(),
+    };
+
+    const updated = [...activeCases, newCase];
+    setLocalTestCases(updated);
+    onTestCasesChange?.(updated);
+    setNewCaseInput("");
+    setNewCaseOutput("");
+    setIsAddingCase(false);
+    toast.success(`Added Test Case ${newCase.index}!`);
+  };
+
+  const handleDeleteTestCase = (indexToDelete: number) => {
+    const updated = activeCases
+      .filter((tc) => tc.index !== indexToDelete)
+      .map((tc, idx) => ({ ...tc, index: idx + 1 }));
+    setLocalTestCases(updated);
+    onTestCasesChange?.(updated);
+    toast.info("Test case removed");
+  };
+
   return (
     <div className="space-y-4 text-xs">
-      {/* Problem Header: Clean Title only (No LeetCode, No #, No Level badge) */}
-      <div className="pb-3 border-b border-[var(--border-divider)] flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <span className="text-base">💡</span>
-          <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tight">
-            {parsed.title}
-          </h3>
-        </div>
-      </div>
-
-      {/* Description Section */}
+      {/* Problem Description (No LeetCode Title or Topic Header) */}
       {parsed.description && (
         <div className="space-y-1.5">
-          <h4 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-            Description
+          <h4 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+            <span>📋</span> Problem Description
           </h4>
           <p className="text-xs text-[var(--text-primary)] leading-relaxed font-normal">
             {parsed.description}
@@ -261,11 +352,11 @@ export function FormattedProblemStatement({
             <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 font-mono">
               Function Signature
             </span>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleCopySignature}
-                className="text-[10px] text-[var(--text-muted)] hover:text-white transition-colors"
+                className="text-[10px] text-[var(--text-muted)] hover:text-white transition-colors cursor-pointer"
                 title="Copy signature"
               >
                 Copy
@@ -274,7 +365,7 @@ export function FormattedProblemStatement({
                 <button
                   type="button"
                   onClick={handleInsertStarter}
-                  className="text-[10px] text-sky-400 hover:text-sky-300 font-semibold transition-colors"
+                  className="text-[10px] text-sky-400 hover:text-sky-300 font-semibold transition-colors cursor-pointer flex items-center gap-1"
                   title="Insert clean function into editor (no comments)"
                 >
                   ⚡ Insert Starter
@@ -288,54 +379,118 @@ export function FormattedProblemStatement({
         </div>
       )}
 
-      {/* Examples Section */}
-      {parsed.examples.length > 0 && (
-        <div className="space-y-2.5">
-          <h4 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-            Examples
+      {/* Interactive Test Cases Section */}
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between">
+          <h4 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+            <span>🧪</span> Test Cases ({activeCases.length})
           </h4>
-          <div className="space-y-2.5">
-            {parsed.examples.map((ex, idx) => (
-              <div
-                key={idx}
-                className="p-3 rounded-[var(--radius-default)] bg-[var(--bg-base)] border border-[var(--border-divider)] space-y-2 font-mono"
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsAddingCase(!isAddingCase)}
+            className="h-6 text-[10px] px-2 text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/10"
+          >
+            {isAddingCase ? "Cancel" : "+ Add Test Case"}
+          </Button>
+        </div>
+
+        {/* Inline Add Test Case Form */}
+        {isAddingCase && (
+          <form
+            onSubmit={handleAddCustomTestCase}
+            className="p-3 rounded-[var(--radius-default)] bg-[var(--bg-elevated)] border border-indigo-500/30 space-y-2.5 animate-in fade-in"
+          >
+            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wide">
+              Create New Test Case
+            </span>
+            <div className="space-y-1.5">
+              <label className="text-[10px] text-[var(--text-muted)]">Input Arguments:</label>
+              <input
+                type="text"
+                placeholder='e.g. s = "([)]"'
+                value={newCaseInput}
+                onChange={(e) => setNewCaseInput(e.target.value)}
+                className="w-full text-xs font-mono px-2 py-1 bg-[var(--bg-base)] border border-[var(--border-default)] rounded text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] text-[var(--text-muted)]">Expected Return Value:</label>
+              <input
+                type="text"
+                placeholder="e.g. false"
+                value={newCaseOutput}
+                onChange={(e) => setNewCaseOutput(e.target.value)}
+                className="w-full text-xs font-mono px-2 py-1 bg-[var(--bg-base)] border border-[var(--border-default)] rounded text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-6 text-[10px] px-2"
+                onClick={() => setIsAddingCase(false)}
               >
-                <div className="text-[10px] font-bold text-amber-400 tracking-wide">
-                  Example {idx + 1}:
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                className="h-6 text-[10px] px-2.5 bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                Save Test Case
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {/* List of Test Cases */}
+        <div className="space-y-2">
+          {activeCases.map((tc, idx) => (
+            <div
+              key={idx}
+              className="p-3 rounded-[var(--radius-default)] bg-[var(--bg-base)] border border-[var(--border-divider)] space-y-2 font-mono group hover:border-indigo-500/30 transition-colors"
+            >
+              <div className="flex items-center justify-between text-[10px] font-bold text-amber-400">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                  Test Case {idx + 1}
+                </span>
+                {activeCases.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteTestCase(tc.index)}
+                    className="opacity-0 group-hover:opacity-100 text-[10px] text-red-400 hover:text-red-300 transition-opacity cursor-pointer font-sans"
+                    title="Remove test case"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+              <div className="space-y-1.5 text-xs">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-[var(--text-muted)] select-none text-[11px] w-14 shrink-0 font-sans">
+                    Input:
+                  </span>
+                  <span className="text-emerald-400 font-medium break-all bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                    {tc.input}
+                  </span>
                 </div>
-                <div className="space-y-1 text-xs">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-[var(--text-muted)] select-none text-[11px] w-12 shrink-0">
-                      Input:
-                    </span>
-                    <span className="text-emerald-400 font-medium break-all">
-                      {ex.input}
-                    </span>
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-[var(--text-muted)] select-none text-[11px] w-12 shrink-0">
-                      Output:
-                    </span>
-                    <span className="text-indigo-400 font-bold break-all">
-                      {ex.output}
-                    </span>
-                  </div>
-                  {ex.explanation && (
-                    <div className="flex items-baseline gap-2 pt-1 border-t border-[var(--border-divider)] mt-1">
-                      <span className="text-[var(--text-muted)] select-none text-[11px] w-12 shrink-0 font-sans">
-                        Notes:
-                      </span>
-                      <span className="text-[var(--text-secondary)] text-[11px] font-sans">
-                        {ex.explanation}
-                      </span>
-                    </div>
-                  )}
+                <div className="flex items-baseline gap-2">
+                  <span className="text-[var(--text-muted)] select-none text-[11px] w-14 shrink-0 font-sans">
+                    Expected:
+                  </span>
+                  <span className="text-indigo-400 font-bold break-all bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
+                    {tc.output}
+                  </span>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
-      )}
+      </div>
 
       {/* Constraints & Target Complexity Section */}
       {(parsed.complexity || parsed.constraints.length > 0) && (
@@ -360,13 +515,6 @@ export function FormattedProblemStatement({
               </ul>
             </div>
           )}
-        </div>
-      )}
-
-      {/* Fallback lines if non-standard format */}
-      {parsed.examples.length === 0 && parsed.rawFallback.length > 0 && (
-        <div className="p-3 rounded-[var(--radius-default)] bg-[var(--bg-base)] border border-[var(--border-divider)] space-y-1 text-xs text-[var(--text-secondary)] leading-relaxed font-mono whitespace-pre-wrap">
-          {parsed.rawFallback.join("\n")}
         </div>
       )}
     </div>

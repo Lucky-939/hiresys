@@ -14,7 +14,14 @@ import { Icons } from "@/components/ui/Icons";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/error";
-import { FormattedProblemStatement } from "@/components/room/FormattedProblemStatement";
+import { FormattedProblemStatement, parseProblemText } from "@/components/room/FormattedProblemStatement";
+import {
+  TestCase,
+  TestSuiteSummary,
+  detectFunctionName,
+  buildExecutableCodeWithTests,
+  parseTestExecutionOutput,
+} from "@/lib/test-runner";
 
 const Editor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
@@ -69,6 +76,10 @@ export default function CodingRoomPage({
   // Execution state
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionOutput, setExecutionOutput] = useState<{ stdout: string; stderr: string; isError: boolean } | null>(null);
+  const [testCases, setTestCases] = useState<TestCase[]>([]);
+  const [testSuiteSummary, setTestSuiteSummary] = useState<TestSuiteSummary | null>(null);
+  const [activeResultTab, setActiveResultTab] = useState<number>(0);
+  const [terminalTab, setTerminalTab] = useState<"tests" | "console">("tests");
   const [connected, setConnected] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [loadingInitial, setLoadingInitial] = useState(true);
@@ -176,6 +187,10 @@ export default function CodingRoomPage({
 
       if (iv.description) {
         setActiveQuestion(iv.description);
+        const parsed = parseProblemText(iv.description);
+        if (parsed.examples.length > 0) {
+          setTestCases(parsed.examples);
+        }
       }
 
       if (iv.report) {
@@ -250,6 +265,18 @@ export default function CodingRoomPage({
 
     socket.on("question:active", ({ question }: { question: string }) => {
       setActiveQuestion(question);
+      if (question) {
+        const parsed = parseProblemText(question);
+        if (parsed.examples.length > 0) {
+          setTestCases(parsed.examples);
+        }
+      }
+    });
+
+    socket.on("testcases:sync", ({ testCases: remoteCases }: { testCases: TestCase[] }) => {
+      if (remoteCases && Array.isArray(remoteCases)) {
+        setTestCases(remoteCases);
+      }
     });
 
     socket.on("room:users", (roomUsers: RoomUser[]) => setUsers(roomUsers));
@@ -257,11 +284,31 @@ export default function CodingRoomPage({
     socket.on("code:execution_started", () => {
       setIsExecuting(true);
       setExecutionOutput(null);
+      setTestSuiteSummary(null);
     });
     
     socket.on("code:execution_result", (result: { stdout: string; stderr: string; isError: boolean }) => {
       setIsExecuting(false);
-      setExecutionOutput(result);
+      const { testSuite, cleanStdout } = parseTestExecutionOutput(result.stdout);
+      if (testSuite && testSuite.results && testSuite.results.length > 0) {
+        setTestSuiteSummary(testSuite);
+        setActiveResultTab(0);
+        setTerminalTab("tests");
+        setExecutionOutput({
+          stdout: cleanStdout,
+          stderr: result.stderr,
+          isError: result.isError || testSuite.passedCount < testSuite.totalCount
+        });
+        if (testSuite.passedCount === testSuite.totalCount) {
+          toast.success(`🎉 All ${testSuite.totalCount}/${testSuite.totalCount} Test Cases Solved!`);
+        } else {
+          toast.warning(`⚠️ ${testSuite.passedCount}/${testSuite.totalCount} Test Cases Solved`);
+        }
+      } else {
+        setTestSuiteSummary(null);
+        setTerminalTab("console");
+        setExecutionOutput(result);
+      }
     });
     
     socket.on("error", (err: { message: string }) => {
@@ -275,6 +322,7 @@ export default function CodingRoomPage({
       socket.off("code:update");
       socket.off("language:update");
       socket.off("question:active");
+      socket.off("testcases:sync");
       socket.off("room:users");
       socket.off("code:execution_started");
       socket.off("code:execution_result");
@@ -287,6 +335,12 @@ export default function CodingRoomPage({
     if (isCompleted || isCandidate) return;
     setActiveQuestion(q);
     setActiveQuestionIdx(idx);
+
+    const parsed = parseProblemText(q);
+    if (parsed.examples.length > 0) {
+      setTestCases(parsed.examples);
+      getSocket(activeToken || undefined).emit("testcases:update", { roomId, testCases: parsed.examples });
+    }
 
     const socket = getSocket(activeToken || undefined);
 
@@ -474,7 +528,19 @@ export default function CodingRoomPage({
     if (!code || code.trim().length === 0) return;
     setIsExecuting(true);
     setExecutionOutput(null);
-    getSocket(activeToken || undefined).emit("code:execute", { roomId, language, code });
+    setTestSuiteSummary(null);
+
+    const problemText = activeQuestion || interviewInfo.description || "";
+    const parsedProblem = problemText ? parseProblemText(problemText) : null;
+    const effectiveTests = (testCases && testCases.length > 0) ? testCases : (parsedProblem?.examples || []);
+    const fnName = detectFunctionName(code, parsedProblem?.functionSignature);
+
+    let codeToExecute = code;
+    if (fnName && effectiveTests.length > 0 && (language === "javascript" || language === "typescript" || language === "python")) {
+      codeToExecute = buildExecutableCodeWithTests(code, language, fnName, effectiveTests);
+    }
+
+    getSocket(activeToken || undefined).emit("code:execute", { roomId, language, code: codeToExecute });
   }
 
   if (loadingInitial) {
@@ -567,7 +633,14 @@ export default function CodingRoomPage({
                   </button>
                 </div>
                 <div className="p-3 rounded-[var(--radius-default)] bg-[var(--bg-base)] border border-[var(--border-divider)]">
-                  <FormattedProblemStatement rawText={activeQuestion} />
+                  <FormattedProblemStatement
+                    rawText={activeQuestion}
+                    testCases={testCases}
+                    onTestCasesChange={(cases) => {
+                      setTestCases(cases);
+                      getSocket(activeToken || undefined).emit("testcases:update", { roomId, testCases: cases });
+                    }}
+                  />
                 </div>
               </div>
             )}
@@ -634,29 +707,51 @@ export default function CodingRoomPage({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {questions.map((q, idx) => (
-                    <div key={idx} className="p-3.5 rounded-[var(--radius-default)] border border-[var(--border-divider)] bg-[var(--bg-base)] hover:border-[var(--accent)] transition-colors group">
-                      <div className="flex items-start justify-between gap-3">
-                        <p className="text-xs text-[var(--text-primary)] leading-relaxed font-medium">{q}</p>
-                        <Badge variant="outline" className="text-[9px] shrink-0">Q{idx + 1}</Badge>
-                      </div>
-                      {/* Question Actions: Send to Candidate */}
-                      <div className="mt-2.5 pt-2 border-t border-[var(--border-divider)] flex items-center justify-between gap-2">
-                        <Button
-                          variant={activeQuestionIdx === idx ? "default" : "outline"}
-                          size="sm"
-                          className={cn(
-                            "h-6 text-[10px] px-2.5 gap-1 font-medium transition-colors",
-                            activeQuestionIdx === idx
-                              ? "bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600 shadow-sm"
-                              : "hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 text-[var(--text-secondary)]"
-                          )}
-                          onClick={() => handleSendQuestionToCandidate(q, idx)}
-                          title="Push this question live to Candidate's Problem Statement panel"
-                        >
-                          {activeQuestionIdx === idx ? "✓ On Candidate Screen" : "📌 Send to Candidate"}
-                        </Button>
-                      </div>
+                  {questions.map((q, idx) => {
+                    const qParsed = parseProblemText(q);
+                    return (
+                      <div
+                        key={idx}
+                        className="p-3.5 rounded-[var(--radius-default)] border border-[var(--border-divider)] bg-[var(--bg-base)] hover:border-indigo-500/40 transition-colors group space-y-2"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-xs text-[var(--text-primary)] leading-relaxed font-normal">
+                            {qParsed.description || q}
+                          </p>
+                          <Badge variant="outline" className="text-[9px] shrink-0 font-mono">
+                            Q{idx + 1}
+                          </Badge>
+                        </div>
+
+                        {qParsed.functionSignature && (
+                          <div className="text-[11px] font-mono text-sky-300 bg-[#141820] px-2 py-1 rounded border border-[#273244] overflow-x-auto">
+                            <code>{qParsed.functionSignature}</code>
+                          </div>
+                        )}
+
+                        {qParsed.examples.length > 0 && (
+                          <div className="text-[10px] text-amber-400 font-mono flex items-center gap-1.5">
+                            <span>🧪</span> {qParsed.examples.length} Test Cases included
+                          </div>
+                        )}
+
+                        {/* Question Actions: Send to Candidate */}
+                        <div className="mt-2.5 pt-2 border-t border-[var(--border-divider)] flex items-center justify-between gap-2">
+                          <Button
+                            variant={activeQuestionIdx === idx ? "default" : "outline"}
+                            size="sm"
+                            className={cn(
+                              "h-6 text-[10px] px-2.5 gap-1 font-medium transition-colors cursor-pointer",
+                              activeQuestionIdx === idx
+                                ? "bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600 shadow-sm"
+                                : "hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 text-[var(--text-secondary)]"
+                            )}
+                            onClick={() => handleSendQuestionToCandidate(q, idx)}
+                            title="Push this question live to Candidate's Problem Statement panel"
+                          >
+                            {activeQuestionIdx === idx ? "✓ On Candidate Screen" : "📌 Send to Candidate"}
+                          </Button>
+                        </div>
 
                       {/* Rubric Evaluation */}
                       <div className="mt-2 pt-2 border-t border-[var(--border-divider)] flex items-center gap-1.5">
@@ -687,7 +782,8 @@ export default function CodingRoomPage({
                         </Button>
                       </div>
                     </div>
-                  ))}
+                  );
+                })}
                 </div>
               )}
             </div>
@@ -806,6 +902,11 @@ export default function CodingRoomPage({
                   <FormattedProblemStatement
                     rawText={activeQuestion || interviewInfo.description}
                     isCandidate={isCandidate}
+                    testCases={testCases}
+                    onTestCasesChange={(cases) => {
+                      setTestCases(cases);
+                      getSocket(activeToken || undefined).emit("testcases:update", { roomId, testCases: cases });
+                    }}
                     onInsertStarter={(starter) => {
                       setCode((prev) => {
                         const next = prev.trim() ? prev + "\n\n" + starter : starter;
@@ -979,30 +1080,229 @@ export default function CodingRoomPage({
           />
         </div>
 
-        {/* Terminal UI */}
-        <div className="h-48 shrink-0 bg-[#1E1E1E] border-t border-[#333] flex flex-col">
-          <div className="h-8 flex items-center px-4 border-b border-[#333] bg-[#252526]">
-            <span className="text-xs font-semibold text-[#858585] uppercase tracking-wider flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#555]" />
-              Terminal Output
-            </span>
-            {executionOutput && (
-              <span className={cn("ml-auto text-[10px] font-mono px-2 py-0.5 rounded", executionOutput.isError ? "bg-red-500/20 text-red-400" : "bg-emerald-500/20 text-emerald-400")}>
-                {executionOutput.isError ? "Exit with Error" : "Completed Successfully"}
-              </span>
-            )}
+        {/* Terminal / Test Runner UI */}
+        <div className="h-60 shrink-0 bg-[#1E1E1E] border-t border-[#333] flex flex-col">
+          {/* Header Bar */}
+          <div className="h-9 flex items-center px-3 border-b border-[#333] bg-[#252526] gap-2 select-none">
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setTerminalTab("tests")}
+                className={cn(
+                  "px-2.5 py-1 text-xs rounded transition-colors flex items-center gap-1.5 cursor-pointer",
+                  terminalTab === "tests"
+                    ? "bg-[#1E1E1E] text-white font-semibold"
+                    : "text-[#858585] hover:text-[#CCCCCC]"
+                )}
+              >
+                <span>🧪 Test Results</span>
+                {testSuiteSummary && (
+                  <span
+                    className={cn(
+                      "text-[10px] font-mono px-1.5 py-0.2 rounded font-bold",
+                      testSuiteSummary.passedCount === testSuiteSummary.totalCount
+                        ? "bg-emerald-500/20 text-emerald-400"
+                        : "bg-amber-500/20 text-amber-400"
+                    )}
+                  >
+                    {testSuiteSummary.passedCount}/{testSuiteSummary.totalCount} Solved
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTerminalTab("console")}
+                className={cn(
+                  "px-2.5 py-1 text-xs rounded transition-colors flex items-center gap-1.5 cursor-pointer",
+                  terminalTab === "console"
+                    ? "bg-[#1E1E1E] text-white font-semibold"
+                    : "text-[#858585] hover:text-[#CCCCCC]"
+                )}
+              >
+                <span>💻 Console Output</span>
+              </button>
+            </div>
+
+            {/* Status indicator on right */}
+            <div className="ml-auto flex items-center gap-2">
+              {isExecuting ? (
+                <span className="text-[11px] text-sky-400 font-mono flex items-center gap-1.5 animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                  Running in sandbox tunnel...
+                </span>
+              ) : testSuiteSummary ? (
+                <span
+                  className={cn(
+                    "text-[11px] font-mono px-2 py-0.5 rounded font-bold border",
+                    testSuiteSummary.passedCount === testSuiteSummary.totalCount
+                      ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                      : "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                  )}
+                >
+                  {testSuiteSummary.passedCount === testSuiteSummary.totalCount ? "🎉" : "⚠️"}{" "}
+                  {testSuiteSummary.passedCount} / {testSuiteSummary.totalCount} Test Cases Solved
+                </span>
+              ) : executionOutput ? (
+                <span
+                  className={cn(
+                    "text-[10px] font-mono px-2 py-0.5 rounded",
+                    executionOutput.isError
+                      ? "bg-red-500/20 text-red-400"
+                      : "bg-emerald-500/20 text-emerald-400"
+                  )}
+                >
+                  {executionOutput.isError ? "Exit with Error" : "Completed Successfully"}
+                </span>
+              ) : null}
+            </div>
           </div>
-          <div className="flex-1 p-4 overflow-y-auto font-mono text-xs">
+
+          {/* Body */}
+          <div className="flex-1 p-3 overflow-y-auto font-mono text-xs">
             {isExecuting ? (
-              <span className="text-[#858585] animate-pulse">Executing code in sandbox...</span>
+              <div className="flex items-center gap-2 text-sky-400 h-full justify-center">
+                <div className="w-4 h-4 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
+                <span>Executing solution against all test cases in tunnel...</span>
+              </div>
+            ) : terminalTab === "tests" ? (
+              testSuiteSummary && testSuiteSummary.results && testSuiteSummary.results.length > 0 ? (
+                <div className="space-y-3">
+                  {/* Case selector tabs */}
+                  <div className="flex items-center gap-2 border-b border-[#333] pb-2 overflow-x-auto">
+                    {testSuiteSummary.results.map((r, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setActiveResultTab(idx)}
+                        className={cn(
+                          "px-2.5 py-1 text-xs font-mono rounded flex items-center gap-1.5 transition-colors cursor-pointer",
+                          activeResultTab === idx
+                            ? "bg-[#37373d] text-white font-semibold ring-1 ring-indigo-500/50"
+                            : "text-[#858585] hover:text-[#CCCCCC] hover:bg-[#2a2d2e]"
+                        )}
+                      >
+                        <span>Case {r.index}</span>
+                        {r.passed ? (
+                          <span className="text-emerald-400 text-[11px]">✅</span>
+                        ) : (
+                          <span className="text-rose-400 text-[11px]">❌</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Selected test case detail */}
+                  {(() => {
+                    const cur =
+                      testSuiteSummary.results[activeResultTab] ||
+                      testSuiteSummary.results[0];
+                    if (!cur) return null;
+
+                    return (
+                      <div className="space-y-2.5 animate-in fade-in duration-150">
+                        <div className="flex items-center justify-between">
+                          <span
+                            className={cn(
+                              "text-xs font-bold flex items-center gap-1.5",
+                              cur.passed ? "text-emerald-400" : "text-rose-400"
+                            )}
+                          >
+                            <span>{cur.passed ? "✅ Passed" : "❌ Failed"}</span>
+                            <span className="text-[11px] font-normal text-[#858585]">
+                              ({cur.durationMs}ms)
+                            </span>
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                          <div className="p-2 rounded bg-[#141820] border border-[#273244] space-y-1">
+                            <span className="text-[10px] font-bold text-[#858585] uppercase tracking-wider block font-sans">
+                              Input:
+                            </span>
+                            <pre className="text-emerald-300 text-xs overflow-x-auto whitespace-pre font-mono">
+                              {cur.input}
+                            </pre>
+                          </div>
+
+                          <div className="p-2 rounded bg-[#141820] border border-[#273244] space-y-1">
+                            <span className="text-[10px] font-bold text-[#858585] uppercase tracking-wider block font-sans">
+                              Expected Output:
+                            </span>
+                            <pre className="text-indigo-300 text-xs overflow-x-auto whitespace-pre font-mono">
+                              {cur.expected}
+                            </pre>
+                          </div>
+
+                          <div
+                            className={cn(
+                              "p-2 rounded border space-y-1",
+                              cur.passed
+                                ? "bg-emerald-950/20 border-emerald-500/25"
+                                : "bg-rose-950/20 border-rose-500/25"
+                            )}
+                          >
+                            <span className="text-[10px] font-bold text-[#858585] uppercase tracking-wider block font-sans">
+                              Actual Return:
+                            </span>
+                            <pre
+                              className={cn(
+                                "text-xs overflow-x-auto whitespace-pre font-mono font-semibold",
+                                cur.passed ? "text-emerald-300" : "text-rose-300"
+                              )}
+                            >
+                              {cur.actual}
+                            </pre>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              ) : testSuiteSummary?.error ? (
+                <div className="p-3 bg-red-950/30 border border-red-500/30 rounded text-red-300 font-mono text-xs space-y-1">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <span>⚠️ Test Harness Notice</span>
+                  </div>
+                  <div>{testSuiteSummary.error}</div>
+                </div>
+              ) : executionOutput ? (
+                <div className="space-y-2 whitespace-pre-wrap">
+                  {executionOutput.stdout && (
+                    <span className="text-[#CCCCCC]">{executionOutput.stdout}</span>
+                  )}
+                  {executionOutput.stderr && (
+                    <span className="text-[#F48771]">{executionOutput.stderr}</span>
+                  )}
+                  {!executionOutput.stdout && !executionOutput.stderr && (
+                    <span className="text-[#858585] italic">
+                      Program executed with no console output
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <span className="text-[#858585]">
+                  Click &apos;Run Code&apos; to execute your solution against test cases in the sandbox tunnel.
+                </span>
+              )
             ) : executionOutput ? (
               <div className="flex flex-col gap-2 whitespace-pre-wrap">
-                {executionOutput.stdout && <span className="text-[#CCCCCC]">{executionOutput.stdout}</span>}
-                {executionOutput.stderr && <span className="text-[#F48771]">{executionOutput.stderr}</span>}
-                {!executionOutput.stdout && !executionOutput.stderr && <span className="text-[#858585] italic">Program executed with no console output</span>}
+                {executionOutput.stdout && (
+                  <span className="text-[#CCCCCC]">{executionOutput.stdout}</span>
+                )}
+                {executionOutput.stderr && (
+                  <span className="text-[#F48771]">{executionOutput.stderr}</span>
+                )}
+                {!executionOutput.stdout && !executionOutput.stderr && (
+                  <span className="text-[#858585] italic">
+                    Program executed with no console output
+                  </span>
+                )}
               </div>
             ) : (
-              <span className="text-[#555]">Click &apos;Run Code&apos; to execute program output here.</span>
+              <span className="text-[#858585]">
+                Click &apos;Run Code&apos; to view standard console output here.
+              </span>
             )}
           </div>
         </div>

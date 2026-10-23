@@ -29,6 +29,18 @@ interface ParsedProblem {
   rawFallback: string[];
 }
 
+export function cleanProblemTitle(rawTitle: string): string {
+  return rawTitle
+    .replace(/^[#\*\s]+/, "")
+    // Remove "LeetCode #123:" or "LeetCode 123:" or "LeetCode:"
+    .replace(/\bLeetCode\s*(#?\d+[\:\.\-]?\s*)?:?\s*/gi, "")
+    // Remove "Problem #123:" or "Problem 1:" or "Q1:"
+    .replace(/\b(Problem|Question|Q)\s*(#?\d+[\:\.\-]?\s*)?:?\s*/gi, "")
+    // Remove leading numbering like "1. " or "20: " or "#20: "
+    .replace(/^\s*#?\d+[\.\:\-\)]\s*/, "")
+    .trim();
+}
+
 export function parseProblemText(text: string): ParsedProblem {
   if (!text) {
     return {
@@ -62,7 +74,7 @@ export function parseProblemText(text: string): ParsedProblem {
 
     // Detect Title (e.g. "LeetCode #217: Contains Duplicate" or "1. Two Sum")
     if (i === 0 && (line.toLowerCase().includes("leetcode") || line.toLowerCase().includes("problem") || /^(\d+[\.\:]|[#])/i.test(line))) {
-      title = line.replace(/^[#\*\s]+/, "");
+      title = cleanProblemTitle(line);
       continue;
     }
 
@@ -162,29 +174,24 @@ export function parseProblemText(text: string): ParsedProblem {
   // If no title was found from line 0
   if (!title) {
     if (descriptionParts.length > 0 && descriptionParts[0].length < 60) {
-      title = descriptionParts.shift()!;
+      title = cleanProblemTitle(descriptionParts.shift()!);
     } else {
       title = "Algorithmic Challenge";
     }
   }
 
-  // Auto-detect difficulty from title or text if not explicitly tagged
-  if (!difficulty) {
-    const fullText = text.toLowerCase();
-    if (fullText.includes("difficulty: hard") || fullText.includes("(hard)")) {
-      difficulty = "Hard";
-    } else if (fullText.includes("difficulty: easy") || fullText.includes("(easy)")) {
-      difficulty = "Easy";
-    } else {
-      // Default to Medium if unknown
-      difficulty = "Medium";
-    }
-  }
+  title = cleanProblemTitle(title) || "Algorithmic Challenge";
+
+  const cleanDescription = descriptionParts
+    .join(" ")
+    .replace(/\bLeetCode\s*(#?\d+[\:\.\-]?\s*)?:?\s*/gi, "")
+    .replace(/\b(difficulty:\s*(easy|medium|hard))\b/gi, "")
+    .trim();
 
   return {
     title,
     difficulty,
-    description: descriptionParts.join(" "),
+    description: cleanDescription,
     functionSignature,
     examples,
     complexity,
@@ -199,12 +206,6 @@ export function FormattedProblemStatement({
   onInsertStarter,
 }: FormattedProblemStatementProps) {
   const parsed = useMemo(() => parseProblemText(rawText), [rawText]);
-
-  const difficultyColors = {
-    Easy: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-    Medium: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-    Hard: "bg-rose-500/15 text-rose-400 border-rose-500/30",
-  };
 
   const handleCopySignature = () => {
     if (!parsed.functionSignature) return;
@@ -231,24 +232,13 @@ export function FormattedProblemStatement({
 
   return (
     <div className="space-y-4 text-xs">
-      {/* Problem Header: Title & Badges */}
+      {/* Problem Header: Clean Title only (No LeetCode, No #, No Level badge) */}
       <div className="pb-3 border-b border-[var(--border-divider)] flex flex-col gap-2">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2">
-            <span className="text-base">💡</span>
-            <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tight">
-              {parsed.title}
-            </h3>
-          </div>
-          {parsed.difficulty && (
-            <span
-              className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase border ${
-                difficultyColors[parsed.difficulty]
-              }`}
-            >
-              {parsed.difficulty}
-            </span>
-          )}
+        <div className="flex items-center gap-2">
+          <span className="text-base">💡</span>
+          <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tight">
+            {parsed.title}
+          </h3>
         </div>
       </div>
 

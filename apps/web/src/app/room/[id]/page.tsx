@@ -420,25 +420,25 @@ export default function CodingRoomPage({
     } catch (err: unknown) {
       console.error("Questions error:", err);
       const easyFallbacks = [
-        "Two Sum\nGiven an array of integers 'nums' and an integer 'target', return indices of the two numbers such that they add up to target.\nFunction: function twoSum(nums, target)\nExample:\nInput: nums = [2, 7, 11, 15], target = 9\nOutput: [0, 1] (because nums[0] + nums[1] == 9)\nTarget Complexity: O(n) time, O(n) space.",
-        "Valid Parentheses\nGiven a string 's' containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid (brackets must close in correct order).\nFunction: function isValid(s)\nExample:\nInput: s = \"()[]{}\" -> Output: true\nInput: s = \"(]\" -> Output: false\nTarget Complexity: O(n) time using a stack.",
-        "Best Time to Buy and Sell Stock\nGiven an array 'prices' where prices[i] is the stock price on day i, return the maximum profit achievable by buying on one day and selling on a future day. Return 0 if no profit.\nFunction: function maxProfit(prices)\nExample:\nInput: prices = [7, 1, 5, 3, 6, 4]\nOutput: 5 (Buy at day 2 price 1, sell at day 5 price 6)\nTarget Complexity: O(n) time, O(1) space.",
-        "Valid Palindrome\nGiven a string 's', return true if it is a palindrome, considering only alphanumeric characters and ignoring case.\nFunction: function isPalindrome(s)\nExample:\nInput: s = \"A man, a plan, a canal: Panama\"\nOutput: true\nTarget Complexity: O(n) time, O(1) space.",
-        "Contains Duplicate\nGiven an integer array 'nums', return true if any value appears at least twice in the array, and return false if every element is distinct.\nFunction: function containsDuplicate(nums)\nExample:\nInput: nums = [1, 2, 3, 1]\nOutput: true\nInput: nums = [1, 2, 3, 4]\nOutput: false\nTarget Complexity: O(n) time using a hash set."
+        "Two Sum\nGiven an array of integers 'nums' and an integer 'target', return indices of the two numbers such that they add up to target.\nFunction: function twoSum(nums, target)\nExample:\nInput: nums = [2, 7, 11, 15], target = 9 -> Output: [0, 1]\nInput: nums = [3, 2, 4], target = 6 -> Output: [1, 2]\nInput: nums = [3, 3], target = 6 -> Output: [0, 1]\nInput: nums = [-1, -2, -3, -4, -5], target = -8 -> Output: [2, 4]\nTarget Complexity: O(n) time, O(n) space.",
+        "Valid Parentheses\nGiven a string 's' containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid (brackets must close in correct order).\nFunction: function isValid(s)\nExample:\nInput: s = \"()[]{}\" -> Output: true\nInput: s = \"(]\" -> Output: false\nInput: s = \"([)]\" -> Output: false\nInput: s = \"{[]}\" -> Output: true\nTarget Complexity: O(n) time using a stack.",
+        "Best Time to Buy and Sell Stock\nGiven an array 'prices' where prices[i] is the stock price on day i, return the maximum profit achievable by buying on one day and selling on a future day. Return 0 if no profit.\nFunction: function maxProfit(prices)\nExample:\nInput: prices = [7, 1, 5, 3, 6, 4] -> Output: 5\nInput: prices = [7, 6, 4, 3, 1] -> Output: 0\nInput: prices = [2, 4, 1] -> Output: 2\nInput: prices = [1, 2, 3, 4, 5] -> Output: 4\nTarget Complexity: O(n) time, O(1) space.",
+        "Valid Palindrome\nGiven a string 's', return true if it is a palindrome, considering only alphanumeric characters and ignoring case.\nFunction: function isPalindrome(s)\nExample:\nInput: s = \"A man, a plan, a canal: Panama\" -> Output: true\nInput: s = \"race a car\" -> Output: false\nInput: s = \" \" -> Output: true\nInput: s = \"0P\" -> Output: false\nTarget Complexity: O(n) time, O(1) space.",
+        "Contains Duplicate\nGiven an integer array 'nums', return true if any value appears at least twice in the array, and return false if every element is distinct.\nFunction: function containsDuplicate(nums)\nExample:\nInput: nums = [1, 2, 3, 1] -> Output: true\nInput: nums = [1, 2, 3, 4] -> Output: false\nInput: nums = [1, 1, 1, 3, 3, 4, 3, 2, 4, 2] -> Output: true\nInput: nums = [99] -> Output: false\nTarget Complexity: O(n) time using a hash set."
       ];
       const mediumFallbacks = [
-        "Group Anagrams\nGiven an array of strings 'strs', group the anagrams together in any order.\nFunction: function groupAnagrams(strs)\nExample:\nInput: strs = [\"eat\", \"tea\", \"tan\", \"ate\", \"nat\", \"bat\"]\nOutput: [[\"bat\"], [\"nat\", \"tan\"], [\"ate\", \"eat\", \"tea\"]]\nTarget Complexity: O(n * k log k) where k is max string length.",
-        "Longest Substring Without Repeating Characters\nGiven a string 's', find the length of the longest substring without duplicate characters.\nFunction: function lengthOfLongestSubstring(s)\nExample:\nInput: s = \"abcabcbb\"\nOutput: 3 (the substring is \"abc\")\nInput: s = \"bbbbb\"\nOutput: 1\nTarget Complexity: O(n) using sliding window.",
-        "Merge Intervals\nGiven an array of 'intervals' where intervals[i] = [start, end], merge all overlapping intervals and return the non-overlapping intervals.\nFunction: function merge(intervals)\nExample:\nInput: intervals = [[1, 3], [2, 6], [8, 10], [15, 18]]\nOutput: [[1, 6], [8, 10], [15, 18]]\nTarget Complexity: O(n log n) time.",
-        "Product of Array Except Self\nGiven an integer array 'nums', return an array 'answer' such that answer[i] is equal to the product of all elements of nums except nums[i]. Must run in O(n) time without division.\nFunction: function productExceptSelf(nums)\nExample:\nInput: nums = [1, 2, 3, 4]\nOutput: [24, 12, 8, 6]\nTarget Complexity: O(n) time, O(1) auxiliary space.",
-        "Top K Frequent Elements\nGiven an integer array 'nums' and an integer 'k', return the 'k' most frequent elements.\nFunction: function topKFrequent(nums, k)\nExample:\nInput: nums = [1, 1, 1, 2, 2, 3], k = 2\nOutput: [1, 2]\nTarget Complexity: O(n log k) time or O(n) bucket sort."
+        "Group Anagrams\nGiven an array of strings 'strs', group the anagrams together in any order.\nFunction: function groupAnagrams(strs)\nExample:\nInput: strs = [\"eat\", \"tea\", \"tan\", \"ate\", \"nat\", \"bat\"] -> Output: [[\"bat\"], [\"nat\", \"tan\"], [\"ate\", \"eat\", \"tea\"]]\nInput: strs = [\"\"] -> Output: [[\"\"]]\nInput: strs = [\"a\"] -> Output: [[\"a\"]]\nInput: strs = [\"ab\", \"ba\"] -> Output: [[\"ab\", \"ba\"]]\nTarget Complexity: O(n * k log k) where k is max string length.",
+        "Longest Substring Without Repeating Characters\nGiven a string 's', find the length of the longest substring without duplicate characters.\nFunction: function lengthOfLongestSubstring(s)\nExample:\nInput: s = \"abcabcbb\" -> Output: 3\nInput: s = \"bbbbb\" -> Output: 1\nInput: s = \"pwwkew\" -> Output: 3\nInput: s = \"\" -> Output: 0\nTarget Complexity: O(n) using sliding window.",
+        "Merge Intervals\nGiven an array of 'intervals' where intervals[i] = [start, end], merge all overlapping intervals and return the non-overlapping intervals.\nFunction: function merge(intervals)\nExample:\nInput: intervals = [[1, 3], [2, 6], [8, 10], [15, 18]] -> Output: [[1, 6], [8, 10], [15, 18]]\nInput: intervals = [[1, 4], [4, 5]] -> Output: [[1, 5]]\nInput: intervals = [[1, 4], [2, 3]] -> Output: [[1, 4]]\nInput: intervals = [[1, 4]] -> Output: [[1, 4]]\nTarget Complexity: O(n log n) time.",
+        "Product of Array Except Self\nGiven an integer array 'nums', return an array 'answer' such that answer[i] is equal to the product of all elements of nums except nums[i]. Must run in O(n) time without division.\nFunction: function productExceptSelf(nums)\nExample:\nInput: nums = [1, 2, 3, 4] -> Output: [24, 12, 8, 6]\nInput: nums = [-1, 1, 0, -3, 3] -> Output: [0, 0, 9, 0, 0]\nInput: nums = [0, 0] -> Output: [0, 0]\nInput: nums = [2, 3] -> Output: [3, 2]\nTarget Complexity: O(n) time, O(1) auxiliary space.",
+        "Top K Frequent Elements\nGiven an integer array 'nums' and an integer 'k', return the 'k' most frequent elements.\nFunction: function topKFrequent(nums, k)\nExample:\nInput: nums = [1, 1, 1, 2, 2, 3], k = 2 -> Output: [1, 2]\nInput: nums = [1], k = 1 -> Output: [1]\nInput: nums = [4, 1, -1, 2, -1, 2, 3], k = 2 -> Output: [-1, 2]\nInput: nums = [3, 0, 1, 0], k = 1 -> Output: [0]\nTarget Complexity: O(n log k) time or O(n) bucket sort."
       ];
       const hardFallbacks = [
-        "Trapping Rain Water\nGiven 'n' non-negative integers representing an elevation map where width of each bar is 1, compute how much water it can trap after raining.\nFunction: function trap(height)\nExample:\nInput: height = [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1]\nOutput: 6\nTarget Complexity: O(n) time, O(1) space using two pointers.",
-        "Minimum Window Substring\nGiven strings 's' and 't', return the minimum window substring of 's' such that every character in 't' (with duplicates) is included. Return \"\" if no such substring exists.\nFunction: function minWindow(s, t)\nExample:\nInput: s = \"ADOBECODEBANC\", t = \"ABC\"\nOutput: \"BANC\"\nTarget Complexity: O(m + n) time using sliding window.",
-        "Sliding Window Maximum\nGiven an array of integers 'nums' and a sliding window of size 'k' moving from left to right, return the max sliding window array.\nFunction: function maxSlidingWindow(nums, k)\nExample:\nInput: nums = [1, 3, -1, -3, 5, 3, 6, 7], k = 3\nOutput: [3, 3, 5, 5, 6, 7]\nTarget Complexity: O(n) time using monotonic deque.",
-        "Merge k Sorted Lists\nGiven an array of 'k' linked lists, each sorted in ascending order, merge all lists into one sorted list.\nFunction: function mergeKLists(lists)\nExample:\nInput: lists = [[1, 4, 5], [1, 3, 4], [2, 6]]\nOutput: [1, 1, 2, 3, 4, 4, 5, 6]\nTarget Complexity: O(N log k) where N is total node count.",
-        "Median of Two Sorted Arrays\nGiven two sorted arrays 'nums1' and 'nums2' of sizes 'm' and 'n', return the median of the two sorted arrays.\nFunction: function findMedianSortedArrays(nums1, nums2)\nExample:\nInput: nums1 = [1, 3], nums2 = [2]\nOutput: 2.0\nTarget Complexity: O(log(min(m, n))) binary search."
+        "Trapping Rain Water\nGiven 'n' non-negative integers representing an elevation map where width of each bar is 1, compute how much water it can trap after raining.\nFunction: function trap(height)\nExample:\nInput: height = [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1] -> Output: 6\nInput: height = [4, 2, 0, 3, 2, 5] -> Output: 9\nInput: height = [3, 0, 2, 0, 4] -> Output: 7\nInput: height = [1, 2, 3, 4, 5] -> Output: 0\nTarget Complexity: O(n) time, O(1) space using two pointers.",
+        "Minimum Window Substring\nGiven strings 's' and 't', return the minimum window substring of 's' such that every character in 't' (with duplicates) is included. Return \"\" if no such substring exists.\nFunction: function minWindow(s, t)\nExample:\nInput: s = \"ADOBECODEBANC\", t = \"ABC\" -> Output: \"BANC\"\nInput: s = \"a\", t = \"a\" -> Output: \"a\"\nInput: s = \"a\", t = \"aa\" -> Output: \"\"\nInput: s = \"ab\", t = \"b\" -> Output: \"b\"\nTarget Complexity: O(m + n) time using sliding window.",
+        "Sliding Window Maximum\nGiven an array of integers 'nums' and a sliding window of size 'k' moving from left to right, return the max sliding window array.\nFunction: function maxSlidingWindow(nums, k)\nExample:\nInput: nums = [1, 3, -1, -3, 5, 3, 6, 7], k = 3 -> Output: [3, 3, 5, 5, 6, 7]\nInput: nums = [1], k = 1 -> Output: [1]\nInput: nums = [1, -1], k = 1 -> Output: [1, -1]\nInput: nums = [9, 11], k = 2 -> Output: [11]\nTarget Complexity: O(n) time using monotonic deque.",
+        "Merge k Sorted Lists\nGiven an array of 'k' linked lists, each sorted in ascending order, merge all lists into one sorted list.\nFunction: function mergeKLists(lists)\nExample:\nInput: lists = [[1, 4, 5], [1, 3, 4], [2, 6]] -> Output: [1, 1, 2, 3, 4, 4, 5, 6]\nInput: lists = [] -> Output: []\nInput: lists = [[]] -> Output: []\nInput: lists = [[1], [0]] -> Output: [0, 1]\nTarget Complexity: O(N log k) where N is total node count.",
+        "Median of Two Sorted Arrays\nGiven two sorted arrays 'nums1' and 'nums2' of sizes 'm' and 'n', return the median of the two sorted arrays.\nFunction: function findMedianSortedArrays(nums1, nums2)\nExample:\nInput: nums1 = [1, 3], nums2 = [2] -> Output: 2.0\nInput: nums1 = [1, 2], nums2 = [3, 4] -> Output: 2.5\nInput: nums1 = [0, 0], nums2 = [0, 0] -> Output: 0.0\nInput: nums1 = [], nums2 = [1] -> Output: 1.0\nTarget Complexity: O(log(min(m, n))) binary search."
       ];
       const selected = targetDifficulty === "easy" ? easyFallbacks : targetDifficulty === "hard" ? hardFallbacks : mediumFallbacks;
       setQuestions(selected);
@@ -644,6 +644,110 @@ export default function CodingRoomPage({
                 </div>
               </div>
             )}
+
+            {/* Recruiter Live Test Cases Evaluation Scorecard */}
+            {(() => {
+              const totalCount = testSuiteSummary?.totalCount ?? (testCases.length > 0 ? testCases.length : 4);
+              const passedCount = testSuiteSummary?.passedCount ?? 0;
+              const passRate = totalCount > 0 ? Math.round((passedCount / totalCount) * 100) : 0;
+              const publicPassed = testSuiteSummary?.results.slice(0, 2).filter((r) => r.passed).length ?? 0;
+              const hiddenPassed = testSuiteSummary?.results.slice(2, 4).filter((r) => r.passed).length ?? 0;
+
+              return (
+                <div className="p-4 border-b border-[var(--border-default)] bg-[var(--bg-surface)] shrink-0 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-1.5">
+                        <span>🧪</span> Candidate Test Case Evaluation
+                      </span>
+                      <span
+                        className={cn(
+                          "text-[10px] font-mono px-2 py-0.5 rounded font-bold border",
+                          testSuiteSummary
+                            ? passedCount === totalCount
+                              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                              : passedCount >= 3
+                              ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                              : "bg-red-500/20 text-red-400 border-red-500/30"
+                            : "bg-[var(--bg-base)] text-[var(--text-muted)] border-[var(--border-default)]"
+                        )}
+                      >
+                        {testSuiteSummary
+                          ? `${passedCount} / ${totalCount} Solved (${passRate}%)`
+                          : "0 / 4 Solved (Awaiting Run)"}
+                      </span>
+                    </div>
+
+                    {testSuiteSummary && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          const recGrade = passedCount === 4 ? "Strong" : passedCount === 3 ? "Average" : "Weak";
+                          if (activeQuestionIdx !== null) {
+                            handleEvalClick(activeQuestion, recGrade, activeQuestionIdx);
+                          }
+                          const evalNote = `\n[Test Cases Evaluation]: ${passedCount}/4 Solved (${passRate}%). Public: ${publicPassed}/2, Hidden Edge: ${hiddenPassed}/2. Grade: ${recGrade.toUpperCase()}.`;
+                          setNotes((prev) => (prev.includes(evalNote) ? prev : prev + evalNote));
+                          toast.success(`Evaluated as ${recGrade}! Rubric and notes updated.`);
+                        }}
+                        className="h-6 text-[10px] px-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium cursor-pointer"
+                        title="Auto-grade candidate rubric and update notes based on test cases solved"
+                      >
+                        ⚡ Auto-Grade Candidate
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="space-y-1">
+                    <div className="w-full h-2 rounded-full bg-[#141820] border border-[#273244] overflow-hidden flex">
+                      <div
+                        className={cn(
+                          "h-full transition-all duration-500",
+                          passRate === 100
+                            ? "bg-emerald-500"
+                            : passRate >= 75
+                            ? "bg-amber-500"
+                            : passRate > 0
+                            ? "bg-rose-500"
+                            : "bg-transparent"
+                        )}
+                        style={{ width: `${passRate}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-[10px] text-[var(--text-muted)] font-mono">
+                      <span>Public Cases: <strong className="text-white">{publicPassed}/2</strong></span>
+                      <span>Hidden Edge Cases: <strong className="text-purple-300">{hiddenPassed}/2</strong></span>
+                      <span>Pass Rate: <strong className="text-white">{passRate}%</strong></span>
+                    </div>
+                  </div>
+
+                  {/* Scoring Breakdown & Rubric Guidance */}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-2 rounded bg-[var(--bg-base)] border border-[var(--border-divider)] space-y-1">
+                      <span className="text-[10px] font-bold uppercase text-[var(--text-muted)] block">Evaluation Rule:</span>
+                      <p className="text-[11px] text-[var(--text-secondary)] leading-snug">
+                        {passedCount === 4 && testSuiteSummary
+                          ? "🟢 Strong Hire: Solved all 4 test cases including both hidden edge cases."
+                          : passedCount === 3 && testSuiteSummary
+                          ? "🟡 Average / Borderline: Solved visible cases; failed 1 hidden edge case."
+                          : passedCount > 0 && testSuiteSummary
+                          ? "🔴 Weak: Incomplete logic, failed multiple test cases."
+                          : "⚪ Awaiting candidate code execution against test suite."}
+                      </p>
+                    </div>
+                    <div className="p-2 rounded bg-[var(--bg-base)] border border-[var(--border-divider)] space-y-1">
+                      <span className="text-[10px] font-bold uppercase text-[var(--text-muted)] block">Candidate Visibility:</span>
+                      <p className="text-[11px] text-[var(--text-secondary)] leading-snug font-mono">
+                        • Cases 1 & 2: <span className="text-emerald-400">Visible to Candidate</span><br />
+                        • Cases 3 & 4: <span className="text-purple-400">Hidden Edge Cases</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* AI Questions Section */}
             <div className="p-5 flex flex-col gap-3 border-b border-[var(--border-default)] shrink-0 bg-[var(--bg-surface)]">
@@ -1170,26 +1274,29 @@ export default function CodingRoomPage({
                 <div className="space-y-3">
                   {/* Case selector tabs */}
                   <div className="flex items-center gap-2 border-b border-[#333] pb-2 overflow-x-auto">
-                    {testSuiteSummary.results.map((r, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setActiveResultTab(idx)}
-                        className={cn(
-                          "px-2.5 py-1 text-xs font-mono rounded flex items-center gap-1.5 transition-colors cursor-pointer",
-                          activeResultTab === idx
-                            ? "bg-[#37373d] text-white font-semibold ring-1 ring-indigo-500/50"
-                            : "text-[#858585] hover:text-[#CCCCCC] hover:bg-[#2a2d2e]"
-                        )}
-                      >
-                        <span>Case {r.index}</span>
-                        {r.passed ? (
-                          <span className="text-emerald-400 text-[11px]">✅</span>
-                        ) : (
-                          <span className="text-rose-400 text-[11px]">❌</span>
-                        )}
-                      </button>
-                    ))}
+                    {testSuiteSummary.results.map((r, idx) => {
+                      const isHiddenCase = Boolean(r.isHidden ?? idx >= 2);
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setActiveResultTab(idx)}
+                          className={cn(
+                            "px-2.5 py-1 text-xs font-mono rounded flex items-center gap-1.5 transition-colors cursor-pointer",
+                            activeResultTab === idx
+                              ? "bg-[#37373d] text-white font-semibold ring-1 ring-indigo-500/50"
+                              : "text-[#858585] hover:text-[#CCCCCC] hover:bg-[#2a2d2e]"
+                          )}
+                        >
+                          <span>Case {r.index}{isHiddenCase ? (isCandidate ? " 🔒" : " (Hidden)") : ""}</span>
+                          {r.passed ? (
+                            <span className="text-emerald-400 text-[11px]">✅</span>
+                          ) : (
+                            <span className="text-rose-400 text-[11px]">❌</span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
 
                   {/* Selected test case detail */}
@@ -1198,6 +1305,8 @@ export default function CodingRoomPage({
                       testSuiteSummary.results[activeResultTab] ||
                       testSuiteSummary.results[0];
                     if (!cur) return null;
+
+                    const isHiddenFromCandidate = isCandidate && Boolean(cur.isHidden ?? activeResultTab >= 2);
 
                     return (
                       <div className="space-y-2.5 animate-in fade-in duration-150">
@@ -1213,48 +1322,80 @@ export default function CodingRoomPage({
                               ({cur.durationMs}ms)
                             </span>
                           </span>
+
+                          <span className="text-[10px] font-mono">
+                            {isHiddenFromCandidate ? (
+                              <span className="text-purple-300 bg-purple-500/20 px-2 py-0.5 rounded border border-purple-500/30 font-semibold flex items-center gap-1">
+                                <span>🔒</span> Hidden Edge Case
+                              </span>
+                            ) : !isCandidate && Boolean(cur.isHidden ?? activeResultTab >= 2) ? (
+                              <span className="text-purple-300 bg-purple-500/20 px-2 py-0.5 rounded border border-purple-500/30 font-semibold flex items-center gap-1">
+                                <span>🔒</span> Hidden to Candidate (Recruiter Full View)
+                              </span>
+                            ) : (
+                              <span className="text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-semibold">
+                                Public Test Case
+                              </span>
+                            )}
+                          </span>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                          <div className="p-2 rounded bg-[#141820] border border-[#273244] space-y-1">
-                            <span className="text-[10px] font-bold text-[#858585] uppercase tracking-wider block font-sans">
-                              Input:
-                            </span>
-                            <pre className="text-emerald-300 text-xs overflow-x-auto whitespace-pre font-mono">
-                              {cur.input}
-                            </pre>
+                        {isHiddenFromCandidate ? (
+                          <div className="p-3 rounded bg-[#141820]/80 border border-dashed border-[#273244] text-[11px] font-sans text-[var(--text-muted)] space-y-1.5">
+                            <div className="font-semibold text-slate-200 flex items-center gap-1.5">
+                              <span>🔒</span> Hidden Test Case {cur.index}
+                            </div>
+                            <p className="leading-relaxed">
+                              This test case validates algorithmic boundary conditions and hidden edge cases.
+                              Your code was executed against this case in the tunnel and {cur.passed ? (
+                                <strong className="text-emerald-400 font-semibold">successfully passed!</strong>
+                              ) : (
+                                <strong className="text-rose-400 font-semibold">did not match the expected return value.</strong>
+                              )}
+                            </p>
                           </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <div className="p-2 rounded bg-[#141820] border border-[#273244] space-y-1">
+                              <span className="text-[10px] font-bold text-[#858585] uppercase tracking-wider block font-sans">
+                                Input:
+                              </span>
+                              <pre className="text-emerald-300 text-xs overflow-x-auto whitespace-pre font-mono">
+                                {cur.input}
+                              </pre>
+                            </div>
 
-                          <div className="p-2 rounded bg-[#141820] border border-[#273244] space-y-1">
-                            <span className="text-[10px] font-bold text-[#858585] uppercase tracking-wider block font-sans">
-                              Expected Output:
-                            </span>
-                            <pre className="text-indigo-300 text-xs overflow-x-auto whitespace-pre font-mono">
-                              {cur.expected}
-                            </pre>
-                          </div>
+                            <div className="p-2 rounded bg-[#141820] border border-[#273244] space-y-1">
+                              <span className="text-[10px] font-bold text-[#858585] uppercase tracking-wider block font-sans">
+                                Expected Output:
+                              </span>
+                              <pre className="text-indigo-300 text-xs overflow-x-auto whitespace-pre font-mono">
+                                {cur.expected}
+                              </pre>
+                            </div>
 
-                          <div
-                            className={cn(
-                              "p-2 rounded border space-y-1",
-                              cur.passed
-                                ? "bg-emerald-950/20 border-emerald-500/25"
-                                : "bg-rose-950/20 border-rose-500/25"
-                            )}
-                          >
-                            <span className="text-[10px] font-bold text-[#858585] uppercase tracking-wider block font-sans">
-                              Actual Return:
-                            </span>
-                            <pre
+                            <div
                               className={cn(
-                                "text-xs overflow-x-auto whitespace-pre font-mono font-semibold",
-                                cur.passed ? "text-emerald-300" : "text-rose-300"
+                                "p-2 rounded border space-y-1",
+                                cur.passed
+                                  ? "bg-emerald-950/20 border-emerald-500/25"
+                                  : "bg-rose-950/20 border-rose-500/25"
                               )}
                             >
-                              {cur.actual}
-                            </pre>
+                              <span className="text-[10px] font-bold text-[#858585] uppercase tracking-wider block font-sans">
+                                Actual Return:
+                              </span>
+                              <pre
+                                className={cn(
+                                  "text-xs overflow-x-auto whitespace-pre font-mono font-semibold",
+                                  cur.passed ? "text-emerald-300" : "text-rose-300"
+                                )}
+                              >
+                                {cur.actual}
+                              </pre>
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     );
                   })()}

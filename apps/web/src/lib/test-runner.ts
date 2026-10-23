@@ -3,6 +3,7 @@ export interface TestCase {
   input: string;
   output: string;
   explanation?: string;
+  isHidden?: boolean;
 }
 
 export interface TestCaseResult {
@@ -12,6 +13,7 @@ export interface TestCaseResult {
   actual: string;
   passed: boolean;
   durationMs: number;
+  isHidden?: boolean;
 }
 
 export interface TestSuiteSummary {
@@ -133,7 +135,8 @@ ${userCode}
         expected: tc.output,
         actual: JSON.stringify(actual) !== undefined ? JSON.stringify(actual) : String(actual),
         passed,
-        durationMs
+        durationMs,
+        isHidden: Boolean(tc.isHidden ?? i >= 2)
       });
     } catch (err) {
       __results.push({
@@ -142,7 +145,8 @@ ${userCode}
         expected: tc.output,
         actual: "Runtime Error: " + err.message,
         passed: false,
-        durationMs: 0
+        durationMs: 0,
+        isHidden: Boolean(tc.isHidden ?? i >= 2)
       });
     }
   }
@@ -216,7 +220,8 @@ def __run_suite():
                 "expected": exp,
                 "actual": act_str,
                 "passed": passed,
-                "durationMs": dur
+                "durationMs": dur,
+                "isHidden": bool(tc.get("isHidden", i >= 2))
             })
         except Exception as e:
             __results.append({
@@ -225,7 +230,8 @@ def __run_suite():
                 "expected": exp,
                 "actual": f"Error: {str(e)}",
                 "passed": False,
-                "durationMs": 0
+                "durationMs": 0,
+                "isHidden": bool(tc.get("isHidden", i >= 2))
             })
 
     passed_count = sum(1 for r in __results if r["passed"])

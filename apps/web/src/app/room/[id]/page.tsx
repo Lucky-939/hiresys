@@ -14,6 +14,7 @@ import { Icons } from "@/components/ui/Icons";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/error";
+import { FormattedProblemStatement } from "@/components/room/FormattedProblemStatement";
 
 const Editor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
@@ -289,7 +290,7 @@ export default function CodingRoomPage({
 
     const socket = getSocket(activeToken || undefined);
 
-    // 1. Live broadcast to candidate's Problem Statement card
+    // 1. Live broadcast to candidate's Problem Statement panel
     socket.emit("question:send", { roomId, question: q });
 
     // 2. Persist to PostgreSQL database so refreshing the page retains the assigned problem
@@ -299,29 +300,25 @@ export default function CodingRoomPage({
       { headers: { Authorization: `Bearer ${activeToken}` } }
     ).catch(err => console.error("Failed to persist question:", err));
 
-    // 3. Format and insert question into Monaco code editor as comments so candidate sees it in both places!
-    const commentPrefix = language === "python" ? "#" : "//";
-    const questionHeader = `${commentPrefix} ========================================================\n${commentPrefix} 📌 PROBLEM ${idx + 1}:\n${commentPrefix} ${q.replace(/\n/g, `\n${commentPrefix} `)}\n${commentPrefix} ========================================================\n\n`;
-    
-    // Only prepend if not already in code
-    const shortSignature = q.slice(0, 30);
-    if (!code.includes(shortSignature)) {
-      const newCode = questionHeader + (code.trim() ? code : (STARTER_CODE[language] || ""));
-      setCode(newCode);
-      socket.emit("code:change", { roomId, code: newCode });
-    }
+    // Notice: We strictly DO NOT inject question comments into the code editor.
+    // The code editor remains clean for code only, while the problem statement is cleanly displayed on the right panel.
 
-    toast.success(`Question ${idx + 1} sent to Candidate's screen & code editor!`);
+    toast.success(`Problem ${idx + 1} sent to Candidate's Problem Statement!`);
   }
 
-  function handlePasteQuestionInEditor(q: string, idx: number) {
-    if (isCompleted || isCandidate) return;
-    const commentPrefix = language === "python" ? "#" : "//";
-    const commentHeader = `${commentPrefix} ========================================================\n${commentPrefix} PROBLEM ${idx + 1}:\n${commentPrefix} ${q.replace(/\n/g, `\n${commentPrefix} `)}\n${commentPrefix} ========================================================\n\n`;
-    const newCode = commentHeader + (code || "");
-    setCode(newCode);
-    getSocket(activeToken || undefined).emit("code:change", { roomId, code: newCode });
-    toast.success(`Question ${idx + 1} pasted into code editor!`);
+  function handleCleanQuestionComments() {
+    // Strips out multi-line commented question headers
+    let cleaned = code
+      .replace(/(\/\/|#)\s*=+\s*[\r\n]+(((\/\/|#).*[\r\n]+)*)(\/\/|#)\s*=+\s*[\r\n]*/g, "")
+      .replace(/^(\/\/|#)\s*(📌|PROBLEM|QUESTION|LeetCode).*[\r\n]+/gim, "")
+      .trim();
+
+    if (!cleaned) {
+      cleaned = STARTER_CODE[language] || "";
+    }
+    setCode(cleaned);
+    getSocket(activeToken || undefined).emit("code:change", { roomId, code: cleaned });
+    toast.success("Question comments cleared from code editor!");
   }
 
   function handleEvalClick(q: string, evalType: "Strong" | "Average" | "Weak", qIdx: number) {
@@ -549,6 +546,32 @@ export default function CodingRoomPage({
           {/* Unified Content Area */}
           <div className="flex-1 overflow-y-auto bg-[var(--bg-base)] flex flex-col">
             
+            {/* Active Problem on Candidate Screen Card (Interviewer View) */}
+            {activeQuestion && (
+              <div className="p-4 border-b border-[var(--border-default)] bg-[var(--bg-surface)] shrink-0 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" /> Live on Candidate Screen
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveQuestion("");
+                      setActiveQuestionIdx(null);
+                      getSocket(activeToken || undefined).emit("question:send", { roomId, question: "" });
+                      api.patch(`/interviews/${roomId}`, { description: "" }, { headers: { Authorization: `Bearer ${activeToken}` } }).catch(() => {});
+                    }}
+                    className="text-[10px] text-[var(--text-muted)] hover:text-rose-400 transition-colors cursor-pointer"
+                  >
+                    Clear Active Problem
+                  </button>
+                </div>
+                <div className="p-3 rounded-[var(--radius-default)] bg-[var(--bg-base)] border border-[var(--border-divider)]">
+                  <FormattedProblemStatement rawText={activeQuestion} />
+                </div>
+              </div>
+            )}
+
             {/* AI Questions Section */}
             <div className="p-5 flex flex-col gap-3 border-b border-[var(--border-default)] shrink-0 bg-[var(--bg-surface)]">
               <div className="flex items-center justify-between">
@@ -617,33 +640,22 @@ export default function CodingRoomPage({
                         <p className="text-xs text-[var(--text-primary)] leading-relaxed font-medium">{q}</p>
                         <Badge variant="outline" className="text-[9px] shrink-0">Q{idx + 1}</Badge>
                       </div>
-                      {/* Question Actions: Send to Candidate / Paste in Editor */}
+                      {/* Question Actions: Send to Candidate */}
                       <div className="mt-2.5 pt-2 border-t border-[var(--border-divider)] flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5">
-                          <Button
-                            variant={activeQuestionIdx === idx ? "default" : "outline"}
-                            size="sm"
-                            className={cn(
-                              "h-6 text-[10px] px-2 gap-1 font-medium transition-colors",
-                              activeQuestionIdx === idx
-                                ? "bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600 shadow-sm"
-                                : "hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 text-[var(--text-secondary)]"
-                            )}
-                            onClick={() => handleSendQuestionToCandidate(q, idx)}
-                            title="Push this question live to Candidate's problem card"
-                          >
-                            {activeQuestionIdx === idx ? "✓ On Candidate Screen" : "📌 Send to Candidate"}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-6 text-[10px] px-2 gap-1 text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-white"
-                            onClick={() => handlePasteQuestionInEditor(q, idx)}
-                            title="Insert this question into the Monaco editor as code comments"
-                          >
-                            📋 Paste in Editor
-                          </Button>
-                        </div>
+                        <Button
+                          variant={activeQuestionIdx === idx ? "default" : "outline"}
+                          size="sm"
+                          className={cn(
+                            "h-6 text-[10px] px-2.5 gap-1 font-medium transition-colors",
+                            activeQuestionIdx === idx
+                              ? "bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600 shadow-sm"
+                              : "hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 text-[var(--text-secondary)]"
+                          )}
+                          onClick={() => handleSendQuestionToCandidate(q, idx)}
+                          title="Push this question live to Candidate's Problem Statement panel"
+                        >
+                          {activeQuestionIdx === idx ? "✓ On Candidate Screen" : "📌 Send to Candidate"}
+                        </Button>
                       </div>
 
                       {/* Rubric Evaluation */}
@@ -789,22 +801,23 @@ export default function CodingRoomPage({
                 )}
               </h2>
 
-              {activeQuestion ? (
-                <div className="p-3.5 rounded-[var(--radius-default)] bg-indigo-500/10 border border-indigo-500/30 space-y-2 animate-in fade-in duration-200">
-                  <div className="flex items-center gap-1.5 text-indigo-400 font-bold uppercase text-[10px]">
-                    <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" /> Question from Interviewer
-                  </div>
-                  <p className="text-xs text-[var(--text-primary)] font-medium leading-relaxed">
-                    {activeQuestion}
-                  </p>
-                </div>
-              ) : interviewInfo.description ? (
-                <div className="text-xs text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap font-mono bg-[var(--bg-base)] p-3 rounded border border-[var(--border-divider)]">
-                  {interviewInfo.description}
+              {activeQuestion || interviewInfo.description ? (
+                <div className="p-3.5 rounded-[var(--radius-default)] bg-[var(--bg-base)] border border-indigo-500/25 shadow-sm animate-in fade-in duration-200">
+                  <FormattedProblemStatement
+                    rawText={activeQuestion || interviewInfo.description}
+                    isCandidate={isCandidate}
+                    onInsertStarter={(starter) => {
+                      setCode((prev) => {
+                        const next = prev.trim() ? prev + "\n\n" + starter : starter;
+                        getSocket(activeToken || undefined).emit("code:change", { roomId, code: next });
+                        return next;
+                      });
+                    }}
+                  />
                 </div>
               ) : (
-                <div className="text-xs text-[var(--text-muted)] leading-relaxed bg-[var(--bg-base)] p-3 rounded border border-dashed border-[var(--border-divider)]">
-                  Your interviewer will outline the problem scenario and assign questions directly to your screen or inside the code editor.
+                <div className="text-xs text-[var(--text-muted)] leading-relaxed bg-[var(--bg-base)] p-4 rounded border border-dashed border-[var(--border-divider)] text-center">
+                  Your interviewer will outline the problem scenario and assign a coding challenge to your Problem Statement panel.
                 </div>
               )}
             </div>
@@ -896,6 +909,17 @@ export default function CodingRoomPage({
                   </Button>
                 </>
               )}
+
+              <div className="w-px h-4 bg-[#333]" />
+              <button
+                type="button"
+                onClick={handleCleanQuestionComments}
+                disabled={isCompleted}
+                className="h-7 text-xs text-[#888] hover:text-white px-2 py-0.5 rounded transition-colors flex items-center gap-1 cursor-pointer"
+                title="Clear question comment headers from the code editor"
+              >
+                🧹 Clear Comments
+              </button>
 
               <div className="w-px h-4 bg-[#333]" />
               <Button 

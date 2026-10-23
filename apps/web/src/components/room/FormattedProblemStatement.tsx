@@ -420,26 +420,28 @@ export function FormattedProblemStatement({
             <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 font-mono">
               Function Signature
             </span>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleCopySignature}
-                className="text-[10px] text-[var(--text-muted)] hover:text-white transition-colors cursor-pointer"
-                title="Copy signature"
-              >
-                Copy
-              </button>
-              {onInsertStarter && (
+            {isCandidate && (
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={handleInsertStarter}
-                  className="text-[10px] text-sky-400 hover:text-sky-300 font-semibold transition-colors cursor-pointer flex items-center gap-1"
-                  title="Insert clean function into editor (no comments)"
+                  onClick={handleCopySignature}
+                  className="text-[10px] text-[var(--text-muted)] hover:text-white transition-colors cursor-pointer"
+                  title="Copy signature"
                 >
-                  ⚡ Insert Starter
+                  Copy
                 </button>
-              )}
-            </div>
+                {onInsertStarter && (
+                  <button
+                    type="button"
+                    onClick={handleInsertStarter}
+                    className="text-[10px] text-sky-400 hover:text-sky-300 font-semibold transition-colors cursor-pointer flex items-center gap-1"
+                    title="Insert clean function into editor (no comments)"
+                  >
+                    ⚡ Insert Starter
+                  </button>
+                )}
+              </div>
+            )}
           </div>
           <pre className="font-mono text-xs text-sky-200 overflow-x-auto whitespace-pre">
             <code>{parsed.functionSignature}</code>
@@ -448,7 +450,7 @@ export function FormattedProblemStatement({
       )}
 
       {/* Compulsory 4 Test Cases Section (2 Visible, 2 Hidden to Candidate; All 4 to Recruiter) */}
-      <div className="space-y-2.5">
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
           <h4 className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
             <span>🧪</span> Test Cases ({activeCases.length})
@@ -473,7 +475,7 @@ export function FormattedProblemStatement({
               return (
                 <div
                   key={idx}
-                  className="p-3 rounded-[var(--radius-default)] bg-[#141820]/60 border border-dashed border-[#273244] space-y-1.5 select-none transition-colors"
+                  className="p-2.5 rounded-[var(--radius-default)] bg-[#141820]/60 border border-dashed border-[#273244] space-y-1 select-none transition-colors"
                 >
                   <div className="flex items-center justify-between text-[10px] font-bold text-slate-400">
                     <span className="flex items-center gap-1.5">
@@ -484,7 +486,7 @@ export function FormattedProblemStatement({
                       Hidden Test Case
                     </span>
                   </div>
-                  <div className="text-[11px] text-[var(--text-muted)] italic font-sans flex items-center gap-1.5 py-1">
+                  <div className="text-[11px] text-[var(--text-muted)] italic font-sans flex items-center gap-1.5 py-0.5">
                     <span>🔒</span> Evaluated automatically upon &apos;Run Code&apos; to test edge cases.
                   </div>
                 </div>
@@ -494,7 +496,7 @@ export function FormattedProblemStatement({
             return (
               <div
                 key={idx}
-                className="p-3 rounded-[var(--radius-default)] bg-[var(--bg-base)] border border-[var(--border-divider)] space-y-2 font-mono group hover:border-indigo-500/30 transition-colors"
+                className="p-2.5 rounded-[var(--radius-default)] bg-[var(--bg-base)] border border-[var(--border-divider)] space-y-1.5 font-mono group hover:border-indigo-500/30 transition-colors"
               >
                 <div className="flex items-center justify-between text-[10px] font-bold text-amber-400">
                   <span className="flex items-center gap-1.5">
@@ -504,7 +506,7 @@ export function FormattedProblemStatement({
                   {!isCandidate && (
                     <span
                       className={cn(
-                        "text-[9px] uppercase px-1.5 py-0.5 rounded font-sans font-semibold border flex items-center gap-1",
+                        "text-[9px] uppercase px-1.5 py-0.2 rounded font-sans font-semibold border flex items-center gap-1",
                         idx >= 2
                           ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
                           : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
@@ -514,20 +516,20 @@ export function FormattedProblemStatement({
                     </span>
                   )}
                 </div>
-                <div className="space-y-1.5 text-xs">
+                <div className="space-y-1 text-xs">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-[var(--text-muted)] select-none text-[11px] w-14 shrink-0 font-sans">
+                    <span className="text-[var(--text-muted)] select-none text-[10px] w-14 shrink-0 font-sans">
                       Input:
                     </span>
-                    <span className="text-emerald-400 font-medium break-all bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                    <span className="text-emerald-400 font-medium break-all bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 text-[11px]">
                       {tc.input}
                     </span>
                   </div>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-[var(--text-muted)] select-none text-[11px] w-14 shrink-0 font-sans">
+                    <span className="text-[var(--text-muted)] select-none text-[10px] w-14 shrink-0 font-sans">
                       Expected:
                     </span>
-                    <span className="text-indigo-400 font-bold break-all bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
+                    <span className="text-indigo-400 font-bold break-all bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20 text-[11px]">
                       {tc.output}
                     </span>
                   </div>

@@ -127,6 +127,7 @@ export default function CodingRoomPage({
   // Layout State
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [isCandidate, setIsCandidate] = useState(false);
+  const [isProblemExpanded, setIsProblemExpanded] = useState(true);
 
   // Report state
   const [generatingReport, setGeneratingReport] = useState(false);
@@ -670,92 +671,104 @@ export default function CodingRoomPage({
       {isPanelOpen && !isCandidate && (
         <div className="w-2/5 flex flex-col border-l border-[var(--border-default)] bg-[var(--bg-surface)]">
           {/* Header */}
-          <div className="p-4 border-b border-[var(--border-default)] flex items-center justify-between bg-[var(--bg-surface)]">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
-                  Candidate Evaluation
+          <div className="p-3.5 border-b border-[var(--border-default)] bg-[var(--bg-surface)] space-y-2.5">
+            {/* Row 1: Session Status & Clock/Avatars */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  {interviewInfo.stage || "INTERVIEWING"}
                 </span>
-                <Badge variant="neutral" className="px-1.5 py-0 text-[10px]">{interviewInfo.stage}</Badge>
+                <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                  Room #{roomId.slice(0, 8)}
+                </span>
               </div>
-              <h1 className="font-bold text-lg leading-tight tracking-tight flex items-center gap-2">
-                {interviewInfo.candidateName}
-                {isCompleted && (
-                  <span className="text-[var(--text-muted)]" title="Session is submitted and locked">
-                    {Icons.lock}
-                  </span>
-                )}
-              </h1>
-              <p className="text-xs text-[var(--text-secondary)] font-mono mt-0.5">
-                {interviewInfo.role}
-              </p>
+              
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-[var(--bg-elevated)] rounded border border-[var(--border-default)] text-xs font-mono text-[var(--text-secondary)]">
+                  {Icons.clock} {formatTime(elapsed)}
+                </div>
+                <div className="flex -space-x-1.5 mr-0.5">
+                  {users.map((u, i) => (
+                    <div
+                      key={i}
+                      title={u.name}
+                      className="h-5 w-5 rounded-full border border-[var(--bg-surface)] flex items-center justify-center text-[9px] text-white font-bold shadow-sm"
+                      style={{ backgroundColor: u.color, zIndex: users.length - i }}
+                    >
+                      {u.name.charAt(0).toUpperCase()}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-[var(--bg-elevated)] rounded-[var(--radius-default)] border border-[var(--border-default)] text-xs font-mono text-[var(--text-secondary)]">
-                {Icons.clock} {formatTime(elapsed)}
-              </div>
-              <div className="flex -space-x-2 mr-1">
-                {users.map((u, i) => (
-                  <div
-                    key={i}
-                    title={u.name}
-                    className="h-6 w-6 rounded-full border-2 border-[var(--bg-surface)] flex items-center justify-center text-[10px] text-white font-bold"
-                    style={{ backgroundColor: u.color, zIndex: users.length - i }}
-                  >
-                    {u.name.charAt(0).toUpperCase()}
-                  </div>
-                ))}
+
+            {/* Row 2: Candidate Info & Action Buttons */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <h1 className="font-bold text-base leading-tight tracking-tight text-[var(--text-primary)] truncate flex items-center gap-1.5">
+                  {interviewInfo.candidateName}
+                  {isCompleted && (
+                    <span className="text-[var(--text-muted)] shrink-0" title="Session is submitted and locked">
+                      {Icons.lock}
+                    </span>
+                  )}
+                </h1>
+                <p className="text-[11px] text-[var(--text-muted)] font-mono truncate mt-0.5">
+                  {interviewInfo.role}
+                </p>
               </div>
 
-              {/* Google Meet Video Button ($0 Free Tier) */}
-              {meetUrl ? (
-                <div className="flex items-center gap-1">
-                  <a
-                    href={meetUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="h-8 px-2.5 rounded-[var(--radius-default)] bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
-                    title="Open Google Meet call"
-                  >
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>📹 Join Meet</span>
-                  </a>
+              <div className="flex items-center gap-2 shrink-0">
+                {/* Google Meet Video Button ($0 Free Tier) */}
+                {meetUrl ? (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <a
+                      href={meetUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="h-8 px-2.5 rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer whitespace-nowrap shrink-0"
+                      title="Open Google Meet call"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                      <span>📹 Join Meet</span>
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTempMeetUrl(meetUrl);
+                        setShowMeetModal(true);
+                      }}
+                      className="h-8 w-7 flex items-center justify-center text-[var(--text-muted)] hover:text-white text-xs cursor-pointer rounded hover:bg-[var(--bg-elevated)] border border-[var(--border-default)] transition-colors shrink-0"
+                      title="Edit Meet Link"
+                    >
+                      ⚙️
+                    </button>
+                  </div>
+                ) : (
                   <button
                     type="button"
                     onClick={() => {
                       setTempMeetUrl(meetUrl);
                       setShowMeetModal(true);
                     }}
-                    className="h-8 px-1.5 text-[var(--text-muted)] hover:text-white text-xs cursor-pointer rounded hover:bg-[var(--bg-elevated)] transition-colors"
-                    title="Edit Meet Link"
+                    className="h-8 px-2.5 rounded bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 hover:border-indigo-500/50"
+                    title="Connect Google Meet for interview ($0 Free Tier)"
                   >
-                    ⚙️
+                    <span>📹 Connect Meet</span>
                   </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTempMeetUrl(meetUrl);
-                    setShowMeetModal(true);
-                  }}
-                  className="h-8 px-2.5 rounded-[var(--radius-default)] bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-400 border border-indigo-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
-                  title="Connect Google Meet for interview ($0 Free Tier)"
-                >
-                  <span>📹 Connect Meet</span>
-                </button>
-              )}
+                )}
 
-              <Button
-                onClick={handleGenerateReport}
-                disabled={generatingReport || isCompleted}
-                variant={isCompleted ? "secondary" : "default"}
-                size="sm"
-                className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
-              >
-                {generatingReport ? "Submitting..." : isCompleted ? "View Report" : "Submit Interview"}
-              </Button>
+                <Button
+                  onClick={handleGenerateReport}
+                  disabled={generatingReport || isCompleted}
+                  variant={isCompleted ? "secondary" : "default"}
+                  size="sm"
+                  className="h-8 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium cursor-pointer whitespace-nowrap shrink-0 text-xs shadow-sm"
+                >
+                  {generatingReport ? "Submitting..." : isCompleted ? "View Report" : "Submit Interview"}
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -764,35 +777,34 @@ export default function CodingRoomPage({
             
             {/* Active Problem on Candidate Screen Card (Interviewer View) */}
             {activeQuestion && (
-              <div className="p-4 border-b border-[var(--border-default)] bg-[var(--bg-surface)] shrink-0 space-y-2">
+              <div className="p-3.5 border-b border-[var(--border-default)] bg-[var(--bg-surface)] shrink-0 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" /> Live on Candidate Screen
                   </span>
                   <button
                     type="button"
-                    onClick={() => {
-                      setActiveQuestion("");
-                      setActiveQuestionIdx(null);
-                      setQuestions([]);
-                      getSocket(activeToken || undefined).emit("question:send", { roomId, question: "" });
-                      api.patch(`/interviews/${roomId}`, { description: "" }, { headers: { Authorization: `Bearer ${activeToken}` } }).catch(() => {});
-                    }}
-                    className="text-[10px] text-[var(--text-muted)] hover:text-rose-400 transition-colors cursor-pointer"
+                    onClick={() => setIsProblemExpanded(!isProblemExpanded)}
+                    className="text-[11px] text-[var(--text-muted)] hover:text-white transition-colors cursor-pointer flex items-center gap-1 font-mono"
+                    title={isProblemExpanded ? "Collapse problem details" : "Expand problem details"}
                   >
-                    Clear Active Problem
+                    <span>{isProblemExpanded ? "Collapse" : "Expand"}</span>
+                    <span>{isProblemExpanded ? "▲" : "▼"}</span>
                   </button>
                 </div>
-                <div className="p-3 rounded-[var(--radius-default)] bg-[var(--bg-base)] border border-[var(--border-divider)]">
-                  <FormattedProblemStatement
-                    rawText={activeQuestion}
-                    testCases={testCases}
-                    onTestCasesChange={(cases) => {
-                      setTestCases(cases);
-                      getSocket(activeToken || undefined).emit("testcases:update", { roomId, testCases: cases });
-                    }}
-                  />
-                </div>
+                {isProblemExpanded && (
+                  <div className="p-3 rounded-[var(--radius-default)] bg-[var(--bg-base)] border border-[var(--border-divider)] animate-in fade-in duration-150">
+                    <FormattedProblemStatement
+                      rawText={activeQuestion}
+                      isCandidate={false}
+                      testCases={testCases}
+                      onTestCasesChange={(cases) => {
+                        setTestCases(cases);
+                        getSocket(activeToken || undefined).emit("testcases:update", { roomId, testCases: cases });
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             )}
 
@@ -897,9 +909,13 @@ export default function CodingRoomPage({
                   </div>
 
                   {/* Scoring Breakdown & Rubric Guidance */}
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="p-2 rounded bg-[var(--bg-base)] border border-[var(--border-divider)] space-y-1">
-                      <span className="text-[10px] font-bold uppercase text-[var(--text-muted)] block">Evaluation Rule:</span>
+                  <div className="p-2.5 rounded bg-[var(--bg-base)] border border-[var(--border-divider)] flex items-start gap-2 text-xs">
+                    <span className="text-sm shrink-0">⚖️</span>
+                    <div className="space-y-0.5 min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase text-[var(--text-muted)] tracking-wider">Evaluation Rule</span>
+                        <span className="text-[10px] text-purple-300 font-mono">2 Public • 2 Hidden Edge</span>
+                      </div>
                       <p className="text-[11px] text-[var(--text-secondary)] leading-snug">
                         {passedCount === 4 && testSuiteSummary
                           ? "🟢 Strong Hire: Solved all 4 test cases including both hidden edge cases."
@@ -907,14 +923,7 @@ export default function CodingRoomPage({
                           ? "🟡 Average / Borderline: Solved visible cases; failed 1 hidden edge case."
                           : passedCount > 0 && testSuiteSummary
                           ? "🔴 Weak: Incomplete logic, failed multiple test cases."
-                          : "⚪ Awaiting candidate code execution against test suite."}
-                      </p>
-                    </div>
-                    <div className="p-2 rounded bg-[var(--bg-base)] border border-[var(--border-divider)] space-y-1">
-                      <span className="text-[10px] font-bold uppercase text-[var(--text-muted)] block">Candidate Visibility:</span>
-                      <p className="text-[11px] text-[var(--text-secondary)] leading-snug font-mono">
-                        • Cases 1 & 2: <span className="text-emerald-400">Visible to Candidate</span><br />
-                        • Cases 3 & 4: <span className="text-purple-400">Hidden Edge Cases</span>
+                          : "⚪ Awaiting candidate code execution against test suite (4 compulsory cases)."}
                       </p>
                     </div>
                   </div>
@@ -1003,18 +1012,18 @@ export default function CodingRoomPage({
               );
             })()}
 
-            {/* AI Questions Section */}
-            <div className="p-5 flex flex-col gap-3 border-b border-[var(--border-default)] shrink-0 bg-[var(--bg-surface)]">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-sm font-semibold text-[var(--text-primary)] flex items-center gap-1.5">
-                    🤖 AI Interview Copilot
-                  </h2>
-                  <p className="text-[11px] text-[var(--text-muted)]">
-                    {activeQuestion ? "Problem assigned to candidate" : "LeetCode algorithmic problems calibrated to difficulty"}
-                  </p>
-                  {/* Difficulty selector buttons - only available when no question is active */}
-                  {!activeQuestion && (
+            {/* AI Questions Section - Only shown before a question is chosen and assigned */}
+            {!activeQuestion && (
+              <div className="p-4 flex flex-col gap-3 border-b border-[var(--border-default)] shrink-0 bg-[var(--bg-surface)]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-sm font-semibold text-[var(--text-primary)] flex items-center gap-1.5">
+                      🤖 AI Interview Copilot
+                    </h2>
+                    <p className="text-[11px] text-[var(--text-muted)]">
+                      LeetCode algorithmic problems calibrated to difficulty
+                    </p>
+                    {/* Difficulty selector buttons */}
                     <div className="flex items-center gap-1 mt-2">
                       <span className="text-[10px] uppercase font-bold text-[var(--text-muted)] mr-1">Level:</span>
                       {(["easy", "medium", "hard"] as const).map((diff) => (
@@ -1041,128 +1050,113 @@ export default function CodingRoomPage({
                         </button>
                       ))}
                     </div>
+                  </div>
+
+                  {!loadingQuestions && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs flex items-center gap-1 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 self-start cursor-pointer"
+                      onClick={() => handleGenerateQuestions(difficulty)}
+                      disabled={isCompleted}
+                    >
+                      {questions.length === 0 ? "⚡ Generate 5 LeetCode Problems" : "🔄 Regenerate 5 LeetCode Problems"}
+                    </Button>
                   )}
                 </div>
-                {/* Generation button is ONLY shown when NO question is active */}
-                {!activeQuestion && !loadingQuestions && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs flex items-center gap-1 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 self-start cursor-pointer"
-                    onClick={() => handleGenerateQuestions(difficulty)}
-                    disabled={isCompleted}
-                  >
-                    {questions.length === 0 ? "⚡ Generate 5 LeetCode Problems" : "🔄 Regenerate 5 LeetCode Problems"}
-                  </Button>
-                )}
-                {/* When question is active with candidate, show locked badge and completely omit regenerate button */}
-                {activeQuestion && (
-                  <span className="text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/30 flex items-center gap-1.5 shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    🔒 Challenge Locked
-                  </span>
-                )}
-              </div>
-              
-              {activeQuestion ? (
-                <div className="p-3 rounded-[var(--radius-default)] bg-[var(--bg-base)] border border-emerald-500/20 text-xs text-[var(--text-secondary)] flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-400 font-bold">✓</span>
-                    <span className="text-[11px]">Selected challenge is live on candidate screen. Question regeneration is disabled while challenge is active.</span>
+                
+                {loadingQuestions ? (
+                  <div className="flex flex-col items-center justify-center py-6 gap-3 text-[var(--text-muted)]">
+                    <div className="w-5 h-5 border-2 border-[var(--border-default)] border-t-[var(--accent)] rounded-full animate-spin" />
+                    <p className="text-xs">Generating tailored questions...</p>
                   </div>
-                  <span className="text-[10px] text-emerald-400/80 font-mono">1 Active</span>
-                </div>
-              ) : loadingQuestions ? (
-                <div className="flex flex-col items-center justify-center py-6 gap-3 text-[var(--text-muted)]">
-                  <div className="w-5 h-5 border-2 border-[var(--border-default)] border-t-[var(--accent)] rounded-full animate-spin" />
-                  <p className="text-xs">Generating tailored questions...</p>
-                </div>
-              ) : questions.length === 0 ? (
-                <div className="text-xs text-[var(--text-muted)] text-center py-4 border border-dashed border-[var(--border-default)] rounded-[var(--radius-default)] bg-[var(--bg-base)]">
-                  Click <strong className="text-[var(--text-secondary)]">Generate 5 LeetCode Problems</strong> above to create tailored interview questions.
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {questions.map((q, idx) => {
-                    const qParsed = parseProblemText(q);
-                    return (
-                      <div
-                        key={idx}
-                        className="p-3.5 rounded-[var(--radius-default)] border border-[var(--border-divider)] bg-[var(--bg-base)] hover:border-indigo-500/40 transition-colors group space-y-2"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <p className="text-xs text-[var(--text-primary)] leading-relaxed font-normal">
-                            {qParsed.description || q}
-                          </p>
-                          <Badge variant="outline" className="text-[9px] shrink-0 font-mono">
-                            Q{idx + 1}
-                          </Badge>
-                        </div>
-
-                        {qParsed.functionSignature && (
-                          <div className="text-[11px] font-mono text-sky-300 bg-[#141820] px-2 py-1 rounded border border-[#273244] overflow-x-auto">
-                            <code>{qParsed.functionSignature}</code>
+                ) : questions.length === 0 ? (
+                  <div className="text-xs text-[var(--text-muted)] text-center py-4 border border-dashed border-[var(--border-default)] rounded-[var(--radius-default)] bg-[var(--bg-base)]">
+                    Click <strong className="text-[var(--text-secondary)]">Generate 5 LeetCode Problems</strong> above to create tailored interview questions.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {questions.map((q, idx) => {
+                      const qParsed = parseProblemText(q);
+                      return (
+                        <div
+                          key={idx}
+                          className="p-3.5 rounded-[var(--radius-default)] border border-[var(--border-divider)] bg-[var(--bg-base)] hover:border-indigo-500/40 transition-colors group space-y-2"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="text-xs text-[var(--text-primary)] leading-relaxed font-normal">
+                              {qParsed.description || q}
+                            </p>
+                            <Badge variant="outline" className="text-[9px] shrink-0 font-mono">
+                              Q{idx + 1}
+                            </Badge>
                           </div>
-                        )}
 
-                        {qParsed.examples.length > 0 && (
-                          <div className="text-[10px] text-amber-400 font-mono flex items-center gap-1.5">
-                            <span>🧪</span> {qParsed.examples.length} Test Cases included
+                          {qParsed.functionSignature && (
+                            <div className="text-[11px] font-mono text-sky-300 bg-[#141820] px-2 py-1 rounded border border-[#273244] overflow-x-auto">
+                              <code>{qParsed.functionSignature}</code>
+                            </div>
+                          )}
+
+                          {qParsed.examples.length > 0 && (
+                            <div className="text-[10px] text-amber-400 font-mono flex items-center gap-1.5">
+                              <span>🧪</span> {qParsed.examples.length} Test Cases included
+                            </div>
+                          )}
+
+                          {/* Question Actions: Send to Candidate */}
+                          <div className="mt-2.5 pt-2 border-t border-[var(--border-divider)] flex items-center justify-between gap-2">
+                            <Button
+                              variant={activeQuestionIdx === idx ? "default" : "outline"}
+                              size="sm"
+                              className={cn(
+                                "h-6 text-[10px] px-2.5 gap-1 font-medium transition-colors cursor-pointer",
+                                activeQuestionIdx === idx
+                                  ? "bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600 shadow-sm"
+                                  : "hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 text-[var(--text-secondary)]"
+                              )}
+                              onClick={() => handleSendQuestionToCandidate(q, idx)}
+                              title="Push this question live to Candidate's Problem Statement panel"
+                            >
+                              {activeQuestionIdx === idx ? "✓ On Candidate Screen" : "📌 Send to Candidate"}
+                            </Button>
                           </div>
-                        )}
 
-                        {/* Question Actions: Send to Candidate */}
-                        <div className="mt-2.5 pt-2 border-t border-[var(--border-divider)] flex items-center justify-between gap-2">
+                        {/* Rubric Evaluation */}
+                        <div className="mt-2 pt-2 border-t border-[var(--border-divider)] flex items-center gap-1.5">
+                          <span className="text-[10px] uppercase font-semibold text-[var(--text-muted)] mr-1">Rubric Score:</span>
                           <Button
-                            variant={activeQuestionIdx === idx ? "default" : "outline"}
+                            variant={evals[idx] === 'Strong' ? 'default' : 'outline'}
                             size="sm"
-                            className={cn(
-                              "h-6 text-[10px] px-2.5 gap-1 font-medium transition-colors cursor-pointer",
-                              activeQuestionIdx === idx
-                                ? "bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600 shadow-sm"
-                                : "hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30 text-[var(--text-secondary)]"
-                            )}
-                            onClick={() => handleSendQuestionToCandidate(q, idx)}
-                            title="Push this question live to Candidate's Problem Statement panel"
+                            className={cn("h-6 text-[10px] px-2 transition-colors", evals[idx] === 'Strong' ? "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600" : "hover:bg-emerald-500/10 hover:text-emerald-500")}
+                            onClick={() => handleEvalClick(q, 'Strong', idx)}
                           >
-                            {activeQuestionIdx === idx ? "✓ On Candidate Screen" : "📌 Send to Candidate"}
+                            🟢 Strong
+                          </Button>
+                          <Button
+                            variant={evals[idx] === 'Average' ? 'default' : 'outline'}
+                            size="sm"
+                            className={cn("h-6 text-[10px] px-2 transition-colors", evals[idx] === 'Average' ? "bg-amber-500 hover:bg-amber-600 text-white border-amber-500" : "hover:bg-amber-500/10 hover:text-amber-500")}
+                            onClick={() => handleEvalClick(q, 'Average', idx)}
+                          >
+                            🟡 Average
+                          </Button>
+                          <Button
+                            variant={evals[idx] === 'Weak' ? 'default' : 'outline'}
+                            size="sm"
+                            className={cn("h-6 text-[10px] px-2 transition-colors", evals[idx] === 'Weak' ? "bg-red-500 hover:bg-red-600 text-white border-red-500" : "hover:bg-red-500/10 hover:text-red-500")}
+                            onClick={() => handleEvalClick(q, 'Weak', idx)}
+                          >
+                            🔴 Weak
                           </Button>
                         </div>
-
-                      {/* Rubric Evaluation */}
-                      <div className="mt-2 pt-2 border-t border-[var(--border-divider)] flex items-center gap-1.5">
-                        <span className="text-[10px] uppercase font-semibold text-[var(--text-muted)] mr-1">Rubric Score:</span>
-                        <Button
-                          variant={evals[idx] === 'Strong' ? 'default' : 'outline'}
-                          size="sm"
-                          className={cn("h-6 text-[10px] px-2 transition-colors", evals[idx] === 'Strong' ? "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600" : "hover:bg-emerald-500/10 hover:text-emerald-500")}
-                          onClick={() => handleEvalClick(q, 'Strong', idx)}
-                        >
-                          🟢 Strong
-                        </Button>
-                        <Button
-                          variant={evals[idx] === 'Average' ? 'default' : 'outline'}
-                          size="sm"
-                          className={cn("h-6 text-[10px] px-2 transition-colors", evals[idx] === 'Average' ? "bg-amber-500 hover:bg-amber-600 text-white border-amber-500" : "hover:bg-amber-500/10 hover:text-amber-500")}
-                          onClick={() => handleEvalClick(q, 'Average', idx)}
-                        >
-                          🟡 Average
-                        </Button>
-                        <Button
-                          variant={evals[idx] === 'Weak' ? 'default' : 'outline'}
-                          size="sm"
-                          className={cn("h-6 text-[10px] px-2 transition-colors", evals[idx] === 'Weak' ? "bg-red-500 hover:bg-red-600 text-white border-red-500" : "hover:bg-red-500/10 hover:text-red-500")}
-                          onClick={() => handleEvalClick(q, 'Weak', idx)}
-                        >
-                          🔴 Weak
-                        </Button>
                       </div>
-                    </div>
-                  );
-                })}
-                </div>
-              )}
-            </div>
+                    );
+                  })}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Private Notes Section */}
             <div className="flex-1 flex flex-col min-h-[350px]">
@@ -1197,37 +1191,47 @@ export default function CodingRoomPage({
       {isPanelOpen && isCandidate && (
         <div className="w-2/5 flex flex-col border-l border-[var(--border-default)] bg-[var(--bg-surface)]">
           {/* Candidate Header */}
-          <div className="p-4 border-b border-[var(--border-default)] flex items-center justify-between bg-[var(--bg-surface)]">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+          <div className="p-3.5 border-b border-[var(--border-default)] bg-[var(--bg-surface)] space-y-2.5">
+            {/* Row 1: Session Status & Clock/Avatars */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   Candidate Session
                 </span>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                  Room #{roomId.slice(0, 8)}
+                </span>
               </div>
-              <h1 className="font-bold text-lg leading-tight tracking-tight">
-                Welcome, {interviewInfo.candidateName}
-              </h1>
-              <p className="text-xs text-[var(--text-secondary)] font-mono mt-0.5">
-                {interviewInfo.role}
-              </p>
+            
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-[var(--bg-elevated)] rounded border border-[var(--border-default)] text-xs font-mono text-[var(--text-secondary)]">
+                  {Icons.clock} {formatTime(elapsed)}
+                </div>
+                <div className="flex -space-x-1.5 mr-0.5">
+                  {users.map((u, i) => (
+                    <div
+                      key={i}
+                      title={u.name}
+                      className="h-5 w-5 rounded-full border border-[var(--bg-surface)] flex items-center justify-center text-[9px] text-white font-bold shadow-sm"
+                      style={{ backgroundColor: u.color, zIndex: users.length - i }}
+                    >
+                      {u.name.charAt(0).toUpperCase()}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-[var(--bg-elevated)] rounded-[var(--radius-default)] border border-[var(--border-default)] text-xs font-mono text-[var(--text-secondary)]">
-                {Icons.clock} {formatTime(elapsed)}
-              </div>
-              <div className="flex -space-x-2 mr-1">
-                {users.map((u, i) => (
-                  <div
-                    key={i}
-                    title={u.name}
-                    className="h-6 w-6 rounded-full border-2 border-[var(--bg-surface)] flex items-center justify-center text-[10px] text-white font-bold"
-                    style={{ backgroundColor: u.color, zIndex: users.length - i }}
-                  >
-                    {u.name.charAt(0).toUpperCase()}
-                  </div>
-                ))}
+
+            {/* Row 2: Candidate Info & Video Action */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <h1 className="font-bold text-base leading-tight tracking-tight text-[var(--text-primary)] truncate">
+                  Welcome, {interviewInfo.candidateName}
+                </h1>
+                <p className="text-[11px] text-[var(--text-muted)] font-mono truncate mt-0.5">
+                  {interviewInfo.role}
+                </p>
               </div>
 
               {/* Candidate Google Meet Button */}
@@ -1236,10 +1240,10 @@ export default function CodingRoomPage({
                   href={meetUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="h-8 px-2.5 rounded-[var(--radius-default)] bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                  className="h-8 px-2.5 rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer whitespace-nowrap shrink-0"
                   title="Open Google Meet call"
                 >
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
                   <span>📹 Join Meet</span>
                 </a>
               )}

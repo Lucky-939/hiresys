@@ -3,6 +3,7 @@ import { authenticate } from "../../middleware/auth.middleware";
 import { validateRequest } from "../../middleware/validate.middleware";
 import { getQuestions } from "./question.controller";
 import { getCodeFeedback } from "./feedback.controller";
+import { getFollowUpQuestions } from "./followup.controller";
 import { analyzeResume, getResumeStatus, upload } from "./resume.controller";
 import { aiLimiter } from "../../middleware/rate-limit.middleware";
 
@@ -28,6 +29,16 @@ aiRoutes.post(
     { field: "language", required: true, type: "string", minLength: 1 },
   ]),
   getCodeFeedback
+);
+
+aiRoutes.post(
+  "/followup-questions",
+  aiLimiter,
+  validateRequest([
+    { field: "code", required: true, type: "string" },
+    { field: "language", required: true, type: "string" },
+  ]),
+  getFollowUpQuestions
 );
 
 aiRoutes.post("/resume", aiLimiter, upload.single("resume"), analyzeResume);

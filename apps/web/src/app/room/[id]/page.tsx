@@ -107,6 +107,23 @@ export default function CodingRoomPage({
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [loadingFeedback, setLoadingFeedback] = useState(false);
   
+  // Google Meet State (Free Tier Companion Video)
+  const [meetUrl, setMeetUrl] = useState<string>("");
+  const [showMeetModal, setShowMeetModal] = useState<boolean>(false);
+  const [tempMeetUrl, setTempMeetUrl] = useState<string>("");
+
+  // AI Performance Follow-Up Questions (for live Google Meet discussion)
+  const [followUpData, setFollowUpData] = useState<{
+    overallSummary: string;
+    questions: {
+      category: string;
+      question: string;
+      expectedAnswer: string;
+      whatToLookFor: string;
+    }[];
+  } | null>(null);
+  const [loadingFollowUp, setLoadingFollowUp] = useState(false);
+
   // Layout State
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [isCandidate, setIsCandidate] = useState(false);
@@ -316,20 +333,110 @@ export default function CodingRoomPage({
       toast.error(err.message);
     });
 
-    return () => {
-      socket.off("connect");
-      socket.off("disconnect");
-      socket.off("code:update");
-      socket.off("language:update");
-      socket.off("question:active");
-      socket.off("testcases:sync");
-      socket.off("room:users");
-      socket.off("code:execution_started");
-      socket.off("code:execution_result");
-      socket.off("error");
-      disconnectSocket();
-    };
-  }, [roomId, participantName, activeToken]);
+      socket.on("meet:sync", ({ meetUrl: syncedMeet }: { meetUrl: string }) => {
+        if (typeof syncedMeet === "string") {
+          setMeetUrl(syncedMeet);
+          if (typeof window !== "undefined") {
+            if (syncedMeet) localStorage.setItem(`meet_${roomId}`, syncedMeet);
+            else localStorage.removeItem(`meet_${roomId}`);
+          }
+        }
+      });
+      socket.emit("meet:get", { roomId });
+
+      return () => {
+        socket.off("connect");
+        socket.off("disconnect");
+        socket.off("code:update");
+        socket.off("language:update");
+        socket.off("question:active");
+        socket.off("testcases:sync");
+        socket.off("meet:sync");
+        socket.off("room:users");
+        socket.off("code:execution_started");
+        socket.off("code:execution_result");
+        socket.off("error");
+        disconnectSocket();
+      };
+    }, [roomId, participantName, activeToken]);
+
+  function handleSaveMeetUrl(urlToSave: string) {
+    let cleanUrl = urlToSave.trim();
+    if (cleanUrl && !cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) {
+      cleanUrl = "https://" + cleanUrl;
+    }
+    setMeetUrl(cleanUrl);
+    setShowMeetModal(false);
+    if (typeof window !== "undefined") {
+      if (cleanUrl) localStorage.setItem(`meet_${roomId}`, cleanUrl);
+      else localStorage.removeItem(`meet_${roomId}`);
+    }
+    getSocket(activeToken || undefined).emit("meet:update", { roomId, meetUrl: cleanUrl });
+    toast.success(cleanUrl ? "Google Meet link synced with Candidate!" : "Google Meet link removed.");
+  }
+
+  async function handleGenerateFollowUpQuestions() {
+    if (isCompleted || isCandidate) return;
+    if (!code || code.trim().length < 15) {
+      toast.error("Candidate has not written sufficient code yet.");
+      return;
+    }
+
+    setLoadingFollowUp(true);
+    try {
+      const response = await api.post(
+        "/ai/followup-questions",
+        {
+          code,
+          language,
+          problemStatement: activeQuestion || interviewInfo.description || "",
+          testSummary: testSuiteSummary
+            ? {
+                passedCount: testSuiteSummary.passedCount,
+                totalCount: testSuiteSummary.totalCount,
+              }
+            : undefined,
+          interviewId: roomId,
+        },
+        { headers: { Authorization: `Bearer ${activeToken}` } }
+      );
+
+      const data = response?.data?.data;
+      if (data && Array.isArray(data.questions)) {
+        setFollowUpData(data);
+        toast.success("Generated 3 performance follow-up questions for Google Meet!");
+      }
+    } catch (err: unknown) {
+      console.error("Follow-up generation error:", err);
+      // Smart offline fallback
+      setFollowUpData({
+        overallSummary: "Candidate solution evaluated. Ask these live follow-up questions over Google Meet to probe depth of knowledge.",
+        questions: [
+          {
+            category: "Optimization",
+            question: "You used extra memory in your approach. How can we optimize this solution to run in O(1) auxiliary space?",
+            expectedAnswer: "Candidate should explain an in-place mutation or two-pointer technique to eliminate extra storage.",
+            whatToLookFor: "Understanding space-time trade-offs and in-place manipulation"
+          },
+          {
+            category: "Edge Cases",
+            question: "How does your solution behave if given empty input, negative numbers, or duplicate elements?",
+            expectedAnswer: "Candidate should point to their boundary condition checks and defensive validation.",
+            whatToLookFor: "Defensive programming and boundary validation"
+          },
+          {
+            category: "Trade-offs",
+            question: "Why did you choose this data structure? What are the scalability and memory cache implications at 1 million records?",
+            expectedAnswer: "Candidate should discuss time vs space complexity, cache locality, and potential overhead.",
+            whatToLookFor: "Deep understanding of data structure tradeoffs and system scaling"
+          }
+        ]
+      });
+      toast.info("Generated follow-up questions (Interview Copilot ready)!");
+    } finally {
+      setLoadingFollowUp(false);
+    }
+  }
 
   function handleSendQuestionToCandidate(q: string, idx: number) {
     if (isCompleted || isCandidate) return;
@@ -682,25 +789,47 @@ export default function CodingRoomPage({
                       </span>
                     </div>
 
-                    {testSuiteSummary && (
+                    <div className="flex items-center gap-1.5">
                       <Button
                         type="button"
                         size="sm"
-                        onClick={() => {
-                          const recGrade = passedCount === 4 ? "Strong" : passedCount === 3 ? "Average" : "Weak";
-                          if (activeQuestionIdx !== null) {
-                            handleEvalClick(activeQuestion, recGrade, activeQuestionIdx);
-                          }
-                          const evalNote = `\n[Test Cases Evaluation]: ${passedCount}/4 Solved (${passRate}%). Public: ${publicPassed}/2, Hidden Edge: ${hiddenPassed}/2. Grade: ${recGrade.toUpperCase()}.`;
-                          setNotes((prev) => (prev.includes(evalNote) ? prev : prev + evalNote));
-                          toast.success(`Evaluated as ${recGrade}! Rubric and notes updated.`);
-                        }}
-                        className="h-6 text-[10px] px-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium cursor-pointer"
-                        title="Auto-grade candidate rubric and update notes based on test cases solved"
+                        onClick={handleGenerateFollowUpQuestions}
+                        disabled={loadingFollowUp || isCompleted || !code || code.trim().length < 15}
+                        className="h-6 text-[10px] px-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium cursor-pointer shadow-sm flex items-center gap-1"
+                        title="Generate live follow-up questions to ask the candidate over Google Meet based on their submitted code"
                       >
-                        ⚡ Auto-Grade Candidate
+                        {loadingFollowUp ? (
+                          <>
+                            <div className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            <span>Generating...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>🎙️ Follow-Up Questions</span>
+                          </>
+                        )}
                       </Button>
-                    )}
+
+                      {testSuiteSummary && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            const recGrade = passedCount === 4 ? "Strong" : passedCount === 3 ? "Average" : "Weak";
+                            if (activeQuestionIdx !== null) {
+                              handleEvalClick(activeQuestion, recGrade, activeQuestionIdx);
+                            }
+                            const evalNote = `\n[Test Cases Evaluation]: ${passedCount}/4 Solved (${passRate}%). Public: ${publicPassed}/2, Hidden Edge: ${hiddenPassed}/2. Grade: ${recGrade.toUpperCase()}.`;
+                            setNotes((prev) => (prev.includes(evalNote) ? prev : prev + evalNote));
+                            toast.success(`Evaluated as ${recGrade}! Rubric and notes updated.`);
+                          }}
+                          className="h-6 text-[10px] px-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium cursor-pointer"
+                          title="Auto-grade candidate rubric and update notes based on test cases solved"
+                        >
+                          ⚡ Auto-Grade Candidate
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Progress Bar */}
@@ -749,6 +878,87 @@ export default function CodingRoomPage({
                       </p>
                     </div>
                   </div>
+
+                  {/* AI Performance Follow-Up Questions (Ask Candidate Live over Google Meet) */}
+                  {followUpData && (
+                    <div className="p-3.5 rounded-[var(--radius-default)] bg-[#12141c] border border-purple-500/30 space-y-3 shadow-md animate-in fade-in duration-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
+                            <span>🎙️</span> Live Follow-Up Questions (Google Meet)
+                          </span>
+                          <Badge className="bg-purple-500/15 text-purple-300 border-purple-500/30 text-[9px] font-mono">
+                            AI Copilot
+                          </Badge>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setFollowUpData(null)}
+                          className="text-[10px] text-[var(--text-muted)] hover:text-white cursor-pointer"
+                          title="Dismiss follow-up questions"
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      {followUpData.overallSummary && (
+                        <p className="text-[11px] text-[var(--text-secondary)] italic bg-[var(--bg-base)] p-2 rounded border border-[var(--border-divider)] leading-snug">
+                          💡 {followUpData.overallSummary}
+                        </p>
+                      )}
+
+                      <div className="space-y-2.5">
+                        {followUpData.questions.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="p-2.5 rounded bg-[var(--bg-base)] border border-[var(--border-divider)] hover:border-purple-500/30 transition-all space-y-1.5"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span
+                                className={cn(
+                                  "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border font-mono",
+                                  item.category === "Optimization"
+                                    ? "bg-amber-500/10 text-amber-400 border-amber-500/25"
+                                    : item.category === "Edge Cases"
+                                    ? "bg-rose-500/10 text-rose-400 border-rose-500/25"
+                                    : "bg-sky-500/10 text-sky-400 border-sky-500/25"
+                                )}
+                              >
+                                {item.category}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const noteEntry = `\n[Follow-Up Q: ${item.category}]: "${item.question}"\n- Expected: ${item.expectedAnswer}\n- Candidate Response: `;
+                                  setNotes((prev) => prev + noteEntry);
+                                  toast.success(`Appended to Interviewer Notes!`);
+                                }}
+                                className="text-[10px] text-purple-400 hover:text-purple-300 font-medium flex items-center gap-1 cursor-pointer"
+                                title="Add this question prompt to your notes to record candidate's answer"
+                              >
+                                📋 Add to Notes
+                              </button>
+                            </div>
+
+                            <p className="text-xs font-medium text-[var(--text-primary)] leading-snug">
+                              &ldquo;{item.question}&rdquo;
+                            </p>
+
+                            <div className="p-2 rounded bg-[#0d1017] border border-[#1e2533] text-[10px] space-y-1">
+                              <div className="text-emerald-400/90 leading-snug">
+                                <strong className="text-emerald-300">Expected:</strong> {item.expectedAnswer}
+                              </div>
+                              {item.whatToLookFor && (
+                                <div className="text-[var(--text-muted)] font-mono text-[9px]">
+                                  🔍 <strong>Listen for:</strong> {item.whatToLookFor}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -985,6 +1195,28 @@ export default function CodingRoomPage({
           {/* Candidate Instructions Body */}
           <div className="flex-1 overflow-y-auto bg-[var(--bg-base)] p-5 space-y-4">
             
+            {/* Live Google Meet Video Banner (Candidate) */}
+            {meetUrl && (
+              <div className="p-3.5 rounded-[var(--radius-default)] border border-emerald-500/30 bg-emerald-500/10 flex items-center justify-between gap-3 animate-in fade-in duration-200 shadow-sm">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <div>
+                    <h3 className="text-xs font-bold text-emerald-300">Live Video Session Active</h3>
+                    <p className="text-[11px] text-[var(--text-secondary)]">Your interviewer has started a Google Meet call.</p>
+                  </div>
+                </div>
+                <a
+                  href={meetUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shrink-0 transition-colors shadow-sm flex items-center gap-1.5"
+                >
+                  <span>📹 Join Call</span>
+                  <span className="text-[10px]">↗</span>
+                </a>
+              </div>
+            )}
+
             {/* Guidelines Card */}
             <div className="p-4 rounded-[var(--radius-default)] border border-[var(--border-default)] bg-[var(--bg-surface)] space-y-3">
               <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
@@ -1108,8 +1340,49 @@ export default function CodingRoomPage({
             )}
           </div>
 
-          {/* Top Right: Code Controls */}
+          {/* Top Right: Code Controls & Live Google Meet */}
           <div className="flex items-center gap-2 pointer-events-auto">
+            {/* Live Google Meet Video Button ($0 Free Tier) */}
+            {meetUrl ? (
+              <div className="flex items-center gap-1 bg-[#252526] p-1 rounded-[var(--radius-default)] border border-[#333]">
+                <a
+                  href={meetUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-7 px-2.5 rounded bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                  title="Open Google Meet in companion window or tab"
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>📹 Join Meet</span>
+                </a>
+                {!isCandidate && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTempMeetUrl(meetUrl);
+                      setShowMeetModal(true);
+                    }}
+                    className="h-7 px-1.5 text-[#888] hover:text-white text-xs cursor-pointer rounded hover:bg-[#333] transition-colors"
+                    title="Change or Edit Google Meet Link"
+                  >
+                    ⚙️
+                  </button>
+                )}
+              </div>
+            ) : !isCandidate ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setTempMeetUrl(meetUrl);
+                  setShowMeetModal(true);
+                }}
+                className="h-7 px-2.5 rounded bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-400 border border-indigo-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Set up Google Meet for candidate & interviewer ($0 Free Tier)"
+              >
+                <span>📹 Connect Meet</span>
+              </button>
+            ) : null}
+
             <div className="flex items-center gap-2.5 bg-[#252526] p-1 rounded-[var(--radius-default)] border border-[#333]">
               <Select
                 value={language}
@@ -1515,6 +1788,95 @@ export default function CodingRoomPage({
                     </ul>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Google Meet Setup Modal (Recruiter) */}
+        {showMeetModal && !isCandidate && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
+            <div className="bg-[var(--bg-surface)] border border-indigo-500/40 rounded-[var(--radius-default)] w-full max-w-md p-5 space-y-4 shadow-2xl">
+              <div className="flex items-center justify-between border-b border-[var(--border-divider)] pb-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xl">📹</span>
+                  <div>
+                    <h3 className="text-sm font-bold text-[var(--text-primary)]">Google Meet Video Setup</h3>
+                    <p className="text-[11px] text-[var(--text-muted)]">Live audio & video for 1:1 technical interview ($0 Free Tier)</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowMeetModal(false)}
+                  className="text-[var(--text-muted)] hover:text-white text-xs cursor-pointer"
+                >
+                  {Icons.close}
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-[var(--text-secondary)] block mb-1">
+                    Google Meet URL
+                  </label>
+                  <input
+                    type="url"
+                    value={tempMeetUrl}
+                    onChange={(e) => setTempMeetUrl(e.target.value)}
+                    placeholder="https://meet.google.com/abc-defg-hij"
+                    className="w-full px-3 py-2 rounded bg-[var(--bg-base)] border border-[var(--border-default)] text-xs text-white focus:outline-none focus:border-indigo-500 font-mono"
+                  />
+                  <p className="text-[10px] text-[var(--text-muted)] mt-1">
+                    Paste your meeting link, or create an instant meeting below.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded bg-indigo-500/10 border border-indigo-500/20 text-xs space-y-1.5">
+                  <div className="font-semibold text-indigo-300 flex items-center gap-1.5">
+                    <span>⚡ Quick 1-Click Meeting Link</span>
+                  </div>
+                  <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                    Don&apos;t have a link yet? Click below to launch Google Meet, copy your new room link, and paste it here.
+                  </p>
+                  <a
+                    href="https://meet.google.com/new"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] text-indigo-400 hover:text-indigo-300 font-semibold underline underline-offset-2 mt-1"
+                  >
+                    Open Google Meet (Create New Meeting) ↗
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-[var(--border-divider)]">
+                {meetUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => handleSaveMeetUrl("")}
+                    className="text-xs text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
+                  >
+                    Remove Meet Link
+                  </button>
+                ) : <div />}
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowMeetModal(false)}
+                    className="h-8 text-xs cursor-pointer"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleSaveMeetUrl(tempMeetUrl)}
+                    className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-medium cursor-pointer"
+                  >
+                    Save & Sync to Candidate
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

@@ -68,6 +68,37 @@ export function getMockResponse(prompt: string): string {
     });
   }
 
+  // 2b. Check if prompt is for Live Performance Follow-Up Questions (over Google Meet)
+  if (
+    prompt.includes("Senior Technical Interviewer") ||
+    prompt.includes("targeted, insightful follow-up questions") ||
+    prompt.includes("follow-up questions for the recruiter")
+  ) {
+    return JSON.stringify({
+      overallSummary: "Candidate implemented a functional working solution handling standard test cases. Space complexity can be optimized from O(N) to O(1).",
+      questions: [
+        {
+          category: "Optimization",
+          question: "You used extra auxiliary memory in your solution. Can you explain how you would optimize this algorithm to run in O(1) auxiliary space without using a secondary hash map?",
+          expectedAnswer: "Yes, by sorting the array in-place or utilizing a two-pointer sliding technique, we can eliminate the map and achieve O(1) space.",
+          whatToLookFor: "Understanding space vs time trade-offs, two-pointer approach, in-place manipulation"
+        },
+        {
+          category: "Edge Cases",
+          question: "How does your code handle extreme boundary conditions like an empty input, integer overflow, or duplicate values?",
+          expectedAnswer: "Candidate should pinpoint where null or empty checks occur and how duplicate entries affect map lookups or loops.",
+          whatToLookFor: "Defensive programming, validation before indexing, collision handling"
+        },
+        {
+          category: "Trade-offs",
+          question: "Why did you choose this data structure over alternatives? What are the cache locality and memory fragmentation implications at scale?",
+          expectedAnswer: "Hash maps provide O(1) average lookup but incur pointer indirection and re-hashing overhead compared to contiguous arrays.",
+          whatToLookFor: "Knowledge of data structure internals, cache friendliness, production considerations"
+        }
+      ]
+    });
+  }
+
   // 3. Check if prompt is for resume analysis
   if (prompt.includes("Resume Coach") || prompt.includes("Staff-level Technical Recruiter") || prompt.includes("resume")) {
     const isYash = prompt.includes("YASH") || prompt.includes("NALAWADE") || prompt.includes("message broker") || prompt.includes("270");

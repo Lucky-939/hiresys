@@ -21,6 +21,7 @@ const COLORS = [
 ];
 
 const roomUsers = new Map<string, Map<string, RoomUser>>();
+const roomMeetLinks = new Map<string, string>();
 
 function getUniqueUsers(users: Map<string, RoomUser>): RoomUser[] {
   const seen = new Set<string>();
@@ -84,6 +85,10 @@ export function registerSocketHandlers(io: Server) {
         users.set(socket.id, { userId, name, color });
 
         io.to(roomId).emit("room:users", getUniqueUsers(users));
+        const existingMeet = roomMeetLinks.get(roomId);
+        if (existingMeet) {
+          socket.emit("meet:sync", { meetUrl: existingMeet });
+        }
         console.log(`${name} joined room ${roomId}`);
       } catch (err) {
         console.error(`Socket join error for room ${roomId}:`, err);
@@ -138,6 +143,22 @@ export function registerSocketHandlers(io: Server) {
         socket.to(roomId).emit("testcases:sync", { testCases });
       } catch (err) {
         socket.emit("error", { message: "Failed to broadcast test cases" });
+      }
+    });
+
+    socket.on("meet:update", async ({ roomId, meetUrl }: { roomId: string; meetUrl: string }) => {
+      try {
+        roomMeetLinks.set(roomId, meetUrl);
+        io.to(roomId).emit("meet:sync", { meetUrl });
+      } catch (err) {
+        socket.emit("error", { message: "Failed to broadcast meet link" });
+      }
+    });
+
+    socket.on("meet:get", ({ roomId }: { roomId: string }) => {
+      const meetUrl = roomMeetLinks.get(roomId) || "";
+      if (meetUrl) {
+        socket.emit("meet:sync", { meetUrl });
       }
     });
 

@@ -334,7 +334,7 @@ export default function CodingRoomPage({
   function handleSendQuestionToCandidate(q: string, idx: number) {
     if (isCompleted || isCandidate) return;
     setActiveQuestion(q);
-    setActiveQuestionIdx(idx);
+    setActiveQuestionIdx(0);
 
     const parsed = parseProblemText(q);
     if (parsed.examples.length > 0) {
@@ -357,7 +357,10 @@ export default function CodingRoomPage({
     // Notice: We strictly DO NOT inject question comments into the code editor.
     // The code editor remains clean for code only, while the problem statement is cleanly displayed on the right panel.
 
-    toast.success(`Problem ${idx + 1} sent to Candidate's Problem Statement!`);
+    // Remove unused generated questions and lock regeneration while problem is active
+    setQuestions([]);
+
+    toast.success(`Problem sent to Candidate's Problem Statement!`);
   }
 
   function handleCleanQuestionComments() {
@@ -402,7 +405,7 @@ export default function CodingRoomPage({
   }
 
   async function handleGenerateQuestions(diffOverride?: "easy" | "medium" | "hard") {
-    if (isCompleted || isCandidate) return;
+    if (isCompleted || isCandidate || activeQuestion) return;
     const targetDifficulty = diffOverride || difficulty;
     
     setLoadingQuestions(true);
@@ -624,6 +627,7 @@ export default function CodingRoomPage({
                     onClick={() => {
                       setActiveQuestion("");
                       setActiveQuestionIdx(null);
+                      setQuestions([]);
                       getSocket(activeToken || undefined).emit("question:send", { roomId, question: "" });
                       api.patch(`/interviews/${roomId}`, { description: "" }, { headers: { Authorization: `Bearer ${activeToken}` } }).catch(() => {});
                     }}
@@ -757,57 +761,75 @@ export default function CodingRoomPage({
                     🤖 AI Interview Copilot
                   </h2>
                   <p className="text-[11px] text-[var(--text-muted)]">
-                    LeetCode algorithmic problems calibrated to difficulty
+                    {activeQuestion ? "Problem assigned to candidate" : "LeetCode algorithmic problems calibrated to difficulty"}
                   </p>
-                  {/* Difficulty selector buttons */}
-                  <div className="flex items-center gap-1 mt-2">
-                    <span className="text-[10px] uppercase font-bold text-[var(--text-muted)] mr-1">Level:</span>
-                    {(["easy", "medium", "hard"] as const).map((diff) => (
-                      <button
-                        key={diff}
-                        type="button"
-                        onClick={() => {
-                          setDifficulty(diff);
-                          handleGenerateQuestions(diff);
-                        }}
-                        disabled={loadingQuestions || isCompleted}
-                        className={cn(
-                          "px-2 py-0.5 rounded text-[10px] font-semibold transition-all capitalize border cursor-pointer",
-                          difficulty === diff
-                            ? diff === "easy"
-                              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-sm"
-                              : diff === "medium"
-                              ? "bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-sm"
-                              : "bg-red-500/20 text-red-400 border-red-500/40 shadow-sm"
-                            : "bg-[var(--bg-base)] text-[var(--text-muted)] border-[var(--border-default)] hover:text-white hover:border-[var(--border-divider)]"
-                        )}
-                      >
-                        {diff}
-                      </button>
-                    ))}
-                  </div>
+                  {/* Difficulty selector buttons - only available when no question is active */}
+                  {!activeQuestion && (
+                    <div className="flex items-center gap-1 mt-2">
+                      <span className="text-[10px] uppercase font-bold text-[var(--text-muted)] mr-1">Level:</span>
+                      {(["easy", "medium", "hard"] as const).map((diff) => (
+                        <button
+                          key={diff}
+                          type="button"
+                          onClick={() => {
+                            setDifficulty(diff);
+                            handleGenerateQuestions(diff);
+                          }}
+                          disabled={loadingQuestions || isCompleted}
+                          className={cn(
+                            "px-2 py-0.5 rounded text-[10px] font-semibold transition-all capitalize border cursor-pointer",
+                            difficulty === diff
+                              ? diff === "easy"
+                                ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-sm"
+                                : diff === "medium"
+                                ? "bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-sm"
+                                : "bg-red-500/20 text-red-400 border-red-500/40 shadow-sm"
+                              : "bg-[var(--bg-base)] text-[var(--text-muted)] border-[var(--border-default)] hover:text-white hover:border-[var(--border-divider)]"
+                          )}
+                        >
+                          {diff}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {!loadingQuestions && (
+                {/* Generation button is ONLY shown when NO question is active */}
+                {!activeQuestion && !loadingQuestions && (
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-7 text-xs flex items-center gap-1 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 self-start"
+                    className="h-7 text-xs flex items-center gap-1 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 self-start cursor-pointer"
                     onClick={() => handleGenerateQuestions(difficulty)}
                     disabled={isCompleted}
                   >
                     {questions.length === 0 ? "⚡ Generate 5 LeetCode Problems" : "🔄 Regenerate 5 LeetCode Problems"}
                   </Button>
                 )}
+                {/* When question is active with candidate, show locked badge and completely omit regenerate button */}
+                {activeQuestion && (
+                  <span className="text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/30 flex items-center gap-1.5 shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    🔒 Challenge Locked
+                  </span>
+                )}
               </div>
               
-              {loadingQuestions ? (
+              {activeQuestion ? (
+                <div className="p-3 rounded-[var(--radius-default)] bg-[var(--bg-base)] border border-emerald-500/20 text-xs text-[var(--text-secondary)] flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-emerald-400 font-bold">✓</span>
+                    <span className="text-[11px]">Selected challenge is live on candidate screen. Question regeneration is disabled while challenge is active.</span>
+                  </div>
+                  <span className="text-[10px] text-emerald-400/80 font-mono">1 Active</span>
+                </div>
+              ) : loadingQuestions ? (
                 <div className="flex flex-col items-center justify-center py-6 gap-3 text-[var(--text-muted)]">
                   <div className="w-5 h-5 border-2 border-[var(--border-default)] border-t-[var(--accent)] rounded-full animate-spin" />
                   <p className="text-xs">Generating tailored questions...</p>
                 </div>
               ) : questions.length === 0 ? (
                 <div className="text-xs text-[var(--text-muted)] text-center py-4 border border-dashed border-[var(--border-default)] rounded-[var(--radius-default)] bg-[var(--bg-base)]">
-                  Click <strong className="text-[var(--text-secondary)]">Generate Now</strong> to create tailored interview questions.
+                  Click <strong className="text-[var(--text-secondary)]">Generate 5 LeetCode Problems</strong> above to create tailored interview questions.
                 </div>
               ) : (
                 <div className="space-y-3">

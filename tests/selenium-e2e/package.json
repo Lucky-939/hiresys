@@ -1,0 +1,43 @@
+{
+  "name": "hiresys-selenium-e2e",
+  "version": "1.0.0",
+  "description": "Selenium WebDriver E2E Automation Test Suite for HireSys",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha -r ts-node/register --require src/utils/rootHooks.ts 'src/specs/**/*.spec.ts' --timeout 60000 --exit",
+    "test:auth": "mocha -r ts-node/register --require src/utils/rootHooks.ts 'src/specs/01_auth.spec.ts' --timeout 60000 --exit",
+    "test:rbac": "mocha -r ts-node/register --require src/utils/rootHooks.ts 'src/specs/02_rbac.spec.ts' --timeout 60000 --exit",
+    "test:room": "mocha -r ts-node/register --require src/utils/rootHooks.ts 'src/specs/03_room.spec.ts' --timeout 60000 --exit",
+    "test:negative": "mocha -r ts-node/register --require src/utils/rootHooks.ts 'src/specs/04_negative_login_datadriven.spec.ts' --timeout 60000 --exit",
+    "test:race": "mocha -r ts-node/register --require src/utils/rootHooks.ts 'src/specs/05_race_condition.spec.ts' --timeout 90000 --exit",
+    "test:console": "mocha -r ts-node/register --require src/utils/rootHooks.ts 'src/specs/06_console_errors.spec.ts' --timeout 60000 --exit",
+    "test:headless": "cross-env HEADLESS=true npm run test"
+  },
+  "keywords": [
+    "selenium",
+    "webdriver",
+    "e2e-testing",
+    "hiresys",
+    "page-object-model",
+    "automation"
+  ],
+  "author": "Lucky Bhoir",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "selenium-webdriver": "^4.29.0"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.3.16",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^22.13.1",
+    "@types/selenium-webdriver": "^4.1.28",
+    "chai": "^4.5.0",
+    "cross-env": "^7.0.3",
+    "mocha": "^10.8.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}
+

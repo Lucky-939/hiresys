@@ -112,7 +112,7 @@ export default function MembersPage() {
   const content = (
     <div className="rounded-[var(--radius-default)] border border-[var(--border-default)] overflow-hidden bg-[var(--bg-surface)]">
       {/* Table header */}
-      <div className="flex items-center gap-4 px-5 py-2.5 bg-[var(--bg-elevated)] border-b border-[var(--border-default)]">
+      <div className="hidden sm:flex items-center gap-4 px-5 py-2.5 bg-[var(--bg-elevated)] border-b border-[var(--border-default)]">
         <span className="flex-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Member</span>
         <span className="w-24 shrink-0 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Role</span>
         <span className="hidden md:block w-36 shrink-0 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Joined</span>
@@ -142,21 +142,26 @@ export default function MembersPage() {
           const isOwner = member.role === "OWNER";
           const roleCfg = ROLE_BADGE[member.role] ?? ROLE_BADGE.INTERVIEWER;
           return (
-            <div key={member.id} className="flex items-center gap-4 px-5 py-3.5 border-b border-[var(--border-divider)] hover:bg-[var(--bg-elevated)] transition-colors last:border-b-0">
+            <div key={member.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3.5 sm:px-5 border-b border-[var(--border-divider)] hover:bg-[var(--bg-elevated)] transition-colors last:border-b-0">
               {/* Member */}
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <Avatar name={member.user.name} size="sm" />
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="text-sm font-semibold text-[var(--text-primary)] truncate">
-                    {member.user.name}
-                    {isSelf && <span className="ml-1.5 text-[var(--text-muted)] font-normal text-xs">(You)</span>}
-                  </span>
+                <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2 sm:justify-start">
+                    <span className="text-sm font-semibold text-[var(--text-primary)] truncate">
+                      {member.user.name}
+                      {isSelf && <span className="ml-1.5 text-[var(--text-muted)] font-normal text-xs">(You)</span>}
+                    </span>
+                    <span className="sm:hidden">
+                      <Badge variant={roleCfg.variant} size="sm">{roleCfg.label}</Badge>
+                    </span>
+                  </div>
                   <span className="text-xs text-[var(--text-muted)] truncate">{member.user.email}</span>
                 </div>
               </div>
 
-              {/* Role */}
-              <div className="w-24 shrink-0">
+              {/* Role (Desktop) */}
+              <div className="hidden sm:block w-24 shrink-0">
                 <Badge variant={roleCfg.variant} size="sm">{roleCfg.label}</Badge>
               </div>
 
@@ -169,13 +174,13 @@ export default function MembersPage() {
 
               {/* Actions */}
               {canManage && (
-                <div className="w-28 shrink-0 flex items-center justify-end gap-1.5">
+                <div className="sm:w-28 shrink-0 flex items-center justify-start sm:justify-end gap-1.5 pt-1 sm:pt-0">
                   {!isOwner && !isSelf && (
                     <>
                       <Select
                         value={member.role}
                         onChange={e => handleRoleChange(member.user.id, e.target.value)}
-                        className="h-7 !py-0 !pl-2 !pr-6 text-xs font-medium text-[var(--text-secondary)] bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-[var(--radius-default)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] cursor-pointer w-[90px]"
+                        className="h-7 !py-0 !pl-2 !pr-6 text-xs font-medium text-[var(--text-secondary)] bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-[var(--radius-default)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] cursor-pointer w-[100px] sm:w-[90px]"
                       >
                         <option value="ADMIN">Admin</option>
                         <option value="RECRUITER">Recruiter</option>

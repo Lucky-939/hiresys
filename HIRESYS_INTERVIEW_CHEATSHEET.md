@@ -171,6 +171,44 @@
 | **Cache & Queue**| Redis + BullMQ | Sub-millisecond distributed caching, rate-limiting counters, and background job processing for heavy PDF extraction. |
 | **Sandbox** | Piston Code Execution Engine | Secure, multi-language containerized execution environment with resource and execution quotas. |
 | **AI Layer** | Google Gemini Generative AI | High-speed LLM processing for algorithmic problem generation and Big-O code complexity analysis. |
+| **Testing & CI**| Selenium WebDriver (POM), Newman, GitHub Actions | Isolated E2E test harness; automated UI and API security gates run on every PR with screenshot artifacts. |
+
+---
+
+## 🧪 PART 6: QA Engineering & Automation Masterclass (Selenium + Security)
+
+### 🎙️ The "Killer Pitch" for QA / Automation Roles (Memorize This)
+> *"For HireSys, I designed and built an isolated end-to-end testing and security harness using **Selenium WebDriver (Page Object Model)** and **Newman (Postman CLI)**. **Both our UI regression suite and multi-tenant API security tests run on every PR via GitHub Actions.**  
+> On the UI layer, our suite covers data-driven negative authentication, real-time room initialization, and multi-context concurrency testing. On the API layer, Newman enforces strict tenant isolation (BOLA/IDOR) and JWT validation before any code merges."*
+
+---
+
+### 📋 The 6 Automated Test Specs Breakdown
+
+| Spec File | Name | Key Scenarios & Assertions |
+| :--- | :--- | :--- |
+| **`01_auth.spec.ts`** | Authentication & UI | Verifies login form inputs, CTA buttons, and basic UI state. |
+| **`02_rbac.spec.ts`** | RBAC Route Guards | Unauthenticated navigation to `/dashboard` or `/dashboard/members` redirects immediately to `/login`. |
+| **`03_room.spec.ts`** | Collaborative Room | Verifies `/room/:id` dynamic routing, Monaco editor container loading, and execution controls. |
+| **`04_negative_login.spec.ts`** | Data-Driven Auth (7 cases) | Iterates JSON fixtures (empty fields, wrong password, SQLi `' OR '1'='1' --`, 200-char boundary buffer, unicode/XSS). Strictly asserts HTTP 400/401/422 status and error banner messages (not just "no 500"). |
+| **`05_race_condition.spec.ts`** | Concurrency & Atomicity | Spawns two independent browser drivers concurrently. Uses `beforeEach`/`afterEach` setup and teardown to seed a fresh single-use invite token per run. Executes simultaneous claim via `Promise.all` and asserts: **exactly one success (200), loser receives 409 Conflict / Already Claimed, and zero duplicate records**. |
+| **`06_console_errors.spec.ts`** | Zero-JS-Error Guarantee | Uses `driver.manage().logs().get("browser")` to inspect runtime logs; asserts zero `SEVERE` JavaScript errors on `/login` and `/dashboard` load. |
+
+---
+
+### 🛡️ API Security Gates via Newman (Postman Collection)
+1. **Missing Token $\rightarrow$ `401 Unauthorized`**: Guarantees protected endpoints reject unauthenticated traffic.
+2. **Cross-Tenant Access (BOLA/IDOR) $\rightarrow$ `403 Forbidden` / `404 Not Found`**: Tenant B token attempts to read Tenant A's interview or candidate records; asserts zero cross-tenant PII leakage.
+3. **Tampered/Expired JWT $\rightarrow$ `401 Unauthorized`**: Forged signatures fail verification.
+4. **Candidate Token $\rightarrow$ Recruiter Rubric $\rightarrow$ `403 Forbidden`**: Candidate scoped guest tokens cannot access private interview evaluation rubrics.
+
+---
+
+### ⚙️ GitHub Actions CI Pipeline & Artifact Verification
+* **Workflow**: `.github/workflows/selenium-ci.yml`
+* **Trigger**: Every `push` and `pull_request` to `main` / `master`.
+* **Execution**: Headless Chrome via `npm run test:headless` + `npx newman run`.
+* **Artifact Guarantee**: Uses `if: always()` with pre-created directories (`screenshots/`, `test-results/`, `reports/`). If any test fails, an automated full-page screenshot and `test-summary.json` are uploaded to the GitHub Actions Artifacts tab for root-cause analysis.
 
 ---
 

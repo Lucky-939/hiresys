@@ -1,0 +1,179 @@
+{
+  "info": {
+    "_postman_id": "hiresys-security-rbac-collection-v1",
+    "name": "HireSys Security & Multi-Tenant RBAC Test Suite",
+    "description": "Comprehensive API Security & RBAC test collection for HireSys verifying Multi-Tenant Data Isolation (BOLA/IDOR), Token Revocation, and Role Authorization boundaries.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Authentication - Missing Token (401 Unauthorized)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/interviews/org/{{tenantA_orgId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "interviews", "org", "{{tenantA_orgId}}"]
+        },
+        "description": "Validates that protected endpoints immediately reject requests when no Authorization header is provided."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 401 Unauthorized when token is missing\", function () {",
+              "    pm.response.to.have.status(401);",
+              "});",
+              "",
+              "pm.test(\"Response returns structured error message\", function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData.message || jsonData.error).to.be.a('string');",
+              "    pm.expect(jsonData.message || jsonData.error).to.match(/token|unauthorized|authentication/i);",
+              "});",
+              "",
+              "pm.test(\"Zero tenant data is leaked in body\", function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.not.have.property('data');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Multi-Tenancy - Cross Tenant Access (Tenant B -> Tenant A Resource -> 403/404)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tenantB_token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/interviews/{{tenantA_interviewId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "interviews", "{{tenantA_interviewId}}"]
+        },
+        "description": "Critical Multi-Tenancy BOLA/IDOR test. User authenticated in Org B attempts to query an interview belonging to Org A."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 403 Forbidden or 404 Not Found (Cross-Tenant Isolation)\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([403, 404]);",
+              "});",
+              "",
+              "pm.test(\"Assert Tenant A candidate confidential PII is NOT returned to Tenant B\", function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.not.have.property('candidateEmail');",
+              "    pm.expect(jsonData).to.not.have.property('resumeText');",
+              "    pm.expect(jsonData).to.not.have.property('organizationId', pm.environment.get('tenantA_orgId'));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Authentication - Tampered / Expired JWT (401 Unauthorized)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{expired_or_tampered_jwt}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/interviews/org/{{tenantA_orgId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "interviews", "org", "{{tenantA_orgId}}"]
+        },
+        "description": "Validates that forged JWT signatures or expired token lifespans fail verification in auth.middleware.ts."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 401 Unauthorized for expired or tampered JWT\", function () {",
+              "    pm.response.to.have.status(401);",
+              "});",
+              "",
+              "pm.test(\"Error specifies JWT verification failure\", function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData.message || jsonData.error).to.match(/jwt|token|invalid|expired|signature/i);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. RBAC - Candidate Token Accessing Recruiter Report (401/403/404)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{candidate_scoped_token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/reports/interview/{{tenantA_interviewId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "reports", "interview", "{{tenantA_interviewId}}"]
+        },
+        "description": "Verifies that candidate guest tokens cannot read private interviewer evaluation rubrics or internal hiring reports."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Status code is 401 or 403 Forbidden for Candidate role accessing report\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([401, 403, 404]);",
+              "});",
+              "",
+              "pm.test(\"Rubric notes and scorecards are not exposed\", function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.not.have.property('interviewerNotes');",
+              "    pm.expect(jsonData).to.not.have.property('rubricScore');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

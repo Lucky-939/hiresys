@@ -1,12 +1,31 @@
-import { Queue, Worker, Job } from "bullmq";
+import { Queue, Worker, Job, ConnectionOptions } from "bullmq";
 import { analyzeResumeText } from "../modules/ai/resume.service";
 import { setCache } from "../config/cache";
 
-const connection = {
-  host: process.env.REDIS_HOST || "localhost",
-  port: Number(process.env.REDIS_PORT) || 6379,
-  maxRetriesPerRequest: null,
-};
+function getRedisConnection(): ConnectionOptions {
+  if (process.env.REDIS_URL) {
+    try {
+      const parsed = new URL(process.env.REDIS_URL);
+      return {
+        host: parsed.hostname,
+        port: Number(parsed.port) || 6379,
+        username: parsed.username || undefined,
+        password: parsed.password || undefined,
+        tls: parsed.protocol === "rediss:" ? {} : undefined,
+        maxRetriesPerRequest: null,
+      };
+    } catch {
+      // Fallback if URL parsing fails
+    }
+  }
+  return {
+    host: process.env.REDIS_HOST || "localhost",
+    port: Number(process.env.REDIS_PORT) || 6379,
+    maxRetriesPerRequest: null,
+  };
+}
+
+const connection = getRedisConnection();
 
 export const resumeQueue = new Queue("resume-analysis", {
   connection,

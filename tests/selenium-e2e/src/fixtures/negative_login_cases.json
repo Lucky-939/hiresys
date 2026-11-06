@@ -1,0 +1,72 @@
+[
+  {
+    "id": "TC_NEG_01",
+    "caseName": "Empty email with valid password",
+    "email": "",
+    "password": "ValidPassword123!",
+    "expectedStatus": 400,
+    "expectedErrorMessage": "Please fill out this field",
+    "expectedBehavior": "Form submission should be blocked by browser validation or reject without redirect",
+    "type": "EMPTY_EMAIL"
+  },
+  {
+    "id": "TC_NEG_02",
+    "caseName": "Valid email format with empty password",
+    "email": "recruiter@hiresys.test",
+    "password": "",
+    "expectedStatus": 400,
+    "expectedErrorMessage": "Password is required",
+    "expectedBehavior": "Form submission should require password input",
+    "type": "EMPTY_PASSWORD"
+  },
+  {
+    "id": "TC_NEG_03",
+    "caseName": "Both email and password empty",
+    "email": "",
+    "password": "",
+    "expectedStatus": 400,
+    "expectedErrorMessage": "Required fields missing",
+    "expectedBehavior": "Form submission should be completely blocked",
+    "type": "BOTH_EMPTY"
+  },
+  {
+    "id": "TC_NEG_04",
+    "caseName": "Valid email with wrong password",
+    "email": "recruiter@hiresys.test",
+    "password": "CompletelyWrongPassword_2026!",
+    "expectedStatus": 401,
+    "expectedErrorMessage": "Invalid credentials",
+    "expectedBehavior": "API returns 401 Unauthorized and displays error alert banner",
+    "type": "WRONG_PASSWORD"
+  },
+  {
+    "id": "TC_NEG_05",
+    "caseName": "SQL Injection payload in credentials",
+    "email": "admin' OR '1'='1' --",
+    "password": "' OR '1'='1",
+    "expectedStatus": 401,
+    "expectedErrorMessage": "Invalid email or credentials",
+    "expectedBehavior": "Safely handled by Prisma ORM parameterized queries; rejects invalid login",
+    "type": "SQL_INJECTION"
+  },
+  {
+    "id": "TC_NEG_06",
+    "caseName": "200-character boundary buffer input",
+    "email": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@hiresys.test",
+    "password": "P@sswordLongBufferValue12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890",
+    "expectedStatus": 400,
+    "expectedErrorMessage": "Invalid email address or length exceeds limits",
+    "expectedBehavior": "Rejects submission with HTTP 400/422 Bad Request and displays length validation error on email field",
+    "type": "BOUNDARY_LENGTH"
+  },
+  {
+    "id": "TC_NEG_07",
+    "caseName": "Unicode characters, emoji and XSS script tags",
+    "email": "🔥<script>alert('xss')</script>@hire.com",
+    "password": "🔑パスワード!@#$%^&*()_+{}[]:;\"'<>?,./~`",
+    "expectedStatus": 400,
+    "expectedErrorMessage": "Invalid email format",
+    "expectedBehavior": "Input sanitized safely; rejects without executing inline scripts",
+    "type": "UNICODE_SPECIAL_CHARS"
+  }
+]

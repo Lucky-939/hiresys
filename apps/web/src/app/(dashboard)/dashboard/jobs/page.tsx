@@ -138,7 +138,7 @@ export default function JobsPage() {
   const content = (
     <div className="rounded-[var(--radius-default)] border border-[var(--border-default)] overflow-hidden bg-[var(--bg-surface)]">
       {/* Table header */}
-      <div className="flex items-center gap-4 px-5 py-2.5 bg-[var(--bg-elevated)] border-b border-[var(--border-default)]">
+      <div className="hidden sm:flex items-center gap-4 px-5 py-2.5 bg-[var(--bg-elevated)] border-b border-[var(--border-default)]">
         <span className="flex-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Job Title</span>
         <span className="w-28 shrink-0 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Status</span>
         <span className="hidden md:block w-28 shrink-0 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Candidates</span>
@@ -166,19 +166,26 @@ export default function JobsPage() {
         jobs.map(job => {
           const statusCfg = STATUS_BADGE[job.status] ?? STATUS_BADGE.DRAFT;
           return (
-            <div key={job.id} className="flex items-center gap-4 px-5 py-3.5 border-b border-[var(--border-divider)] hover:bg-[var(--bg-elevated)] transition-colors last:border-b-0">
+            <div key={job.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3.5 sm:px-5 border-b border-[var(--border-divider)] hover:bg-[var(--bg-elevated)] transition-colors last:border-b-0">
               {/* Job */}
-              <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+              <div className="flex flex-col gap-1 sm:gap-0.5 flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2 sm:hidden">
+                  <span className="text-xs font-mono text-[var(--text-muted)]">
+                    {new Date(job.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })}
+                  </span>
+                  <Badge variant={statusCfg.variant} size="sm">{statusCfg.label}</Badge>
+                </div>
                 <span className="text-sm font-semibold text-[var(--text-primary)] truncate">
                   {job.title}
                 </span>
-                <span className="text-xs text-[var(--text-muted)] truncate">
-                  {job.department || "No department"} {job.location ? `• ${job.location}` : ""}
-                </span>
+                <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] truncate">
+                  <span>{job.department || "No department"} {job.location ? `• ${job.location}` : ""}</span>
+                  <span className="sm:hidden font-medium text-[var(--text-secondary)]">({job._count.candidates} applicants)</span>
+                </div>
               </div>
 
               {/* Status */}
-              <div className="w-28 shrink-0">
+              <div className="hidden sm:block w-28 shrink-0">
                 <Badge variant={statusCfg.variant} size="sm">{statusCfg.label}</Badge>
               </div>
 
@@ -197,7 +204,7 @@ export default function JobsPage() {
               </div>
 
               {/* Actions */}
-              <div className="w-48 shrink-0 flex items-center justify-end gap-2">
+              <div className="sm:w-48 shrink-0 flex items-center justify-start sm:justify-end gap-2 pt-1 sm:pt-0">
                 {job.status === "DRAFT" && (
                   <button
                     onClick={() => handlePublishJob(job.id)}

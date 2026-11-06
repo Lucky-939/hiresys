@@ -1,0 +1,120 @@
+name: HireSys CI — UI Automation & API Security Gate
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  test-automation-gate:
+    name: Selenium E2E & Newman Security Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # 1. Native Service Containers (PostgreSQL & Redis)
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres123
+          POSTGRES_DB: interview_platform
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: 1. Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 2. Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: |
+            apps/server/package-lock.json
+            apps/web/package-lock.json
+            tests/selenium-e2e/package-lock.json
+
+      - name: 3. Prepare Artifact Directories
+        run: |
+          mkdir -p tests/selenium-e2e/screenshots
+          mkdir -p tests/selenium-e2e/test-results
+          mkdir -p tests/postman/reports
+
+      - name: 4. Set up Database & Start Express Backend
+        working-directory: apps/server
+        run: |
+          npm ci
+          npx prisma db push --skip-generate
+          npx prisma generate
+          npm run build
+          node dist/server.js &
+          npx wait-on http-get://localhost:5000/health -t 30000
+        env:
+          DATABASE_URL: postgresql://postgres:postgres123@localhost:5432/interview_platform
+          REDIS_URL: redis://localhost:6379
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: ci-mock-jwt-secret-key-32-chars-long!
+          GEMINI_API_KEY: ci_mock_gemini_key
+          CLIENT_URL: http://localhost:3000
+          PORT: 5000
+          NODE_ENV: test
+
+      - name: 5. Start Next.js Frontend
+        working-directory: apps/web
+        run: |
+          npm ci
+          npm run dev &
+          npx wait-on http-get://localhost:3000/login -t 60000
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:5000/api
+          PORT: 3000
+
+      - name: 6. Execute Newman API Security Suite (Hard Gate — No Fallbacks)
+        run: |
+          npx newman run tests/postman/HireSys_Security_RBAC_Collection.postman_collection.json \
+            -e tests/postman/HireSys_Local.postman_environment.json \
+            --reporters cli,json \
+            --reporter-json-export tests/postman/reports/api-security-report.json
+
+      - name: 7. Execute Selenium E2E Headless Suite (Hard Gate)
+        working-directory: tests/selenium-e2e
+        run: |
+          npm ci
+          npm run test:headless
+        env:
+          BASE_URL: http://localhost:3000
+          HEADLESS: "true"
+          BROWSER: chrome
+          CI: "true"
+
+      - name: 8. Upload Artifacts (Screenshots, Test Logs & Security Reports)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hiresys-ci-test-artifacts
+          path: |
+            tests/selenium-e2e/screenshots/
+            tests/selenium-e2e/test-results/
+            tests/postman/reports/
+          retention-days: 14
+          if-no-files-found: ignore

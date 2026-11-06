@@ -1,0 +1,13 @@
+{
+  "suite": "HireSys Selenium E2E Automation",
+  "executedAt": "2026-11-06T06:27:18.298Z",
+  "status": "COMPLETED",
+  "specs": [
+    "01_auth.spec.ts",
+    "02_rbac.spec.ts",
+    "03_room.spec.ts",
+    "04_negative_login_datadriven.spec.ts",
+    "05_race_condition.spec.ts",
+    "06_console_errors.spec.ts"
+  ]
+}

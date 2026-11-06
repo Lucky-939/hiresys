@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
@@ -131,19 +131,19 @@ export function MasterDetailTemplate({ header, listPanel, detailPanel, className
         {header}
       </div>
 
-      {/* Master-Detail Split */}
-      <div className="flex flex-1 overflow-hidden mt-0">
-        {/* Left Panel: 30% */}
+      {/* Master-Detail Split — Stacks on mobile/tablet, side-by-side on desktop */}
+      <div className="flex flex-col lg:flex-row flex-1 overflow-hidden mt-0">
+        {/* Left Panel: 30% on desktop, adaptive height on mobile */}
         <div
-          className="w-[30%] min-w-[280px] max-w-[380px] flex flex-col border-r border-[var(--border-default)] overflow-y-auto bg-[var(--bg-base)] shrink-0"
+          className="w-full lg:w-[30%] lg:min-w-[280px] lg:max-w-[380px] flex flex-col border-b lg:border-b-0 lg:border-r border-[var(--border-default)] overflow-y-auto bg-[var(--bg-base)] shrink-0 max-h-[42vh] lg:max-h-none"
           aria-label="Candidate list"
         >
           {listPanel}
         </div>
 
-        {/* Right Panel: 70% */}
+        {/* Right Panel: 70% on desktop, full-width below on mobile */}
         <div
-          className="flex-1 overflow-y-auto bg-[var(--bg-base)]"
+          className="flex-1 overflow-y-auto bg-[var(--bg-base)] min-w-0"
           aria-label="Candidate details"
         >
           {detailPanel}
@@ -156,9 +156,9 @@ export function MasterDetailTemplate({ header, listPanel, detailPanel, className
 
 /* ============================================================
    4. DETAIL TEMPLATE
-   Purpose: Single object deep view â€” Candidate Profile, Report.
+   Purpose: Single object deep view — Candidate Profile, Report.
    Max width: 960px centered.
-   Structure: Back link â†’ PageHeader â†’ Tabbed/Sectioned content.
+   Structure: Back link → PageHeader → Tabbed/Sectioned content.
    ============================================================ */
 interface DetailTemplateProps {
   backLink?: React.ReactNode;
@@ -181,13 +181,13 @@ export function DetailTemplate({ backLink, header, sidebar, content, className }
 
       {/* Content */}
       {sidebar ? (
-        <div className="flex gap-6 items-start">
-          {/* Sticky sidebar */}
-          <div className="w-[280px] shrink-0">
-            <div className="sticky top-6 flex flex-col gap-4">{sidebar}</div>
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
+          {/* Sidebar: sticky on desktop, full-width on mobile */}
+          <div className="w-full lg:w-[280px] shrink-0">
+            <div className="static lg:sticky lg:top-6 flex flex-col gap-4">{sidebar}</div>
           </div>
           {/* Main content */}
-          <div className="flex-1 min-w-0 flex flex-col gap-5">{content}</div>
+          <div className="flex-1 min-w-0 w-full flex flex-col gap-5">{content}</div>
         </div>
       ) : (
         <div className="flex flex-col gap-5">{content}</div>
@@ -232,9 +232,9 @@ export function SettingsTemplate({
       </div>
 
       {hasNav ? (
-        /* Two-column layout with left nav */
-        <div className="flex gap-10 items-start">
-          <nav className="w-[200px] shrink-0 flex flex-col gap-0.5" aria-label="Settings navigation">
+        /* Responsive layout: scrollable horizontal pills on mobile, left nav on desktop */
+        <div className="flex flex-col md:flex-row gap-6 md:gap-10 items-start">
+          <nav className="w-full md:w-[200px] shrink-0 flex flex-row md:flex-col overflow-x-auto pb-2 md:pb-0 gap-1 md:gap-0.5 border-b md:border-b-0 border-[var(--border-divider)]" aria-label="Settings navigation">
             {items!.map((item) => {
               const isActive = item.id === activeItem;
               return (
@@ -242,8 +242,8 @@ export function SettingsTemplate({
                   key={item.id}
                   onClick={() => onItemChange!(item.id)}
                   className={cn(
-                    "flex items-center gap-2.5 w-full text-left px-3 h-9 rounded-[var(--radius-default)]",
-                    "text-sm font-medium transition-colors duration-[var(--ease-base)]",
+                    "flex items-center gap-2.5 whitespace-nowrap md:w-full text-left px-3 h-9 rounded-[var(--radius-default)]",
+                    "text-sm font-medium transition-colors duration-[var(--ease-base)] shrink-0",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
                     isActive
                       ? "bg-[var(--accent-muted)] text-[var(--accent)] font-semibold"
@@ -258,7 +258,7 @@ export function SettingsTemplate({
               );
             })}
           </nav>
-          <div className="flex-1 min-w-0">{content}</div>
+          <div className="flex-1 min-w-0 w-full">{content}</div>
         </div>
       ) : (
         /* Simple single-column layout */
@@ -273,7 +273,7 @@ export function SettingsTemplate({
 /* ============================================================
    6. AI WORKSPACE TEMPLATE
    Purpose: Resume Parser, Question Generator, AI Feedback.
-   Pattern: Action â†’ Processing â†’ Result â†’ Accept.
+   Pattern: Action → Processing → Result → Accept.
    Never chat-first.
    ============================================================ */
 interface AIWorkspaceTemplateProps {
@@ -295,15 +295,15 @@ export function AIWorkspaceTemplate({
         {header}
       </div>
 
-      {/* Two-column: Input (40%) + Output (60%) */}
-      <div className="flex gap-6 items-start">
+      {/* Two-column on desktop, stacked on mobile */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
         {/* Input Panel */}
-        <div className="w-[40%] max-w-[480px] shrink-0 sticky top-6">
+        <div className="w-full lg:w-[40%] max-w-full lg:max-w-[480px] shrink-0 static lg:sticky lg:top-6">
           {inputPanel}
         </div>
 
         {/* Output Panel */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 w-full">
           {hasOutput ? outputPanel : (outputEmpty || outputPanel)}
         </div>
       </div>

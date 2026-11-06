@@ -397,7 +397,7 @@ export default function PipelinePage() {
     <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
       
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 px-8 pt-5 pb-4 shrink-0 border-b border-[var(--border-default)] bg-[var(--bg-base)]">
+      <div className="flex flex-wrap items-center justify-between gap-4 px-4 sm:px-8 pt-5 pb-4 shrink-0 border-b border-[var(--border-default)] bg-[var(--bg-base)]">
         <div>
           <PageHeader
             title="Hiring Pipeline"
@@ -408,9 +408,9 @@ export default function PipelinePage() {
         </div>
 
         {/* Filter & Action Controls */}
-        <div className="flex items-center flex-wrap gap-2.5 shrink-0">
+        <div className="flex items-center flex-wrap gap-2.5 shrink-0 w-full sm:w-auto">
           {/* Quick Search input */}
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-initial">
             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </span>
@@ -419,7 +419,7 @@ export default function PipelinePage() {
               placeholder="Search candidate..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-9 w-48 pl-8 pr-3 text-xs rounded-[var(--radius-default)] border border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] transition-all"
+              className="h-9 w-full sm:w-48 pl-8 pr-3 text-xs rounded-[var(--radius-default)] border border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] transition-all"
             />
             {searchQuery && (
               <button
@@ -434,7 +434,7 @@ export default function PipelinePage() {
           <Select 
             value={selectedJobId} 
             onChange={(e) => setSelectedJobId(e.target.value)}
-            className="w-44 h-9 text-xs"
+            className="flex-1 sm:flex-initial sm:w-44 h-9 text-xs"
           >
             <option value="ALL">All Jobs</option>
             {jobs.map(job => (
@@ -667,12 +667,12 @@ export default function PipelinePage() {
 
       {/* Floating Recruiter Bulk Action Bar (When Candidates Selected) */}
       {selectedCandidateIds.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-full bg-[var(--bg-elevated)] border border-[var(--border-default)] shadow-2xl backdrop-blur-md animate-in slide-in-from-bottom-5 duration-200 ring-1 ring-[var(--accent)]/30">
-          <div className="flex items-center gap-2 pr-3 border-r border-[var(--border-default)]">
+        <div className="fixed bottom-4 left-3 right-3 sm:left-1/2 sm:-translate-x-1/2 sm:w-auto z-50 flex items-center justify-between sm:justify-start gap-2 sm:gap-3 px-3 sm:px-5 py-2.5 sm:py-3 rounded-2xl sm:rounded-full bg-[var(--bg-elevated)]/95 border border-[var(--border-default)] shadow-2xl backdrop-blur-md overflow-x-auto max-w-[calc(100vw-24px)] animate-in slide-in-from-bottom-5 duration-200 ring-1 ring-[var(--accent)]/30">
+          <div className="flex items-center gap-1.5 sm:gap-2 pr-2 sm:pr-3 border-r border-[var(--border-default)] shrink-0">
             <span className="h-5 w-5 rounded-full bg-[var(--accent)] text-white text-[11px] font-bold flex items-center justify-center">
               {selectedCandidateIds.length}
             </span>
-            <span className="text-xs font-semibold text-[var(--text-primary)]">Selected</span>
+            <span className="text-xs font-semibold text-[var(--text-primary)] hidden xs:inline">Selected</span>
           </div>
 
           {/* Bulk Advance Button */}
@@ -680,15 +680,15 @@ export default function PipelinePage() {
             size="sm"
             onClick={handleBulkAdvance}
             disabled={isBulkOperating}
-            className="h-8 text-xs bg-[var(--accent)] text-white hover:brightness-110 flex items-center gap-1.5 shadow-sm"
+            className="h-8 text-xs bg-[var(--accent)] text-white hover:brightness-110 flex items-center gap-1.5 shadow-sm shrink-0"
           >
             <span>Advance All</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
           </Button>
 
           {/* Bulk Move To Stage */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-[var(--text-muted)]">Move to:</span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-xs text-[var(--text-muted)] hidden sm:inline">Move to:</span>
             <select
               disabled={isBulkOperating}
               onChange={(e) => {
@@ -712,7 +712,7 @@ export default function PipelinePage() {
             variant="destructive"
             onClick={handleBulkReject}
             disabled={isBulkOperating}
-            className="h-8 text-xs"
+            className="h-8 text-xs shrink-0"
           >
             Reject Selected
           </Button>
@@ -720,7 +720,7 @@ export default function PipelinePage() {
           {/* Deselect */}
           <button
             onClick={() => setSelectedCandidateIds([])}
-            className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] pl-2 transition-colors underline"
+            className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] pl-1 sm:pl-2 transition-colors underline shrink-0"
           >
             Clear
           </button>

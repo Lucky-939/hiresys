@@ -82,7 +82,7 @@ function RegisterForm() {
   }
 
   return (
-    <div className="h-screen flex overflow-hidden bg-[var(--bg-base)] text-[var(--text-primary)]">
+    <div className="min-h-screen flex bg-[var(--bg-base)] text-[var(--text-primary)]">
       {/* Left panel — Brand Hero */}
       <div className="hidden lg:flex lg:w-[55%] flex-col justify-between p-10 xl:p-14 bg-[var(--bg-surface)] relative overflow-hidden border-r border-[var(--border-default)]">
 
@@ -169,7 +169,7 @@ function RegisterForm() {
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="Jane Smith"
                   autoComplete="name"
-                  className="w-full px-3.5 py-2.5 text-sm bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-default)] outline-none transition-all placeholder:text-[var(--text-disabled)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+                  className="w-full px-3.5 py-2.5 text-base sm:text-sm bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-default)] outline-none transition-all placeholder:text-[var(--text-disabled)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
                 />
               </div>
 
@@ -184,7 +184,7 @@ function RegisterForm() {
                     value={form.organizationName}
                     onChange={(e) => setForm({ ...form, organizationName: e.target.value })}
                     placeholder="e.g. Acme Corp or TechNova Solutions"
-                    className="w-full px-3.5 py-2.5 text-sm bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-default)] outline-none transition-all placeholder:text-[var(--text-disabled)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+                    className="w-full px-3.5 py-2.5 text-base sm:text-sm bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-default)] outline-none transition-all placeholder:text-[var(--text-disabled)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
                   />
                   <p className="text-xs text-[var(--text-muted)] mt-1 font-medium">
                     Your team workspace for jobs, candidates, and interviews.
@@ -203,7 +203,7 @@ function RegisterForm() {
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   placeholder="you@company.com"
                   autoComplete="email"
-                  className="w-full px-3.5 py-2.5 text-sm bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-default)] outline-none transition-all placeholder:text-[var(--text-disabled)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+                  className="w-full px-3.5 py-2.5 text-base sm:text-sm bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-default)] outline-none transition-all placeholder:text-[var(--text-disabled)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
                 />
               </div>
 
@@ -219,7 +219,7 @@ function RegisterForm() {
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   placeholder="At least 8 characters"
                   autoComplete="new-password"
-                  className="w-full px-3.5 py-2.5 text-sm bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-default)] outline-none transition-all placeholder:text-[var(--text-disabled)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
+                  className="w-full px-3.5 py-2.5 text-base sm:text-sm bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-default)] outline-none transition-all placeholder:text-[var(--text-disabled)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
                 />
               </div>
 

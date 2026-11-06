@@ -107,7 +107,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
   return createPortal(
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
       style={{ background: "var(--bg-overlay)" }}
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
       role="dialog"
@@ -117,29 +117,29 @@ export function Modal({ open, onClose, title, description, children, footer, siz
       <div
         className={cn(
           "w-full bg-[var(--bg-surface)] border border-[var(--border-default)]",
-          "rounded-[var(--radius-default)]",
-          "animate-slide-up flex flex-col max-h-[88vh]",
+          "rounded-[var(--radius-default)] shadow-2xl",
+          "animate-slide-up flex flex-col max-h-[92vh] sm:max-h-[88vh]",
           sizeMap[size]
         )}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-5 border-b border-[var(--border-divider)]">
-          <div className="flex flex-col gap-1">
+        <div className="flex items-start justify-between gap-3 sm:gap-4 px-4 sm:px-6 pt-5 sm:pt-6 pb-4 sm:pb-5 border-b border-[var(--border-divider)]">
+          <div className="flex flex-col gap-1 min-w-0">
             <h2
               id="modal-title"
-              className="text-xl font-semibold text-[var(--text-primary)] leading-tight tracking-tight"
+              className="text-lg sm:text-xl font-semibold text-[var(--text-primary)] leading-tight tracking-tight truncate"
             >
               {title}
             </h2>
             {description && (
-              <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+              <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
                 {description}
               </p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="h-7 w-7 flex items-center justify-center rounded-[var(--radius-default)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-base)] transition-colors shrink-0 -mr-1 -mt-1"
+            className="h-8 w-8 sm:h-7 sm:w-7 flex items-center justify-center rounded-[var(--radius-default)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-base)] transition-colors shrink-0 -mr-1 -mt-1 cursor-pointer"
             aria-label="Close modal"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -149,13 +149,13 @@ export function Modal({ open, onClose, title, description, children, footer, siz
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5 overflow-y-auto flex-1">
+        <div className="px-4 sm:px-6 py-4 sm:py-5 overflow-y-auto flex-1">
           {children}
         </div>
 
         {/* Footer */}
         {footer && (
-          <div className="px-6 pb-6 pt-4 border-t border-[var(--border-divider)] flex items-center justify-between gap-3">
+          <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-3 sm:pt-4 border-t border-[var(--border-divider)] flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 [&>*]:w-full [&>*]:sm:w-auto">
             {footer}
           </div>
         )}

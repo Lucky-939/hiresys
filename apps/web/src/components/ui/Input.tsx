@@ -47,7 +47,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             className={cn(
               "w-full rounded-[var(--radius-input)] border bg-[var(--bg-surface)]",
               "h-[var(--input-height)] px-3.5",
-              "text-base text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
+              "text-base sm:text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
               "transition-colors duration-[var(--ease-base)]",
               "focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)] focus:ring-opacity-[0.15]",
               "disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[var(--bg-subtle)]",
@@ -106,7 +106,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           id={inputId}
           className={cn(
             "w-full min-h-[96px] rounded-[var(--radius-input)] border bg-[var(--bg-surface)] px-3.5 py-3",
-            "text-base text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
+            "text-base sm:text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
             "transition-colors duration-[var(--ease-base)] resize-y",
             "focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)] focus:ring-opacity-[0.15]",
             "disabled:opacity-50 disabled:cursor-not-allowed",
@@ -151,7 +151,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             id={inputId}
             className={cn(
               "h-[var(--input-height)] w-full appearance-none rounded-[var(--radius-input)] border bg-[var(--bg-surface)] px-3.5 pr-9",
-              "text-base text-[var(--text-primary)]",
+              "text-base sm:text-sm text-[var(--text-primary)]",
               "transition-colors duration-[var(--ease-base)] cursor-pointer",
               "focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)] focus:ring-opacity-[0.15]",
               "disabled:opacity-50 disabled:cursor-not-allowed",

@@ -68,49 +68,68 @@ function InterviewRow({
   const isCompleted = iv.status === "COMPLETED";
 
   return (
-    <div className="flex items-center gap-4 px-4 py-3 border-b border-[var(--border-divider)] hover:bg-[var(--bg-elevated)] transition-colors group">
-      {/* Date column */}
-      <div className="w-16 shrink-0 text-right">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-[var(--border-divider)] hover:bg-[var(--bg-elevated)] transition-colors group">
+      {/* Desktop Date column */}
+      <div className="hidden sm:block w-16 shrink-0 text-right">
         <span className="text-xs font-mono text-[var(--text-muted)] tabular-nums">
           {new Date(iv.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })}
         </span>
       </div>
 
-      {/* Status */}
-      <div className="w-24 shrink-0">
+      {/* Desktop Status */}
+      <div className="hidden sm:block w-24 shrink-0">
         <Badge variant={status.variant} dot size="sm">{status.label}</Badge>
       </div>
 
       {/* Title + Candidate */}
-      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+      <div className="flex-1 min-w-0 flex flex-col gap-1.5 sm:gap-0.5">
+        {/* Mobile Header: Date & Status */}
+        <div className="flex items-center justify-between gap-2 sm:hidden">
+          <span className="text-xs font-mono text-[var(--text-muted)] tabular-nums">
+            {new Date(iv.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })}
+          </span>
+          <Badge variant={status.variant} dot size="sm">{status.label}</Badge>
+        </div>
+
         <button
           onClick={isCompleted ? onReport : isLive ? onJoin : onEnter}
           className="text-sm font-semibold text-[var(--text-primary)] hover:text-[var(--accent)] transition-colors text-left truncate"
         >
           {iv.title}
         </button>
-        {iv.candidate ? (
-          <div
-            className={cn("flex items-center gap-1.5", canManage && "cursor-pointer hover:opacity-80 transition-opacity")}
-            onClick={canManage ? onAssignCandidate : undefined}
-            title={canManage ? "Click to change candidate" : undefined}
-          >
-            <Avatar name={iv.candidate.name} size="xs" />
-            <span className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] truncate">
-              {iv.candidate.name}
-            </span>
-          </div>
-        ) : canManage ? (
-          <Badge 
-            variant="outline" 
-            className="cursor-pointer hover:bg-[var(--bg-elevated)] w-max border-dashed text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-[11px]"
-            onClick={onAssignCandidate}
-          >
-            + Assign candidate
-          </Badge>
-        ) : (
-          <span className="text-xs text-[var(--text-muted)] italic">No candidate</span>
-        )}
+
+        <div className="flex items-center flex-wrap gap-2">
+          {iv.candidate ? (
+            <div
+              className={cn("flex items-center gap-1.5", canManage && "cursor-pointer hover:opacity-80 transition-opacity")}
+              onClick={canManage ? onAssignCandidate : undefined}
+              title={canManage ? "Click to change candidate" : undefined}
+            >
+              <Avatar name={iv.candidate.name} size="xs" />
+              <span className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] truncate max-w-[160px]">
+                {iv.candidate.name}
+              </span>
+            </div>
+          ) : canManage ? (
+            <Badge 
+              variant="outline" 
+              className="cursor-pointer hover:bg-[var(--bg-elevated)] w-max border-dashed text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-[11px]"
+              onClick={onAssignCandidate}
+            >
+              + Assign candidate
+            </Badge>
+          ) : (
+            <span className="text-xs text-[var(--text-muted)] italic">No candidate</span>
+          )}
+
+          {iv.interviewer && (
+            <div className="lg:hidden flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+              <span className="text-[var(--text-muted)]">•</span>
+              <Avatar name={iv.interviewer.name} size="xs" />
+              <span className="truncate max-w-[120px]">{iv.interviewer.name}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Interviewer */}
@@ -147,7 +166,7 @@ function InterviewRow({
       </div>
 
       {/* Action */}
-      <div className="shrink-0 flex items-center gap-2">
+      <div className="shrink-0 flex items-center flex-wrap sm:flex-nowrap gap-2 pt-1 sm:pt-0">
         {iv.candidate && !isCompleted && (
           <Button
             variant="outline"
@@ -443,7 +462,7 @@ export default function InterviewsPage() {
 
   /* ——— Table header row ——— */
   const tableHeader = (
-    <div className="flex items-center gap-4 px-4 py-2 bg-[var(--bg-elevated)] border-b border-[var(--border-default)] rounded-t-[var(--radius-default)]">
+    <div className="hidden sm:flex items-center gap-4 px-4 py-2 bg-[var(--bg-elevated)] border-b border-[var(--border-default)] rounded-t-[var(--radius-default)]">
       <span className="w-16 shrink-0 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] text-right">Date</span>
       <span className="w-24 shrink-0 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Status</span>
       <span className="flex-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Interview & Candidate</span>
@@ -654,11 +673,12 @@ export default function InterviewsPage() {
         title="Candidate Direct Interview Link"
         description="Share this direct access link with the candidate. Opening this link immediately signs them in and places them directly into the live coding room."
         footer={
-          <div className="flex items-center justify-between w-full">
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between w-full gap-2">
             <Button
               variant="outline"
               size="sm"
               disabled={shareModal.loading}
+              className="w-full sm:w-auto"
               onClick={() => {
                 window.open(shareModal.candidateUrl, "_blank");
               }}
@@ -668,6 +688,7 @@ export default function InterviewsPage() {
             <Button
               size="sm"
               disabled={shareModal.loading}
+              className="w-full sm:w-auto"
               onClick={() => {
                 navigator.clipboard.writeText(shareModal.candidateUrl);
                 toast.success("Candidate link copied to clipboard!");

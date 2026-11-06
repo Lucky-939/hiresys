@@ -126,6 +126,7 @@ export default function CodingRoomPage({
 
   // Layout State
   const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const [mobileRoomTab, setMobileRoomTab] = useState<"editor" | "panel">("editor");
   const [isCandidate, setIsCandidate] = useState(false);
   const [isProblemExpanded, setIsProblemExpanded] = useState(true);
 
@@ -663,15 +664,33 @@ export default function CodingRoomPage({
   }
 
   return (
-    <div className="flex flex-row-reverse h-screen w-full bg-[var(--bg-base)] text-[var(--text-primary)] overflow-hidden">
+    <div className="flex flex-col lg:flex-row-reverse h-screen w-full bg-[var(--bg-base)] text-[var(--text-primary)] overflow-hidden">
       
       {/* ─────────────────────────────────────────────────────────────
           RIGHT PANEL: RECRUITER / INTERVIEWER WORKSPACE
           ───────────────────────────────────────────────────────────── */}
       {isPanelOpen && !isCandidate && (
-        <div className="w-2/5 flex flex-col border-l border-[var(--border-default)] bg-[var(--bg-surface)]">
+        <div
+          className={cn(
+            "flex flex-col border-l border-[var(--border-default)] bg-[var(--bg-surface)] h-full overflow-hidden",
+            "w-full lg:w-2/5",
+            mobileRoomTab === "panel" ? "flex flex-1" : "hidden lg:flex"
+          )}
+        >
           {/* Header */}
           <div className="p-3.5 border-b border-[var(--border-default)] bg-[var(--bg-surface)] space-y-2.5">
+            {/* Mobile Switch to Code button */}
+            <div className="lg:hidden flex items-center justify-between pb-1">
+              <span className="text-xs font-bold text-[var(--text-primary)]">Interviewer Workspace</span>
+              <button
+                type="button"
+                onClick={() => setMobileRoomTab("editor")}
+                className="px-2.5 py-1 text-xs font-semibold rounded bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 shadow-sm"
+              >
+                <span>💻 Back to Code</span>
+              </button>
+            </div>
+
             {/* Row 1: Session Status & Clock/Avatars */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1189,9 +1208,27 @@ export default function CodingRoomPage({
           RIGHT PANEL: CANDIDATE WORKSPACE (GUIDANCE & PROBLEM PANEL)
           ───────────────────────────────────────────────────────────── */}
       {isPanelOpen && isCandidate && (
-        <div className="w-2/5 flex flex-col border-l border-[var(--border-default)] bg-[var(--bg-surface)]">
+        <div
+          className={cn(
+            "flex flex-col border-l border-[var(--border-default)] bg-[var(--bg-surface)] h-full overflow-hidden",
+            "w-full lg:w-2/5",
+            mobileRoomTab === "panel" ? "flex flex-1" : "hidden lg:flex"
+          )}
+        >
           {/* Candidate Header */}
           <div className="p-3.5 border-b border-[var(--border-default)] bg-[var(--bg-surface)] space-y-2.5">
+            {/* Mobile Switch to Code button */}
+            <div className="lg:hidden flex items-center justify-between pb-1">
+              <span className="text-xs font-bold text-[var(--text-primary)]">Problem & Instructions</span>
+              <button
+                type="button"
+                onClick={() => setMobileRoomTab("editor")}
+                className="px-2.5 py-1 text-xs font-semibold rounded bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 shadow-sm"
+              >
+                <span>💻 Back to Code</span>
+              </button>
+            </div>
+
             {/* Row 1: Session Status & Clock/Avatars */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1356,10 +1393,16 @@ export default function CodingRoomPage({
       {/* ─────────────────────────────────────────────────────────────
           LEFT PANEL: COLLABORATIVE MONACO CODE EDITOR & TERMINAL
           ───────────────────────────────────────────────────────────── */}
-      <div className={cn("flex flex-col relative bg-[#1E1E1E]", isPanelOpen ? "w-3/5" : "w-full")}>
+      <div
+        className={cn(
+          "flex flex-col relative bg-[#1E1E1E] h-full overflow-hidden",
+          isPanelOpen ? "w-full lg:w-3/5" : "w-full",
+          mobileRoomTab === "editor" ? "flex flex-1" : "hidden lg:flex"
+        )}
+      >
         
         {/* Editor Top Toolbar */}
-        <div className="absolute top-0 right-0 left-0 h-12 flex items-center justify-between px-4 z-10 pointer-events-none bg-[#1E1E1E]/95 backdrop-blur-sm border-b border-[#333]">
+        <div className="absolute top-0 right-0 left-0 h-12 flex items-center justify-between px-3 sm:px-4 z-10 pointer-events-none bg-[#1E1E1E]/95 backdrop-blur-sm border-b border-[#333]">
           
           {/* Top Left: Role Banner & Interview Info */}
           <div className="pointer-events-auto flex items-center gap-2.5 min-w-0">
@@ -1375,7 +1418,8 @@ export default function CodingRoomPage({
                 <div className="h-4 w-px bg-[#333] shrink-0" />
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 flex items-center gap-1.5 shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                  Interviewer Console
+                  <span className="hidden sm:inline">Interviewer Console</span>
+                  <span className="sm:hidden">Interviewer</span>
                 </span>
                 <span className="text-xs text-[#888] truncate hidden lg:inline">
                   Evaluating: <strong className="text-white">{interviewInfo.candidateName}</strong>
@@ -1389,7 +1433,8 @@ export default function CodingRoomPage({
                 </div>
                 <div className="h-4 w-px bg-[#333] shrink-0" />
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0">
-                  Candidate Mode
+                  <span className="hidden sm:inline">Candidate Mode</span>
+                  <span className="sm:hidden">Candidate</span>
                 </span>
                 <span className="text-xs text-[#888] truncate hidden lg:inline">
                   {interviewInfo.role}
@@ -1399,15 +1444,39 @@ export default function CodingRoomPage({
           </div>
 
           {/* Top Right: Code Controls */}
-          <div className="flex items-center gap-2 pointer-events-auto shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 pointer-events-auto shrink-0">
+            {/* Mobile Tab Switcher (< lg) */}
+            <div className="flex lg:hidden items-center p-0.5 bg-[#252526] rounded border border-[#333] shrink-0">
+              <button
+                type="button"
+                onClick={() => setMobileRoomTab("editor")}
+                className={cn(
+                  "px-2 py-1 text-[11px] font-semibold rounded transition-colors",
+                  mobileRoomTab === "editor" ? "bg-emerald-600 text-white shadow-xs" : "text-[#888] hover:text-white"
+                )}
+              >
+                💻 Code
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileRoomTab("panel")}
+                className={cn(
+                  "px-2 py-1 text-[11px] font-semibold rounded transition-colors",
+                  mobileRoomTab === "panel" ? "bg-indigo-600 text-white shadow-xs" : "text-[#888] hover:text-white"
+                )}
+              >
+                📋 {isCandidate ? "Problem" : "Rubric"}
+              </button>
+            </div>
+
             {/* Language Dropdown */}
             <div className="flex items-center gap-1.5 bg-[#252526] px-2 py-0.5 rounded-[var(--radius-default)] border border-[#333]">
-              <span className="text-[10px] text-[#888] uppercase font-bold font-mono">Lang:</span>
+              <span className="text-[10px] text-[#888] uppercase font-bold font-mono hidden sm:inline">Lang:</span>
               <Select
                 value={language}
                 onChange={(e) => handleLanguageChange(e.target.value)}
                 disabled={isCompleted}
-                className="!bg-transparent !text-[#CCCCCC] !text-xs !font-medium !outline-none cursor-pointer !border-none !px-1 !py-0 hover:!text-white !h-7 !w-24 focus:!ring-0"
+                className="!bg-transparent !text-[#CCCCCC] !text-xs !font-medium !outline-none cursor-pointer !border-none !px-1 !py-0 hover:!text-white !h-7 !w-20 sm:!w-24 focus:!ring-0"
               >
                 {LANGUAGES.map((lang) => (
                   <option key={lang} value={lang} className="bg-[#252526]">{LANG_LABELS[lang]}</option>
@@ -1420,27 +1489,27 @@ export default function CodingRoomPage({
               size="sm" 
               onClick={handleRunCode} 
               disabled={isCompleted || isExecuting}
-              className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-3.5 flex items-center gap-1.5 shadow-sm cursor-pointer"
+              className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-2.5 sm:px-3.5 flex items-center gap-1.5 shadow-sm cursor-pointer"
             >
               {isExecuting ? (
                 <>
                   <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Running...</span>
+                  <span className="hidden sm:inline">Running...</span>
                 </>
               ) : (
                 <>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                     <polygon points="5 3 19 12 5 21 5 3"></polygon>
                   </svg>
-                  <span>Run Code</span>
+                  <span>Run</span>
                 </>
               )}
             </Button>
             
-            {/* Toggle Panel Button */}
+            {/* Toggle Panel Button (Desktop only) */}
             <button 
               onClick={() => setIsPanelOpen(!isPanelOpen)} 
-              className="flex items-center justify-center w-8 h-8 rounded-[var(--radius-default)] bg-[#252526] border border-[#333] text-[#858585] hover:text-white hover:bg-[#333] transition-colors cursor-pointer" 
+              className="hidden lg:flex items-center justify-center w-8 h-8 rounded-[var(--radius-default)] bg-[#252526] border border-[#333] text-[#858585] hover:text-white hover:bg-[#333] transition-colors cursor-pointer" 
               title={isPanelOpen ? "Collapse Side Panel" : "Expand Side Panel"}
             >
               {isPanelOpen ? (

@@ -15,6 +15,15 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^6.19.3",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
+    "@types/multer": "^2.1.0",
+    "@types/node": "^25.9.1",
+    "@types/nodemailer": "^8.0.1",
+    "@types/socket.io": "^3.0.1",
     "axios": "^1.19.0",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.78.0",
@@ -31,24 +40,15 @@
     "pdf-text-extract": "^1.5.0",
     "pdfjs-dist": "^3.11.174",
     "prisma": "^6.19.3",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "typescript": "^5.7.3"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/morgan": "^1.9.10",
-    "@types/multer": "^2.1.0",
-    "@types/node": "^25.9.1",
-    "@types/nodemailer": "^8.0.1",
-    "@types/socket.io": "^3.0.1",
     "jest": "^30.4.2",
     "nodemon": "^3.1.14",
     "socket.io-client": "^4.8.4",
     "ts-jest": "^29.4.11",
-    "ts-node": "^10.9.2",
-    "typescript": "^6.0.3"
+    "ts-node": "^10.9.2"
   }
 }

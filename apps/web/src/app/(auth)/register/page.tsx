@@ -51,6 +51,15 @@ function RegisterForm() {
       }
 
       const res = await api.post("/auth/register", payload);
+      if (res.data.autoVerified) {
+        toast.success(res.data.message || "Account created successfully! Please sign in.");
+        const emailQuery = form.email ? `&email=${encodeURIComponent(form.email)}` : "";
+        const target = redirectParam
+          ? `/login?redirect=${encodeURIComponent(redirectParam)}${emailQuery}`
+          : `/login?email=${encodeURIComponent(form.email)}`;
+        router.push(target);
+        return;
+      }
       setUserId(res.data.userId);
       setStep("otp");
       toast.success(res.data.message);

@@ -68,17 +68,11 @@ async function initTransporter() {
     });
     console.log(`[Email Service] Initialized Real SMTP transport (${process.env.SMTP_HOST || "smtp.gmail.com"})`);
   } else {
-    const testAccount = await nodemailer.createTestAccount();
+    // When no SMTP credentials are provided, use in-memory jsonTransport to prevent network hangs on port 587
     transporter = nodemailer.createTransport({
-      host: "smtp.ethereal.email",
-      port: 587,
-      secure: false,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass,
-      },
+      jsonTransport: true,
     });
-    console.log("[Email Service] Initialized Ethereal Email transport");
+    console.log("[Email Service] Initialized local simulated transport (no SMTP credentials configured)");
   }
 
   return transporter;

@@ -12,20 +12,29 @@ function generateOtp() {
 
 export class AuthService {
   async register(name: string, email: string, password: string, organizationName?: string) {
+    const hasSmtp = Boolean(process.env.SMTP_USER && process.env.SMTP_PASS);
+
     const existing = await repo.findByEmail(email);
     if (existing) {
       if (existing.emailVerified) {
         throw new AppError("An account with this email already exists", 409);
       } else {
         // Account exists but is unverified.
-        // Update their password and resend OTP.
         const hashedPassword = await bcrypt.hash(password, 12);
         const { prisma } = require("../../config/database");
         await prisma.user.update({
           where: { id: existing.id },
-          data: { password: hashedPassword, name }
+          data: {
+            password: hashedPassword,
+            name,
+            emailVerified: hasSmtp ? undefined : new Date(),
+          }
         });
         
+        if (!hasSmtp) {
+          return { message: "Account created successfully! You can now sign in.", userId: existing.id, autoVerified: true };
+        }
+
         // Generate and send new OTP
         const otp = generateOtp();
         const { redis } = require("../../config/redis");
@@ -39,6 +48,16 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(password, 12);
     const user = await repo.createUser({ name, email, password: hashedPassword, organizationName });
+
+    if (!hasSmtp) {
+      // Demo / portfolio mode: auto-verify immediately so interviewers aren't blocked by email verification
+      const { prisma } = require("../../config/database");
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerified: new Date() }
+      });
+      return { message: "Account created successfully! You can now sign in.", userId: user.id, autoVerified: true };
+    }
 
     // Generate and send OTP
     const otp = generateOtp();

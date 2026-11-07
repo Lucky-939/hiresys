@@ -12,14 +12,12 @@ function generateOtp() {
 
 export class AuthService {
   async register(name: string, email: string, password: string, organizationName?: string) {
-    const hasSmtp = Boolean(process.env.SMTP_USER && process.env.SMTP_PASS);
-
     const existing = await repo.findByEmail(email);
     if (existing) {
       if (existing.emailVerified) {
         throw new AppError("An account with this email already exists", 409);
       } else {
-        // Account exists but is unverified.
+        // Account exists but was unverified.
         const hashedPassword = await bcrypt.hash(password, 12);
         const { prisma } = require("../../config/database");
         await prisma.user.update({
@@ -27,87 +25,40 @@ export class AuthService {
           data: {
             password: hashedPassword,
             name,
-            emailVerified: hasSmtp ? undefined : new Date(),
+            emailVerified: new Date(),
           }
         });
         
-        if (!hasSmtp) {
-          return { message: "Account created successfully! You can now sign in.", userId: existing.id, autoVerified: true };
-        }
-
-        // Generate and send new OTP
-        const otp = generateOtp();
-        const { redis } = require("../../config/redis");
-        await redis.setex(`verify_${existing.id}`, 600, otp); // Valid for 10 minutes
-        await redis.del(`verify_attempts_${existing.id}`);
-        await sendVerificationEmail(email, otp);
-        
-        return { message: "Account is pending verification. A new code has been sent.", userId: existing.id };
+        return { message: "Account created successfully! You can now sign in.", userId: existing.id, autoVerified: true };
       }
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
     const user = await repo.createUser({ name, email, password: hashedPassword, organizationName });
 
-    if (!hasSmtp) {
-      // Demo / portfolio mode: auto-verify immediately so interviewers aren't blocked by email verification
-      const { prisma } = require("../../config/database");
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { emailVerified: new Date() }
-      });
-      return { message: "Account created successfully! You can now sign in.", userId: user.id, autoVerified: true };
-    }
-
-    // Generate and send OTP
-    const otp = generateOtp();
-    const { redis } = require("../../config/redis");
-    await redis.setex(`verify_${user.id}`, 600, otp); // Valid for 10 minutes
-    await redis.del(`verify_attempts_${user.id}`);
-
-    await sendVerificationEmail(email, otp);
-
-    return { message: "Account created successfully. Please verify your email.", userId: user.id };
-  }
-
-  async verifyEmail(userId: string, code: string) {
-    const { redis } = require("../../config/redis");
-    const storedOtp = await redis.get(`verify_${userId}`);
-
-    if (!storedOtp) {
-      throw new AppError("Invalid or expired verification code", 400);
-    }
-
-    if (storedOtp !== code) {
-      const attemptsKey = `verify_attempts_${userId}`;
-      const attempts = await redis.incr(attemptsKey);
-      if (attempts === 1) {
-        const ttl = await redis.ttl(`verify_${userId}`);
-        if (ttl > 0) {
-          await redis.expire(attemptsKey, ttl);
-        }
-      }
-
-      if (attempts >= 5) {
-        await redis.del(`verify_${userId}`);
-        await redis.del(attemptsKey);
-        throw new AppError("Too many failed attempts. Verification code has been invalidated. Please request a new code.", 429);
-      }
-
-      const remaining = 5 - attempts;
-      throw new AppError(`Invalid verification code. ${remaining} attempt(s) remaining.`, 400);
-    }
-
-    // Update user
+    // Instantly verify account for seamless recruitment / interviewer testing
     const { prisma } = require("../../config/database");
-    const user = await prisma.user.update({
-      where: { id: userId },
+    await prisma.user.update({
+      where: { id: user.id },
       data: { emailVerified: new Date() }
     });
 
-    // Delete OTP & attempts
-    await redis.del(`verify_${userId}`);
-    await redis.del(`verify_attempts_${userId}`);
+    return { message: "Account created successfully! You can now sign in.", userId: user.id, autoVerified: true };
+  }
+
+  async verifyEmail(userId: string, code?: string) {
+    // Ensure user is verified regardless of whether code was provided
+    const { prisma } = require("../../config/database");
+    await prisma.user.update({
+      where: { id: userId },
+      data: { emailVerified: new Date() }
+    }).catch(() => {});
+
+    try {
+      const { redis } = require("../../config/redis");
+      await redis.del(`verify_${userId}`);
+      await redis.del(`verify_attempts_${userId}`);
+    } catch {}
 
     return { message: "Email verified successfully. Please sign in." };
   }
@@ -118,8 +69,13 @@ export class AuthService {
       throw new AppError("Invalid email or password", 401);
     }
 
+    // Auto-verify if unverified so testers / interviewers are never blocked
     if (!user.emailVerified) {
-      throw new AppError("Please verify your email address before logging in.", 403);
+      const { prisma } = require("../../config/database");
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerified: new Date() }
+      }).catch(() => {});
     }
 
     const passwordMatches = await bcrypt.compare(password, user.password);

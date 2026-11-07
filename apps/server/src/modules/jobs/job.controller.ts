@@ -1,12 +1,27 @@
 import { Response, NextFunction } from "express";
 import { AuthRequest } from "../../middleware/auth.middleware";
 import { JobService } from "./job.service";
+import { OrgService } from "../organizations/org.service";
+import { AppError } from "../../utils/errors";
 
 const service = new JobService();
+const orgService = new OrgService();
 
 export async function createJob(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const job = await service.createJob(req.body.organizationId, req.userId!, req.body);
+    let orgId = req.body.organizationId;
+    if (!orgId) {
+      const userOrgs = await orgService.getUserOrgs(req.userId!);
+      if (userOrgs && userOrgs.length > 0) {
+        orgId = userOrgs[0].id;
+      }
+    }
+
+    if (!orgId) {
+      throw new AppError("No active organization found. Please select or create an organization.", 400);
+    }
+
+    const job = await service.createJob(orgId, req.userId!, req.body);
     res.status(201).json({ success: true, data: job });
   } catch (err) {
     next(err);

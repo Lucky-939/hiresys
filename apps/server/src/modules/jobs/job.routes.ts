@@ -16,9 +16,9 @@ jobRoutes.post(
   "/",
   authenticate,
   validateRequest([
-    { field: "organizationId", required: true, type: "string" },
+    { field: "organizationId", required: false, type: "string" },
     { field: "title", required: true, type: "string", minLength: 2 },
-    { field: "description", required: true, type: "string", minLength: 10 },
+    { field: "description", required: true, type: "string", minLength: 2 },
     { field: "department", required: false, type: "string" },
     { field: "location", required: false, type: "string" },
   ]),

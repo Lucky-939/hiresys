@@ -24,7 +24,15 @@ export class OrgService {
   }
 
   async getUserOrgs(userId: string) {
-    return repo.findUserOrgs(userId);
+    let orgs = await repo.findUserOrgs(userId);
+    if (!orgs || orgs.length === 0) {
+      const { prisma } = require("../../config/database");
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      const baseName = user?.name ? `${user.name}'s Workspace` : "My Workspace";
+      await this.createOrg(baseName, userId);
+      orgs = await repo.findUserOrgs(userId);
+    }
+    return orgs;
   }
 
   async getOrgById(id: string, userId: string) {

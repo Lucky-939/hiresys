@@ -59,18 +59,19 @@ export default function JobsPage() {
     if (!description.trim()) { setFormError("Job description is required."); return; }
     setCreating(true); setFormError("");
     try {
+      const orgId = selectedOrgId || (orgs.length > 0 ? orgs[0].id : undefined);
       const res = await api.post("/jobs", {
-        organizationId: selectedOrgId,
+        organizationId: orgId,
         title: title.trim(),
         department: department.trim() || undefined,
         location: location.trim() || undefined,
         description: description.trim(),
-        status: "DRAFT"
+        status: "OPEN"
       });
       const newJob = { ...res.data.data, _count: { candidates: 0 } };
       setJobs(prev => [newJob, ...prev]);
       closeModal();
-      toast.success("Job created as Draft. Click 'Publish' when ready to accept applications.");
+      toast.success("Job posted successfully! It is now active and ready for candidates.");
     } catch (err: unknown) { setFormError(getErrorMessage(err)); }
     finally { setCreating(false); }
   }

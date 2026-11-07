@@ -16,35 +16,37 @@ export class AuthRepository {
         },
       });
 
-      const orgName = data.organizationName?.trim();
-      if (orgName) {
-        let baseSlug = orgName
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-+|-+$/g, "");
-        if (!baseSlug) baseSlug = "org";
-        const orgSlug = `${baseSlug}-${user.id.slice(-6)}`;
+      let orgName = data.organizationName?.trim();
+      if (!orgName) {
+        orgName = `${data.name}'s Workspace`;
+      }
+      
+      let baseSlug = orgName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      if (!baseSlug) baseSlug = "org";
+      const orgSlug = `${baseSlug}-${user.id.slice(-6)}`;
 
-        const org = await tx.organization.create({
-          data: {
-            name: orgName,
-            slug: orgSlug,
-            members: {
-              create: {
-                userId: user.id,
-                role: "OWNER",
-              },
+      const org = await tx.organization.create({
+        data: {
+          name: orgName,
+          slug: orgSlug,
+          members: {
+            create: {
+              userId: user.id,
+              role: "OWNER",
             },
           },
-        });
+        },
+      });
 
-        await tx.pipelineStage.createMany({
-          data: DEFAULT_PIPELINE_STAGES.map((stage) => ({
-            ...stage,
-            organizationId: org.id,
-          })),
-        });
-      }
+      await tx.pipelineStage.createMany({
+        data: DEFAULT_PIPELINE_STAGES.map((stage) => ({
+          ...stage,
+          organizationId: org.id,
+        })),
+      });
 
       return user;
     });

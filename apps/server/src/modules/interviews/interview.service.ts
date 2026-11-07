@@ -253,7 +253,7 @@ export class InterviewService {
     return interview;
   }
 
-  async getById(id: string, userId: string) {
+  async getById(id: string, userId: string, forRoom: boolean = false) {
     const interview = await repo.findById(id);
     if (!interview) throw new AppError("Interview not found", 404);
     const member = await assertOrgMember(interview.organizationId, userId);
@@ -265,7 +265,10 @@ export class InterviewService {
     const userEmail = user.email?.trim().toLowerCase();
     const isCandidate = Boolean(candEmail && userEmail && candEmail === userEmail);
     const isGlobalViewer = ["OWNER", "ADMIN", "RECRUITER"].includes(member.role);
-    const isAssignedInterviewer = user.id === interview.interviewerId;
+    const isAssignedInterviewer = Boolean(
+      (interview.interviewerId && user.id === interview.interviewerId) ||
+      (!interview.interviewerId && interview.createdById === user.id)
+    );
 
     if (isCandidate) {
       // Scrub private interviewer data before returning
@@ -278,6 +281,13 @@ export class InterviewService {
         interviewNotes: null,
         report: null,
       };
+    }
+
+    // Room access is strictly restricted to the assigned interviewer and the candidate
+    if (forRoom) {
+      if (!isAssignedInterviewer) {
+        throw new AppError("Access denied: Only the linked interviewer and candidate can enter this interview room.", 403);
+      }
     } else if (!isGlobalViewer && !isAssignedInterviewer) {
       throw new AppError("Access denied: You are not assigned to this interview", 403);
     }
@@ -294,7 +304,7 @@ export class InterviewService {
   async assertCanExecuteCode(id: string, userId: string) {
     const interview = await repo.findById(id);
     if (!interview) throw new AppError("Interview not found", 404);
-    const member = await assertOrgMember(interview.organizationId, userId);
+    await assertOrgMember(interview.organizationId, userId);
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new AppError("User not found", 404);
@@ -302,12 +312,14 @@ export class InterviewService {
     const candEmail = interview.candidate?.email?.trim().toLowerCase();
     const userEmail = user.email?.trim().toLowerCase();
     const isCandidate = Boolean(candEmail && userEmail && candEmail === userEmail);
-    const isAssignedInterviewer = user.id === interview.interviewerId;
-    const isGlobalViewer = ["OWNER", "ADMIN", "RECRUITER"].includes(member.role);
+    const isAssignedInterviewer = Boolean(
+      (interview.interviewerId && user.id === interview.interviewerId) ||
+      (!interview.interviewerId && interview.createdById === user.id)
+    );
 
-    if (!isCandidate && !isAssignedInterviewer && !isGlobalViewer) {
+    if (!isCandidate && !isAssignedInterviewer) {
       throw new AppError(
-        "Access denied: Only the assigned interviewer, candidate, or recruiter can execute code",
+        "Access denied: Only the assigned interviewer and candidate can execute code",
         403
       );
     }

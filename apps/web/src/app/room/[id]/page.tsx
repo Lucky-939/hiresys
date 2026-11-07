@@ -10,6 +10,7 @@ import { api } from "@/lib/api";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 import { Icons } from "@/components/ui/Icons";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -82,6 +83,8 @@ export default function CodingRoomPage({
   const [terminalTab, setTerminalTab] = useState<"tests" | "console">("tests");
   const [connected, setConnected] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [accessDenied, setAccessDenied] = useState<string | null>(null);
+  const [concludedModalOpen, setConcludedModalOpen] = useState(true);
   const [loadingInitial, setLoadingInitial] = useState(true);
 
   // Notes state (interviewer only)
@@ -177,7 +180,7 @@ export default function CodingRoomPage({
 
     setActiveToken(tokenToUse);
 
-    api.get(`/interviews/${roomId}`, {
+    api.get(`/interviews/${roomId}?forRoom=true`, {
       headers: { Authorization: `Bearer ${tokenToUse}` }
     }).then((res) => {
       const iv = res.data.data;
@@ -227,8 +230,10 @@ export default function CodingRoomPage({
       if (err.response?.status === 401) {
         router.replace(`/login?redirect=${encodeURIComponent(`/room/${roomId}`)}`);
       } else if (err.response?.status === 403) {
-        toast.error("You do not have access to this interview room.");
-        router.replace("/dashboard");
+        const errorMsg = getErrorMessage(err) || "Access denied: Only the linked interviewer and candidate can enter this interview room.";
+        setAccessDenied(errorMsg);
+      } else {
+        toast.error(getErrorMessage(err));
       }
     }).finally(() => {
       setLoadingInitial(false);
@@ -335,6 +340,12 @@ export default function CodingRoomPage({
       toast.error(err.message);
     });
 
+      socket.on("interview:ended", ({ message }: { message: string }) => {
+        setIsCompleted(true);
+        setConcludedModalOpen(true);
+        toast.info(message || "The interview session has ended.");
+      });
+
       socket.on("meet:sync", ({ meetUrl: syncedMeet }: { meetUrl: string }) => {
         if (typeof syncedMeet === "string") {
           setMeetUrl(syncedMeet);
@@ -357,6 +368,7 @@ export default function CodingRoomPage({
         socket.off("room:users");
         socket.off("code:execution_started");
         socket.off("code:execution_result");
+        socket.off("interview:ended");
         socket.off("error");
         disconnectSocket();
       };
@@ -596,6 +608,13 @@ export default function CodingRoomPage({
     if (isCompleted || isCandidate) return;
     setGeneratingReport(true);
     try {
+      // Broadcast interview end event to the candidate in real-time
+      try {
+        getSocket(activeToken || undefined).emit("interview:end", { roomId });
+      } catch (e) {
+        console.error("Failed to emit interview:end socket event", e);
+      }
+
       await api.patch(
         `/interviews/${roomId}`,
         { status: "COMPLETED", codeSubmitted: code, language, interviewNotes: notes },
@@ -653,6 +672,28 @@ export default function CodingRoomPage({
     }
 
     getSocket(activeToken || undefined).emit("code:execute", { roomId, language, code: codeToExecute });
+  }
+
+  if (accessDenied) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[var(--bg-base)] p-4">
+        <div className="max-w-md w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-default)] p-8 text-center shadow-xl">
+          <div className="w-14 h-14 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto mb-4 border border-amber-500/20">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-[var(--text-primary)] mb-2">Room Access Restricted</h2>
+          <p className="text-sm text-[var(--text-secondary)] leading-relaxed mb-6">
+            {accessDenied}
+          </p>
+          <Button onClick={() => router.push("/dashboard/coding-rooms")} className="w-full">
+            Back to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   if (loadingInitial) {
@@ -1945,6 +1986,38 @@ export default function CodingRoomPage({
               </div>
             </div>
           </div>
+        )}
+
+        {/* Interview Concluded Dialog for Candidate */}
+        {isCompleted && isCandidate && (
+          <Modal
+            open={concludedModalOpen}
+            onClose={() => setConcludedModalOpen(false)}
+            title="Interview Concluded"
+          >
+            <div className="flex flex-col items-center text-center py-4 px-2">
+              <div className="w-16 h-16 rounded-full bg-emerald-500/15 text-emerald-500 flex items-center justify-center mb-4 border border-emerald-500/30">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-[var(--text-primary)] mb-2">
+                Thank you for your time, {participantName}!
+              </h3>
+              <p className="text-sm text-[var(--text-secondary)] leading-relaxed max-w-sm mb-6">
+                The interviewer has officially ended this technical interview. All your code and test submissions have been securely recorded. You may now exit this room.
+              </p>
+              <div className="w-full flex items-center justify-center">
+                <Button
+                  size="md"
+                  onClick={() => router.push("/")}
+                  className="w-full max-w-xs"
+                >
+                  Exit Room
+                </Button>
+              </div>
+            </div>
+          </Modal>
         )}
       </div>
     </div>

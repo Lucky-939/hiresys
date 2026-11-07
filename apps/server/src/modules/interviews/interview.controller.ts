@@ -46,9 +46,11 @@ export async function getInterview(
   next: NextFunction,
 ) {
   try {
+    const forRoom = req.query.forRoom === "true";
     const interview = await service.getById(
       req.params.id as string,
       req.userId!,
+      forRoom
     );
     res.json({ success: true, data: interview });
   } catch (err) {

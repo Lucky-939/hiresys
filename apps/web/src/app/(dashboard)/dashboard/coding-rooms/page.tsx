@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { WorkspaceTemplate } from "@/components/layout/templates";
 import { useOrganizations, OrganizationSelector } from "@/components/ui/OrganizationSelector";
+import { useAuthStore } from "@/store/auth.store";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/error";
@@ -24,12 +25,16 @@ const STATUS_MAP: Record<string, { label: string; variant: any }> = {
 
 type Interview = {
   id: string; title: string; status: string; createdAt: string;
+  createdById?: string;
   createdBy: { name: string };
+  interviewerId?: string | null;
+  interviewer?: { id: string; name: string } | null;
   candidate?: { name: string; email?: string } | null;
 };
 
 export default function CodingRoomsPage() {
   const router = useRouter();
+  const { user } = useAuthStore();
   const { orgs, selectedOrgId, isReady } = useOrganizations();
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,6 +98,13 @@ export default function CodingRoomsPage() {
           const status = STATUS_MAP[iv.status] ?? STATUS_MAP.SCHEDULED;
           const isLive = iv.status === "ACTIVE";
           const isCompleted = iv.status === "COMPLETED";
+          const isLinkedInterviewer = Boolean(
+            (iv.interviewerId && user?.id === iv.interviewerId) ||
+            (!iv.interviewerId && iv.createdById === user?.id) ||
+            (!iv.interviewerId && iv.createdBy?.name === user?.name)
+          );
+          const interviewerName = iv.interviewer?.name || iv.createdBy?.name || "Interviewer";
+
           return (
             <div
               key={iv.id}
@@ -105,18 +117,27 @@ export default function CodingRoomsPage() {
 
               {/* Session info */}
               <div className="flex-1 min-w-0">
-                <button
-                  onClick={() => router.push(`/room/${iv.id}`)}
-                  className="text-sm font-semibold text-[var(--text-primary)] hover:text-[var(--accent)] transition-colors text-left truncate block"
-                >
-                  {iv.title}
-                </button>
-                {iv.candidate && (
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <Avatar name={iv.candidate.name} size="xs" />
-                    <span className="text-xs text-[var(--text-muted)] truncate">{iv.candidate.name}</span>
-                  </div>
+                {isLinkedInterviewer ? (
+                  <button
+                    onClick={() => router.push(`/room/${iv.id}`)}
+                    className="text-sm font-semibold text-[var(--text-primary)] hover:text-[var(--accent)] transition-colors text-left truncate block"
+                  >
+                    {iv.title}
+                  </button>
+                ) : (
+                  <span className="text-sm font-semibold text-[var(--text-primary)] text-left truncate block">
+                    {iv.title}
+                  </span>
                 )}
+                <div className="flex items-center gap-2 mt-0.5">
+                  {iv.candidate && (
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <Avatar name={iv.candidate.name} size="xs" />
+                      <span className="text-xs text-[var(--text-muted)] truncate">{iv.candidate.name}</span>
+                    </div>
+                  )}
+                  <span className="text-[11px] text-[var(--text-subtle)]">• Host: {interviewerName}</span>
+                </div>
               </div>
 
               {/* Date */}
@@ -132,14 +153,14 @@ export default function CodingRoomsPage() {
                   <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/interviews/${iv.id}/report`)}>
                     View Report
                   </Button>
-                ) : isLive ? (
+                ) : isLinkedInterviewer ? (
                   <Button size="sm" onClick={() => router.push(`/room/${iv.id}`)}>
-                    Join Live
+                    {isLive ? "Join Live" : "Enter Room"}
                   </Button>
                 ) : (
-                  <Button variant="outline" size="sm" onClick={() => router.push(`/room/${iv.id}`)}>
-                    Enter Room
-                  </Button>
+                  <span className="text-[11px] text-[var(--text-muted)] font-medium px-2.5 py-1 bg-[var(--bg-elevated)] rounded border border-[var(--border-default)] inline-block">
+                    Assigned to {interviewerName}
+                  </span>
                 )}
               </div>
             </div>

@@ -71,8 +71,8 @@ export function registerSocketHandlers(io: Server) {
 
     socket.on("room:join", async ({ roomId, name }) => {
       try {
-        // Validate organization membership via InterviewService
-        await interviewService.getById(roomId, userId);
+        // Validate strictly that only the linked interviewer or candidate can join the room
+        await interviewService.getById(roomId, userId, true);
 
         socket.join(roomId);
 
@@ -90,10 +90,21 @@ export function registerSocketHandlers(io: Server) {
           socket.emit("meet:sync", { meetUrl: existingMeet });
         }
         console.log(`${name} joined room ${roomId}`);
-      } catch (err) {
+      } catch (err: any) {
         console.error(`Socket join error for room ${roomId}:`, err);
-        socket.emit("error", { message: "Unauthorized or room not found" });
+        socket.emit("error", { message: err?.message || "Unauthorized or room not found" });
         socket.disconnect();
+      }
+    });
+
+    socket.on("interview:end", async ({ roomId }) => {
+      try {
+        io.to(roomId).emit("interview:ended", {
+          message: "The interviewer has concluded this session. Thank you for your time!"
+        });
+        console.log(`Interview ended event broadcast to room ${roomId}`);
+      } catch (err) {
+        console.error("Error broadcasting interview:end:", err);
       }
     });
 

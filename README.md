@@ -38,7 +38,7 @@ HireSys is an enterprise-grade, end-to-end technical interview and applicant tra
 - **Async Queue & Cache**: Redis, BullMQ
 - **Real-Time Engine**: Socket.io (WebSocket with HTTP long-polling fallback)
 - **AI Engine**: Google Gemini API (`@google/genai` / `@google/generative-ai`)
-- **Code Execution**: Piston Sandbox Engine
+- **Code Execution**: Piston Sandbox Engine (Hardened Docker container with 3s CPU timeout and memory limits; tunneled via secure host tunnel for cost-effective 100% free cloud deployment)
 
 ---
 

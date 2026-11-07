@@ -1525,6 +1525,15 @@ export default function CodingRoomPage({
               </Select>
             </div>
 
+            {/* Sandbox Engine Indicator */}
+            <div
+              className="hidden lg:flex items-center gap-1.5 px-2 py-1 rounded bg-[#252526] border border-[#333] text-[11px] text-[#888] cursor-help"
+              title="Execution Engine: Isolated Docker container (Piston via ngrok host tunnel). Active when host tunnel is running."
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+              <span className="font-mono text-[10px] text-[#aaa]">Docker Sandbox</span>
+            </div>
+
             {/* Run Code Button */}
             <Button 
               size="sm" 
@@ -1810,6 +1819,17 @@ export default function CodingRoomPage({
                 </div>
               ) : executionOutput ? (
                 <div className="space-y-2 whitespace-pre-wrap">
+                  {executionOutput.isTunnelOffline && (
+                    <div className="p-3.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-200 font-sans space-y-1.5 mb-2">
+                      <div className="flex items-center gap-2 font-bold text-xs text-amber-300">
+                        <span className="w-2 h-2 rounded-full bg-amber-400" />
+                        <span>Execution Sandbox Notice • Host Tunnel Idle</span>
+                      </div>
+                      <p className="text-[11px] text-amber-200/90 leading-relaxed font-sans">
+                        Untrusted code is executed inside an isolated Linux Docker Piston container connected via a secure ngrok tunnel on the developer machine to prevent cloud compute fees. Live execution runs when the host machine tunnel is active.
+                      </p>
+                    </div>
+                  )}
                   {executionOutput.stdout && (
                     <span className="text-[#CCCCCC]">{executionOutput.stdout}</span>
                   )}
@@ -1829,6 +1849,17 @@ export default function CodingRoomPage({
               )
             ) : executionOutput ? (
               <div className="flex flex-col gap-2 whitespace-pre-wrap">
+                {executionOutput.isTunnelOffline && (
+                  <div className="p-3.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-200 font-sans space-y-1.5 mb-2">
+                    <div className="flex items-center gap-2 font-bold text-xs text-amber-300">
+                      <span className="w-2 h-2 rounded-full bg-amber-400" />
+                      <span>Host Sandbox Engine Offline</span>
+                    </div>
+                    <p className="text-[11px] text-amber-200/90 leading-relaxed font-sans">
+                      Untrusted code is executed inside an isolated Linux Docker Piston container connected via a secure ngrok tunnel on the developer machine to prevent cloud compute fees. Live execution runs when the host machine tunnel is active.
+                    </p>
+                  </div>
+                )}
                 {executionOutput.stdout && (
                   <span className="text-[#CCCCCC]">{executionOutput.stdout}</span>
                 )}

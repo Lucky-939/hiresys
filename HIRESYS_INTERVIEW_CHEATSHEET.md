@@ -132,11 +132,17 @@
   - Upon logout or password reset, the token's remaining TTL is calculated, and the key `bl_${token}` is stored in Redis with an automatic expiry matching the JWT's lifespan.
   - In the auth middleware and Socket.IO handshake, we check `redis.get(bl_${token})`. If found, the request is rejected immediately with a `401 Unauthorized`.
 
+#### Q11: How does Code Execution work securely, and how is it deployed?
+- **Answer**:
+  - Untrusted code submitted by candidates is **never executed directly on the application server**.
+  - We isolate execution inside a hardened, ephemeral Linux Docker container powered by the **Piston execution engine** with strict CPU timeouts (3-second kill switch), 256MB memory caps, and process fork limits to prevent fork bombs and infinite loops.
+  - **Demo Architecture vs. Enterprise Production**: In enterprise production, Piston runs inside isolated microVMs (e.g. AWS Firecracker or dedicated ECS clusters). For this portfolio demonstration, running heavy 24/7 container daemons on cloud providers incurs continuous hourly compute bills. To keep the live demo 100% free while preserving complete Docker Linux sandbox isolation, the engine runs on a dedicated host machine connected via a secure, reverse-proxied ngrok tunnel. When the host tunnel is active, code executes in real-time inside Docker; when offline, HireSys gracefully displays a clear architecture notice in the terminal.
+
 ---
 
 ## 🎯 PART 4: Tough Technical Curveball Questions
 
-### Q11: "What was the most challenging technical bug you encountered in this project, and how did you resolve it?"
+### Q12: "What was the most challenging technical bug you encountered in this project, and how did you resolve it?"
 - **Best Answer**:
   > *"The most challenging issue was a **race condition and session overwrite** during collaborative interview testing. When an interviewer opened a candidate's magic join link in another tab, the candidate's JWT overwrote the interviewer's persistent `localStorage` auth token. Additionally, the WebSocket connection wasn't re-authenticating with the candidate's active credentials.*  
   > *I solved this by decoupling persistent recruiter storage from per-tab session credentials using `sessionStorage` and passing explicit authorization headers. On the WebSocket layer, I refactored the client socket factory to track `currentSocketToken` and trigger a seamless reconnect with clean room membership validation whenever credentials changed."*

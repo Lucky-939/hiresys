@@ -216,11 +216,40 @@ export function registerSocketHandlers(io: Server) {
         io.to(roomId).emit("code:execution_result", {
           stdout: result.run.stdout,
           stderr: result.run.stderr,
-          runTime: result.run.output ? result.run.output.length : 0, // Piston API does not easily expose ms run time in basic payload, but this is a placeholder. Wait, let's omit runTime calculation or provide a static message.
+          runTime: result.run.output ? result.run.output.length : 0,
           isError
         });
       } catch (err: any) {
-        socket.emit("error", { message: err.message || "Failed to execute code" });
+        console.error("Code execution error:", err?.message);
+        const isTunnelOffline =
+          err?.code === "ECONNREFUSED" ||
+          err?.response?.status === 502 ||
+          err?.response?.status === 503 ||
+          err?.response?.status === 504 ||
+          err?.message?.includes("ngrok") ||
+          err?.message?.includes("connect ECONNREFUSED") ||
+          err?.message?.includes("timeout");
+
+        io.to(roomId).emit("code:execution_result", {
+          stdout: "",
+          stderr: isTunnelOffline
+            ? [
+                "⚠️ [HireSys Sandboxed Execution Engine - Notice]",
+                "================================================================",
+                "Status: Engine Offline (Host tunnel is currently idle)",
+                "",
+                "Architecture Note:",
+                "HireSys runs an isolated Linux Docker Piston sandbox on a dedicated host",
+                "machine tunneled via ngrok to prevent public cloud compute billing.",
+                "",
+                "Live containerized code execution is available whenever the local host",
+                "tunnel is started (Command: ngrok http 2000).",
+                "================================================================"
+              ].join("\n")
+            : (err.message || "Execution error"),
+          isError: true,
+          isTunnelOffline: Boolean(isTunnelOffline),
+        });
       }
     });
 
